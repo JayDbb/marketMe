@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { submitFeedback } from '@/app/dashboard/actions'
-import { DashboardContent } from '@/components/dashboard/dashboard-content'
+import { LeadsContent } from '@/components/dashboard/leads-content'
 
-export default async function DashboardPage() {
+export default async function LeadsPage() {
   const supabase = await createClient()
 
   const {
@@ -22,7 +21,7 @@ export default async function DashboardPage() {
       <div className="fixed bottom-0 left-0 -mb-20 -ml-20 w-[600px] h-[600px] bg-zinc-600/10 blur-[150px] rounded-full pointer-events-none" />
 
       {/* Render the interactive shell */}
-      <DashboardContent submitFeedbackAction={submitFeedback} />
+      <LeadsContent />
     </div>
   )
 }

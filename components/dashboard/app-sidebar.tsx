@@ -1,4 +1,4 @@
-import { Activity, LayoutDashboard, Settings, User, MessageSquare } from "lucide-react"
+import { Activity, LayoutDashboard, Settings, User, MessageSquare, Rocket } from "lucide-react"
 import { logout } from "@/app/login/actions"
 import { Button } from "@/components/ui/button"
 
@@ -57,6 +57,12 @@ export function AppSidebar() {
                 <SidebarMenuButton render={<Link href="/dashboard#feedback" />} tooltip="Feedback" className="hover:bg-zinc-900 hover:text-emerald-400 focus:bg-zinc-900 focus:text-emerald-400 transition-colors h-10 px-3 rounded-xl mt-1 text-zinc-300">
                   <MessageSquare className="w-5 h-5 mr-3 shrink-0" />
                   <span className="font-medium text-[15px]">Feedback</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton render={<Link href="/onboarding" />} tooltip="Setup Profile" className="hover:bg-zinc-900 hover:text-emerald-400 focus:bg-zinc-900 focus:text-emerald-400 transition-colors h-10 px-3 rounded-xl mt-1 text-zinc-300">
+                  <Rocket className="w-5 h-5 mr-3 shrink-0" />
+                  <span className="font-medium text-[15px]">Setup Profile</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

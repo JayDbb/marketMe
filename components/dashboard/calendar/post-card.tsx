@@ -28,7 +28,7 @@ function PlatformIcon({ platform }: { platform: Post['platform'] }) {
 function StatusBadge({ status }: { status: Post['status'] }) {
   if (status === 'posted') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/12 bg-white/6 text-white/55 text-[10px] font-bold uppercase tracking-[0.1em]">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/12 bg-white/6 text-white/55 text-[10px] font-bold uppercase tracking-widest">
         <Send className="w-3 h-3" />
         Posted
       </span>
@@ -36,7 +36,7 @@ function StatusBadge({ status }: { status: Post['status'] }) {
   }
   if (status === 'scheduled') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/35 bg-blue-500/10 text-blue-300 text-[10px] font-bold uppercase tracking-[0.1em]">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/35 bg-blue-500/10 text-blue-300 text-[10px] font-bold uppercase tracking-widest">
         <Clock className="w-3 h-3" />
         Scheduled
       </span>
@@ -47,7 +47,7 @@ function StatusBadge({ status }: { status: Post['status'] }) {
       <motion.span
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/40 bg-blue-500/12 text-blue-300 text-[10px] font-bold uppercase tracking-[0.1em]"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/40 bg-blue-500/12 text-blue-300 text-[10px] font-bold uppercase tracking-widest"
       >
         <CheckCircle2 className="w-3 h-3" />
         Approved
@@ -56,7 +56,7 @@ function StatusBadge({ status }: { status: Post['status'] }) {
   }
   // draft
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-white/35 text-[10px] font-bold uppercase tracking-[0.1em]">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-white/35 text-[10px] font-bold uppercase tracking-widest">
       <Clock className="w-3 h-3" />
       Draft
     </span>
@@ -121,7 +121,7 @@ export function PostCard({ post, onApprove }: PostCardProps) {
           <button
             onClick={handleApprove}
             disabled={isApproving}
-            className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/40 bg-transparent text-blue-400 hover:bg-blue-500 hover:text-white hover:border-blue-500 text-[10px] font-bold uppercase tracking-[0.1em] transition-all duration-200 disabled:cursor-wait"
+            className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/40 bg-transparent text-blue-400 hover:bg-blue-500 hover:text-white hover:border-blue-500 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 disabled:cursor-wait"
           >
             <CheckCircle2 className="w-3 h-3" />
             {isApproving ? '…' : 'Approve'}

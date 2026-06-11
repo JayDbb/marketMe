@@ -10,7 +10,7 @@ export default function ChangelogPage() {
       {/* Deep space background */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(56,90,200,0.25),transparent)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-size-[32px_32px]" />
       </div>
 
       <main className="relative z-10 flex flex-col items-center min-h-[80vh] px-6 pt-40 pb-24 w-full max-w-3xl mx-auto">

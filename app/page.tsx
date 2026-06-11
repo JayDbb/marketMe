@@ -17,7 +17,7 @@ export default function Home() {
         {/* Globe-like orb in center-bottom of hero */}
         <div className="absolute top-[30%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(60,80,180,0.35)_0%,rgba(30,40,120,0.2)_40%,transparent_70%)] blur-[2px]" />
         {/* Subtle grid overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-size-[32px_32px]" />
         {/* Edge vignette */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_100%,rgba(10,10,20,0.9),transparent_60%)]" />
       </div>

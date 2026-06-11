@@ -16,7 +16,7 @@ const trustedBy = [
 
 export function Hero() {
   return (
-    <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-6 pt-28 pb-16 overflow-hidden">
+    <section className="relative w-full min-h-dvh flex flex-col items-center justify-center px-6 pt-28 pb-16 overflow-hidden">
 
       {/* Version badge */}
       <motion.div

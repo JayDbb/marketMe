@@ -34,7 +34,7 @@ export function CalendarBoard({ initialSchedule }: CalendarBoardProps) {
           return (
             <div
               key={index}
-              className="w-[260px] flex-shrink-0 flex flex-col rounded-2xl overflow-hidden"
+              className="w-[260px] shrink-0 flex flex-col rounded-2xl overflow-hidden"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
             >
               {/* Column Header */}

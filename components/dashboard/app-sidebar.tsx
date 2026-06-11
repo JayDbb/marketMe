@@ -1,6 +1,5 @@
 import { Activity, LayoutDashboard, Settings, User, MessageSquare, Rocket, Calendar as CalendarIcon } from "lucide-react"
-import { logout } from "@/app/login/actions"
-import { Button } from "@/components/ui/button"
+import { LogoutButton } from "@/components/dashboard/logout-button"
 
 import {
   Sidebar,
@@ -111,15 +110,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-white/6 p-3 bg-[#0c0c18]">
-        <form action={logout}>
-          <Button
-            type="submit"
-            variant="ghost"
-            className="w-full justify-start text-white/35 hover:text-white hover:bg-white/5 rounded-xl h-10 font-medium text-sm"
-          >
-            Log out
-          </Button>
-        </form>
+        <LogoutButton />
       </SidebarFooter>
     </Sidebar>
   )

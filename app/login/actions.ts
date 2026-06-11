@@ -53,8 +53,18 @@ export async function signup(formData: FormData) {
 
 export async function logout() {
   const supabase = await createClient()
-  await supabase.auth.signOut()
   
-  revalidatePath('/', 'layout')
+  // Enforce a strict timeout so a slow/blocked local database doesn't freeze the app
+  try {
+    await Promise.race([
+      supabase.auth.signOut(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 800))
+    ])
+  } catch (e) {
+    console.warn('Logout network timeout - proceeding with local session clear', e)
+  }
+  
+  // Removed revalidatePath('/', 'layout') to prevent unnecessary heavy server rendering 
+  // of the entire dashboard tree when the user is just leaving.
   redirect('/login')
 }

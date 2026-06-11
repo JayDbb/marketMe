@@ -1,3 +1,5 @@
+'use client'
+
 import { Activity, LayoutDashboard, Settings, User, MessageSquare, Rocket } from "lucide-react"
 import { logout } from "@/app/login/actions"
 import { Button } from "@/components/ui/button"

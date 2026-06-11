@@ -1,0 +1,30 @@
+{
+  "configPath": "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\marketMe\\marketMe\\trigger.config.mjs",
+  "customConditions": [
+  ],
+  "prompts": [
+  ],
+  "queues": [
+  ],
+  "runtime": "node",
+  "runtimeVersion": "22.22.3",
+  "tasks": [
+    {
+      "entryPoint": "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\marketMe\\marketMe\\src\\trigger\\example.mjs",
+      "filePath": "src/trigger/example.ts",
+      "id": "hello-world",
+      "maxDuration": 300,
+      "retry": {
+        "factor": 2,
+        "maxAttempts": 3,
+        "maxTimeoutInMs": 10000,
+        "minTimeoutInMs": 1000,
+        "randomize": true
+      }
+    }
+  ],
+  "timings": {
+    "src/trigger/example.ts": 5.836700000000064
+  },
+  "workerEntryPoint": "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\Users\\javar\\AppData\\Local\\npm-cache\\_npx\\f51a09bd0abf5f10\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-run-worker.mjs"
+}

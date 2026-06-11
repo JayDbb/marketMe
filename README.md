@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Marketme
 
-## Getting Started
+AI marketing manager SaaS for small businesses. Built with Next.js, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). API routes live under `app/api/` (e.g. `/api/health`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command        | Description              |
+| -------------- | ------------------------ |
+| `npm run dev`  | Start development server |
+| `npm run build`| Production build         |
+| `npm run start`| Run production server    |
+| `npm run lint` | Run ESLint               |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+├── api/          # Route handlers (App Router)
+├── layout.tsx    # Root layout
+├── page.tsx      # Home page
+└── globals.css
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Collaboration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+We work in small, reviewable increments tied to Linear issues.
 
-## Deploy on Vercel
+1. **Start from the issue** — Read the assigned Linear ticket before writing code.
+2. **Explore first** — Inspect the existing codebase and follow established patterns.
+3. **Plan briefly** — Outline a small implementation plan before making changes.
+4. **Smallest viable change** — Ship the minimum that satisfies the issue. Avoid scope creep.
+5. **One PR per issue** — Keep pull requests focused and easy to review.
+6. **PR checklist** — Include a summary, testing notes, UI screenshots when relevant, and known limitations.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Best practices
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**TypeScript** — Use strict typing throughout. Avoid `any` unless there is a documented reason.
+
+**Reuse, don't duplicate** — Extend existing utilities, components, and clients instead of creating parallel versions.
+
+**AI outputs** — Validate all AI-generated content with schemas before persisting or returning it to users.
+
+**Secrets** — Never expose API keys, service-role keys, or other credentials to the client. Keep sensitive config server-side only.
+
+**Quality gate** — Run lint and typecheck (and tests, when present) before opening a PR.
+
+**Next.js** — This project uses Next.js 16 with the App Router. Check the local docs in `node_modules/next/dist/docs/` when working with framework APIs.
+
+## Agent & contributor notes
+
+Additional workflow rules for AI agents and contributors live in `.agents/rules/workflow.md`.

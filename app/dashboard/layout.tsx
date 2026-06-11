@@ -17,14 +17,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <SidebarProvider className="dark">
       <AppSidebar />
-      <div className="flex-1 min-h-screen bg-zinc-950 text-zinc-50 relative flex flex-col overflow-hidden">
-        {/* Sticky Header with Sidebar Trigger */}
-        <header className="sticky top-0 z-40 flex h-20 shrink-0 items-center gap-4 border-b border-zinc-800/60 bg-zinc-950/60 backdrop-blur-2xl px-6">
-          <SidebarTrigger className="text-zinc-400 hover:text-white hover:bg-zinc-800 -ml-2 transition-colors" />
+      <div className="flex-1 min-h-screen bg-[#0a0a14] text-white relative flex flex-col overflow-hidden">
+        {/* Ambient glow */}
+        <div className="fixed top-0 right-0 w-[400px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" aria-hidden="true" />
+        <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-700/8 blur-[150px] rounded-full pointer-events-none" aria-hidden="true" />
+
+        {/* Sticky Header */}
+        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-white/6 bg-[#0a0a14]/80 backdrop-blur-2xl px-6">
+          <SidebarTrigger className="text-white/30 hover:text-white transition-colors" />
           <div className="flex-1" />
-          <div className="text-sm font-medium text-zinc-400 bg-zinc-900/50 px-4 py-2 rounded-full border border-zinc-800/50">{user.email}</div>
+          <div className="text-[11px] font-mono tracking-widest uppercase text-white/30 bg-white/5 px-3 py-1.5 border border-white/8 rounded-lg max-w-[240px] truncate" title={user.email ?? ''}>{user.email}</div>
         </header>
-        
+
         {/* Page Content */}
         <main className="flex-1 relative z-10 w-full overflow-y-auto">
           {children}

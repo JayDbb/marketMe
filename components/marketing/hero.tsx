@@ -1,84 +1,167 @@
+"use client"
+
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Users, ChartBar, ArrowRight, MousePointer2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+
+const trustedBy = [
+  "Acme Corp",
+  "Quantum",
+  "Echo Valley",
+  "Celestial",
+  "PULSE",
+  "APEX",
+];
 
 export function Hero() {
   return (
-    <section className="relative w-full max-w-7xl mx-auto px-6 pt-32 pb-16 flex flex-col items-center">
-      
-      {/* Dense decorative elements to fill space */}
-      <div className="hidden lg:block absolute top-40 left-10 xl:left-20 animate-bounce" style={{ animationDuration: '3s' }}>
-         <div className="flex items-center gap-2 bg-zinc-900/80 backdrop-blur border border-zinc-800 text-zinc-300 text-xs px-3 py-1.5 rounded-full shadow-lg">
-            <MousePointer2 className="w-3 h-3 text-emerald-400" />
-            <span>Auto-optimized</span>
-         </div>
-      </div>
-      <div className="hidden lg:block absolute top-60 right-10 xl:right-20 animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}>
-         <div className="flex items-center gap-2 bg-zinc-900/80 backdrop-blur border border-zinc-800 text-zinc-300 text-xs px-3 py-1.5 rounded-full shadow-lg">
-            <Users className="w-3 h-3 text-emerald-400" />
-            <span>+400 Leads routed</span>
-         </div>
-      </div>
+    <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center px-6 pt-28 pb-16 overflow-hidden">
 
-      <div className="text-center max-w-3xl flex flex-col items-center space-y-6 z-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-        <Badge variant="outline" className="bg-zinc-900/50 text-zinc-300 border-zinc-800 px-4 py-1.5 rounded-full">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
-          Marketme 3.0 is live
-        </Badge>
-        
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-tight">
-          Marketing, <span className="text-zinc-500">automated.</span>
-        </h1>
-        
-        <p className="text-lg text-zinc-400 max-w-xl mx-auto">
+      {/* Version badge */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+        className="mb-8 flex items-center gap-2"
+      >
+        <span className="text-xs text-blue-300/70 tracking-widest uppercase font-mono">
+          Version 3.0 is live
+        </span>
+        <span className="text-xs text-white/40">·</span>
+        <Link href="/changelog" className="text-xs text-blue-400 hover:text-blue-300 transition-colors duration-200 underline underline-offset-2 decoration-blue-500/40">
+          Read more
+        </Link>
+        <ArrowRight className="w-3 h-3 text-blue-400" />
+      </motion.div>
+
+      {/* Massive headline */}
+      <div className="text-center max-w-4xl mx-auto space-y-4 z-10">
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="text-[clamp(3.5rem,10vw,7rem)] font-serif font-light tracking-tighter text-white leading-[0.95]"
+        >
+          Marketing,{" "}
+          <br />
+          <span className="italic text-blue-400">automated.</span>
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="text-base md:text-lg text-white/50 max-w-sm mx-auto leading-relaxed"
+        >
           Deploy omnichannel campaigns, route leads intelligently, and predict revenue without writing a single line of code.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="pt-4"
+        >
           <Link href="/signup">
-            <Button size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-semibold rounded-full px-8 h-12 shadow-[0_0_30px_rgba(16,185,129,0.3)] border-0 w-full sm:w-auto">
-              Start your engine
-              <ArrowRight className="ml-2 w-4 h-4" />
+            <Button
+              size="lg"
+              className="bg-white text-zinc-950 font-semibold rounded-full px-8 h-12 hover:bg-white/90 active:scale-[0.97] transition-all duration-150 shadow-[0_0_40px_rgba(99,130,255,0.3)] border-0"
+            >
+              Get for free
             </Button>
           </Link>
-          <Button size="lg" variant="outline" className="bg-zinc-900/50 hover:bg-zinc-800 text-white border-zinc-700 rounded-full px-8 h-12">
-            View Demo
-          </Button>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Clean, visible Dashboard Mockup using Shadcn styling */}
-      <div className="w-full max-w-5xl mt-20 p-2 md:p-4 bg-zinc-900/40 rounded-3xl md:rounded-[2rem] border border-zinc-800/50 backdrop-blur-md shadow-2xl animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 fill-mode-both">
-        <div className="w-full bg-zinc-950 rounded-2xl border border-zinc-800 overflow-hidden shadow-inner">
-          <div className="h-12 border-b border-zinc-800 flex items-center px-6 gap-2">
-             <div className="w-3 h-3 rounded-full bg-zinc-700" />
-             <div className="w-3 h-3 rounded-full bg-zinc-700" />
-             <div className="w-3 h-3 rounded-full bg-zinc-700" />
+      {/* Glowing orb sphere — the centrepiece from the reference */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.5, duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+        className="relative mt-16 w-full max-w-2xl mx-auto"
+        aria-hidden="true"
+      >
+        {/* Glowing sphere body with continuous float */}
+        <motion.div 
+          animate={{ y: [0, -20, 0] }}
+          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+          className="relative mx-auto w-[min(90vw,520px)] aspect-square rounded-full overflow-hidden"
+        >
+          {/* Main orb gradient */}
+          <div className="absolute inset-0 rounded-full bg-[radial-gradient(ellipse_at_30%_30%,rgba(130,150,255,0.6)_0%,rgba(60,80,200,0.7)_35%,rgba(20,30,120,0.9)_65%,rgba(8,10,40,1)_100%)]" />
+          {/* Highlight sheen with slight pulsing */}
+          <motion.div 
+            animate={{ opacity: [0.6, 1, 0.6], scale: [0.95, 1.05, 0.95] }}
+            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+            className="absolute top-[8%] left-[20%] w-[35%] h-[20%] rounded-full bg-white/20 blur-md rotate-[-20deg]" 
+          />
+          {/* Inner depth ring */}
+          <div className="absolute inset-[15%] rounded-full border border-blue-400/10" />
+          {/* Bottom glow */}
+          <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/15 rounded-full blur-2xl" />
+        </motion.div>
+
+        {/* Ground glow beneath sphere pulsating to match */}
+        <motion.div 
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: [0.9, 1.1, 0.9] }}
+          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+          className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-[80%] h-16 bg-blue-600/30 rounded-full blur-3xl" 
+        />
+
+        {/* Floating dashboard UI overlay — different float speed for parallax depth */}
+        <motion.div 
+          animate={{ y: [0, -12, 0] }}
+          transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
+          className="absolute top-[6%] right-[-5%] md:right-[-12%] w-[55%] max-w-[280px] bg-zinc-900/80 backdrop-blur-md border border-white/8 rounded-xl p-3 shadow-2xl"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-white/40 font-mono uppercase tracking-wider">Live pipeline</span>
+            <span className="flex h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
           </div>
-          <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6 bg-zinc-900/20">
-             <div className="md:col-span-2 bg-zinc-900 rounded-xl border border-zinc-800 p-6 h-64 flex items-end gap-2">
-                {[40, 70, 45, 90, 65, 80, 100, 60, 85].map((h, i) => (
-                  <div key={i} className="flex-1 bg-emerald-500/10 rounded-t border-t border-emerald-500/30 relative group h-full flex items-end">
-                    <div style={{ height: `${h}%` }} className="w-full bg-linear-to-t from-emerald-500/20 to-emerald-400/80 rounded-t relative hover:brightness-125 transition-all">
-                       <div className="absolute top-0 w-full h-0.5 bg-emerald-300" />
-                    </div>
-                  </div>
-                ))}
-             </div>
-             <div className="flex flex-col gap-6">
-                <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 flex-1 flex flex-col justify-center">
-                   <p className="text-zinc-400 text-sm mb-2 flex items-center gap-2"><Users className="w-4 h-4" /> Active Leads</p>
-                   <p className="text-4xl font-bold text-white">4,291</p>
-                </div>
-                <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6 flex-1 flex flex-col justify-center">
-                   <p className="text-zinc-400 text-sm mb-2 flex items-center gap-2"><ChartBar className="w-4 h-4" /> Conversion</p>
-                   <p className="text-4xl font-bold text-white flex items-baseline gap-2">8.4% <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">+1.2%</span></p>
-                </div>
-             </div>
-          </div>
+          {[
+            { label: "Product", val: "14 apr 11", pct: 72 },
+            { label: "Analytics", val: "12 apr 09", pct: 55 },
+            { label: "Finances", val: "09 apr 16", pct: 38 },
+          ].map((row) => (
+            <div key={row.label} className="mb-2 last:mb-0">
+              <div className="flex justify-between text-[9px] text-white/50 mb-0.5">
+                <span>{row.label}</span>
+                <span>{row.val}</span>
+              </div>
+              <div className="h-0.5 w-full bg-white/5 rounded-full">
+                <div
+                  className="h-full bg-blue-500/70 rounded-full"
+                  style={{ width: `${row.pct}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      </motion.div>
+
+      {/* Trusted by strip */}
+      <motion.div
+        id="customers"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9, duration: 0.8 }}
+        className="mt-16 flex flex-col items-center gap-4 z-10"
+      >
+        <p className="text-[11px] uppercase tracking-widest text-white/25 font-mono">
+          Trusted by the next-gen productive teams
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {trustedBy.map((brand) => (
+            <span
+              key={brand}
+              className="text-xs text-white/25 font-semibold tracking-wide hover:text-white/40 transition-colors duration-200"
+            >
+              {brand}
+            </span>
+          ))}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

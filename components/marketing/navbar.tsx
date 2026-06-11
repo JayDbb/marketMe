@@ -8,34 +8,75 @@ export async function Navbar() {
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
-    <nav className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto w-full">
-      <Link href="/" className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded bg-emerald-500 flex items-center justify-center">
-          <Activity className="w-5 h-5 text-zinc-950" />
+    <nav
+      aria-label="Main navigation"
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 max-w-5xl mx-auto w-full"
+    >
+      {/* Glass pill container — matching the reference dark navbar style */}
+      <div className="absolute inset-0 max-w-5xl mx-auto rounded-none" />
+
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2 relative z-10">
+        <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.5)]">
+          <Activity className="w-5 h-5 text-white" aria-hidden="true" />
         </div>
-        <span className="font-bold text-xl tracking-tight text-white">Marketme</span>
+        <span className="font-serif font-light text-xl tracking-tighter text-white">
+          Marketme
+        </span>
       </Link>
-      
-      <div className="flex items-center gap-2 sm:gap-4">
+
+      {/* Center nav links */}
+      <div className="hidden md:flex items-center gap-1 relative z-10">
+        {[
+          { label: 'About', href: '/about' },
+          { label: 'Features', href: '/#features' },
+          { label: 'Customers', href: '/#customers' },
+          { label: 'Updates', href: '/changelog' },
+          { label: 'Help', href: '/help' },
+        ].map((item) => {
+          const isAnchor = item.href.includes('#');
+          const className = "px-3 py-1.5 text-sm text-white/55 hover:text-white/90 transition-colors duration-200 rounded-md hover:bg-white/5";
+          
+          if (isAnchor) {
+            return (
+              <a key={item.href} href={item.href} className={className}>
+                {item.label}
+              </a>
+            );
+          }
+          
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={className}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* CTA */}
+      <div className="flex items-center gap-3 relative z-10">
         {user ? (
           <Link href="/dashboard">
-            <Button className="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-semibold rounded-full px-6 shadow-[0_0_15px_rgba(16,185,129,0.3)] border-0">
+            <Button
+              size="sm"
+              className="bg-white text-zinc-950 font-semibold rounded-full px-5 hover:bg-white/90 active:scale-[0.97] transition-all duration-150 border-0 shadow-[0_0_20px_rgba(99,130,255,0.25)]"
+            >
               Dashboard
             </Button>
           </Link>
         ) : (
-          <>
-            <Link href="/login">
-              <Button variant="ghost" className="text-zinc-300 hover:text-white hover:bg-zinc-800/50 rounded-full px-4 sm:px-6">
-                Log in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button className="bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-semibold rounded-full px-4 sm:px-6 shadow-[0_0_15px_rgba(16,185,129,0.3)] border-0">
-                Sign up
-              </Button>
-            </Link>
-          </>
+          <Link href="/signup">
+            <Button
+              size="sm"
+              className="bg-white text-zinc-950 font-semibold rounded-full px-5 hover:bg-white/90 active:scale-[0.97] transition-all duration-150 border-0 shadow-[0_0_20px_rgba(99,130,255,0.25)]"
+            >
+              Get for free
+            </Button>
+          </Link>
         )}
       </div>
     </nav>

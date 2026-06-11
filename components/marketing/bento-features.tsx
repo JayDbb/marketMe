@@ -1,98 +1,85 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Share2, Target, BarChart3, Zap } from "lucide-react";
+import { Zap, Bot, Shield, LineChart, Cpu, Workflow } from "lucide-react";
+
+const features = [
+  {
+    title: "Integration ecosystem",
+    description:
+      "Connect everything you use. Native sync with Salesforce, HubSpot, Snowflake, and 200+ tools — bidirectional, always current.",
+    icon: Cpu,
+  },
+  {
+    title: "Goal setting and tracking",
+    description:
+      "Define and track your goals. Break down objectives into achievable tasks to keep your targets in sight every day.",
+    icon: LineChart,
+  },
+  {
+    title: "Secure data encryption",
+    description:
+      "End-to-end encryption keeps your data secure and protected from unauthorized access. SOC2 Type II certified.",
+    icon: Shield,
+  },
+  {
+    title: "Autonomous Lead Routing",
+    description:
+      "Our AI evaluates incoming leads instantly, scoring them based on firmographics and engagement, then assigns them to the right rep.",
+    icon: Bot,
+  },
+  {
+    title: "Workflow Engine",
+    description:
+      "Visual builder for complex, multi-branch campaigns that trigger off real-time user behavior across email, SMS, and in-app channels.",
+    icon: Workflow,
+  },
+  {
+    title: "Instant Processing",
+    description:
+      "Built on edge functions. Your campaigns deploy globally in under 50ms, ensuring you hit customers exactly when they are active.",
+    icon: Zap,
+  },
+];
 
 export function BentoFeatures() {
   return (
-    <section className="relative w-full max-w-7xl mx-auto px-6 py-12 z-10">
-      <div className="text-center max-w-2xl mx-auto mb-16">
-        <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-4">
-          Everything you need. <br />
-          <span className="text-zinc-500">Nothing you don't.</span>
+    <section id="features" className="relative w-full max-w-5xl mx-auto px-6 py-24 z-10">
+      {/* Section header — matches reference "Everything you need" */}
+      <div className="text-center max-w-xl mx-auto mb-14">
+        <h2 className="text-3xl md:text-5xl font-serif font-light tracking-tighter text-white mb-4 leading-tight">
+          Everything you need
         </h2>
-        <p className="text-zinc-400 text-lg">A suite of tools designed to feel like magic, engineered to perform like a machine.</p>
+        <p className="text-white/45 text-base leading-relaxed">
+          Enjoy customizable lists, team work tools, and smart tracking all in one place. Set tasks, get reminders, and see your progress simply and quickly.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Large Card */}
-        <Card className="md:col-span-2 bg-zinc-900/50 border-zinc-800 text-white overflow-hidden relative group backdrop-blur-sm">
-          <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <CardHeader>
-            <div className="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center mb-4 border border-zinc-700">
-               <Share2 className="w-6 h-6 text-emerald-500" />
+      {/* Feature grid — dark cards matching reference */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {features.map((feature, i) => (
+          <div
+            key={i}
+            className={`group relative rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm p-6 hover:bg-white/6 hover:border-white/12 transition-all duration-300 overflow-hidden ${
+              i === 0 ? "sm:col-span-2 lg:col-span-1" : ""
+            }`}
+          >
+            {/* Icon */}
+            <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mb-5 group-hover:bg-blue-500/20 transition-colors duration-300">
+              <feature.icon
+                className="w-5 h-5 text-blue-400"
+                aria-hidden="true"
+              />
             </div>
-            <CardTitle className="text-2xl">Omnichannel Workflows</CardTitle>
-            <CardDescription className="text-zinc-400 text-base">
-              Launch coordinated campaigns across email, SMS, and social media from a single drag-and-drop canvas.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="mt-8 flex gap-4 overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity duration-500">
-             {/* Mock UI Elements replacing SVG */}
-             <div className="flex flex-col gap-3 min-w-[200px]">
-               <div className="bg-zinc-800 border border-zinc-700 p-3 rounded-lg flex items-center gap-3">
-                  <div className="w-6 h-6 rounded bg-emerald-500/20 flex items-center justify-center"><Zap className="w-3 h-3 text-emerald-500" /></div>
-                  <div className="h-2 w-20 bg-zinc-600 rounded-full" />
-               </div>
-               <div className="bg-zinc-800 border border-zinc-700 p-3 rounded-lg flex items-center gap-3 translate-x-4">
-                  <div className="w-6 h-6 rounded bg-zinc-700 flex items-center justify-center"><Target className="w-3 h-3 text-zinc-400" /></div>
-                  <div className="h-2 w-16 bg-zinc-600 rounded-full" />
-               </div>
-             </div>
-             <div className="flex items-center">
-                <div className="w-16 border-t-2 border-zinc-700 border-dashed" />
-             </div>
-             <div className="bg-zinc-800 border border-zinc-700 p-4 rounded-xl flex-1 max-w-[250px]">
-                <div className="h-2 w-24 bg-zinc-500 rounded-full mb-4" />
-                <div className="space-y-2">
-                   <div className="h-2 w-full bg-zinc-700 rounded-full" />
-                   <div className="h-2 w-4/5 bg-zinc-700 rounded-full" />
-                </div>
-             </div>
-          </CardContent>
-        </Card>
 
-        {/* Small Card */}
-        <Card className="bg-zinc-900/50 border-zinc-800 text-white backdrop-blur-sm group overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-32 bg-emerald-500/10 blur-[50px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <CardHeader>
-            <div className="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center mb-4 border border-zinc-700">
-               <Target className="w-6 h-6 text-emerald-500" />
-            </div>
-            <CardTitle className="text-xl">Smart Routing</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Automatically score and route new leads based on engagement.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center py-8">
-             <div className="w-24 h-24 rounded-full border-4 border-zinc-800 flex items-center justify-center relative">
-                <div className="w-16 h-16 rounded-full border-4 border-zinc-700 flex items-center justify-center">
-                   <div className="w-8 h-8 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]" />
-                </div>
-                <div className="absolute inset-0 rounded-full border-t-4 border-emerald-500 animate-spin" style={{ animationDuration: '3s' }} />
-             </div>
-          </CardContent>
-        </Card>
+            <h3 className="text-base font-semibold text-white/90 tracking-tight mb-2">
+              {feature.title}
+            </h3>
+            <p className="text-sm text-white/40 leading-relaxed">
+              {feature.description}
+            </p>
 
-        {/* Horizontal Card */}
-        <Card className="md:col-span-3 bg-zinc-900/50 border-zinc-800 text-white backdrop-blur-sm flex flex-col md:flex-row items-center overflow-hidden group">
-          <div className="md:w-1/2">
-            <CardHeader>
-              <div className="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center mb-4 border border-zinc-700">
-                 <BarChart3 className="w-6 h-6 text-emerald-500" />
-              </div>
-              <CardTitle className="text-2xl">Predictive Analytics</CardTitle>
-              <CardDescription className="text-zinc-400 text-base max-w-sm">
-                Stop guessing. See exactly which channels drive revenue and let AI suggest budget re-allocations in real-time.
-              </CardDescription>
-            </CardHeader>
+            {/* Subtle corner glow on hover */}
+            <div className="absolute -bottom-16 -right-16 w-40 h-40 bg-blue-600/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
           </div>
-          <CardContent className="md:w-1/2 p-6 w-full">
-            <div className="w-full h-48 bg-zinc-950 rounded-xl border border-zinc-800 p-4 flex items-end gap-2 shadow-inner">
-               {[30, 50, 40, 80, 60, 100, 75].map((h, i) => (
-                  <div key={i} className="flex-1 bg-emerald-500/20 rounded-t border-t border-emerald-500/50 group-hover:bg-emerald-500/40 transition-colors" style={{ height: `${h}%` }} />
-               ))}
-            </div>
-          </CardContent>
-        </Card>
+        ))}
       </div>
     </section>
   );

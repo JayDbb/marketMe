@@ -12,9 +12,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.08
-    }
+    transition: { staggerChildren: 0.08 }
   }
 }
 
@@ -29,82 +27,82 @@ interface DashboardContentProps {
 
 export function DashboardContent({ submitFeedbackAction }: DashboardContentProps) {
   return (
-    <motion.div 
+    <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="max-w-7xl mx-auto px-6 py-12 relative z-10"
+      className="max-w-6xl mx-auto px-6 py-10 relative z-10"
     >
       <motion.div variants={itemVariants} className="mb-10">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-white">Welcome back.</h1>
-        <p className="text-zinc-400 mt-3 text-lg">Here is your workspace overview for today.</p>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Welcome back.</h1>
+        <p className="text-white/40 mt-2 text-base">Here is your workspace overview for today.</p>
       </motion.div>
 
       {/* Hero Bento Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
         {/* Business Profile Summary (Span 2) */}
         <motion.div variants={itemVariants} className="lg:col-span-2">
-          <Card className="h-full bg-zinc-900/40 backdrop-blur-xl border-zinc-800/50 text-zinc-50 shadow-xl rounded-3xl overflow-hidden relative group">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-            
+          <Card className="h-full bg-white/4 backdrop-blur-xl border-white/8 text-white shadow-xl rounded-2xl overflow-hidden relative group">
+            <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
             <CardHeader className="pb-4 relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-medium text-zinc-400 tracking-tight uppercase">Active Profile</CardTitle>
-                  <h2 className="text-3xl font-bold text-white mt-1">Vanguard Atelier</h2>
+                  <CardTitle className="text-xs font-medium text-white/40 tracking-widest uppercase">Active Profile</CardTitle>
+                  <h2 className="text-2xl font-bold text-white mt-1">Vanguard Atelier</h2>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 flex items-center justify-center border border-zinc-700/50">
-                  <Briefcase className="h-6 w-6 text-emerald-400" />
+                <div className="w-11 h-11 rounded-xl bg-white/6 flex items-center justify-center border border-white/8">
+                  <Briefcase className="h-5 w-5 text-blue-400" />
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="relative z-10">
-              <div className="grid grid-cols-2 gap-6 mt-4">
+              <div className="grid grid-cols-2 gap-6 mt-2">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
-                    <Target className="w-4 h-4" />
+                  <div className="flex items-center gap-2 text-white/40 text-xs">
+                    <Target className="w-3.5 h-3.5" />
                     Target Audience
                   </div>
-                  <p className="font-medium text-white">High-Net-Worth Individuals</p>
+                  <p className="font-medium text-white text-sm">High-Net-Worth Individuals</p>
                 </div>
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
-                    <TrendingUp className="w-4 h-4" />
+                  <div className="flex items-center gap-2 text-white/40 text-xs">
+                    <TrendingUp className="w-3.5 h-3.5" />
                     Current Strategy
                   </div>
-                  <p className="font-medium text-emerald-400">Aggressive Growth</p>
+                  <p className="font-medium text-blue-400 text-sm">Aggressive Growth</p>
                 </div>
               </div>
-              <div className="mt-8 pt-6 border-t border-zinc-800/50">
-                <p className="text-sm text-zinc-500">
-                  Profile completeness: <span className="text-zinc-300 font-medium">92%</span> — ready for automated campaigns.
+              <div className="mt-6 pt-5 border-t border-white/6">
+                <p className="text-xs text-white/30">
+                  Profile completeness: <span className="text-white/60 font-medium">92%</span> — ready for automated campaigns.
                 </p>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Generate Content Action (Span 1) */}
+        {/* Generate Content Action */}
         <motion.div variants={itemVariants}>
-          <Card className="h-full bg-zinc-900/60 backdrop-blur-2xl border-zinc-800/60 text-zinc-50 shadow-2xl rounded-3xl overflow-hidden relative flex flex-col items-center justify-center p-8 text-center group">
-            {/* Liquid Glass Refraction Border */}
-            <div className="absolute inset-0 rounded-3xl border border-white/5 pointer-events-none" />
-            <div className="absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] rounded-3xl pointer-events-none" />
-            
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 mb-6 group-hover:scale-110 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]">
-              <Sparkles className="h-8 w-8 text-emerald-500" />
+          <Card className="h-full bg-white/4 backdrop-blur-2xl border-white/8 text-white shadow-2xl rounded-2xl overflow-hidden relative flex flex-col items-center justify-center p-7 text-center group">
+            <div className="absolute inset-0 rounded-2xl border border-white/5 pointer-events-none" />
+            <div className="absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] rounded-2xl pointer-events-none" />
+
+            <div className="w-14 h-14 rounded-2xl bg-blue-500/12 flex items-center justify-center border border-blue-500/20 mb-5 group-hover:scale-110 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]">
+              <Sparkles className="h-7 w-7 text-blue-400" />
             </div>
-            
-            <h3 className="text-xl font-bold text-white mb-2">Weekly Content</h3>
-            <p className="text-sm text-zinc-400 mb-8 max-w-[200px]">
+
+            <h3 className="text-lg font-bold text-white mb-2">Weekly Content</h3>
+            <p className="text-xs text-white/40 mb-7 max-w-[180px] leading-relaxed">
               Generate optimized social posts and emails for Vanguard Atelier.
             </p>
-            
+
             <motion.button
               whileTap={{ scale: 0.97 }}
-              className="w-full py-4 px-6 bg-white text-zinc-950 font-bold rounded-2xl shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-15px_rgba(255,255,255,0.5)] transition-shadow duration-300 flex items-center justify-center gap-2"
+              className="w-full py-3 px-5 bg-white text-zinc-950 font-bold rounded-xl shadow-[0_0_30px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_50px_-15px_rgba(255,255,255,0.5)] transition-shadow duration-300 flex items-center justify-center gap-2 text-sm"
             >
-              <Sparkles className="w-5 h-5" />
+              <Sparkles className="w-4 h-4" />
               Generate Now
             </motion.button>
           </Card>
@@ -112,99 +110,95 @@ export function DashboardContent({ submitFeedbackAction }: DashboardContentProps
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-16">
-        <motion.div variants={itemVariants}>
-          <Card className="bg-zinc-900/40 backdrop-blur-xl border-zinc-800/50 text-zinc-50 hover:bg-zinc-900/60 transition-colors shadow-xl rounded-3xl overflow-hidden relative group h-full">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-zinc-400 uppercase tracking-tight">Total Leads</CardTitle>
-              <div className="w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center border border-zinc-700/50">
-                <User className="h-4 w-4 text-emerald-400" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10 mt-2">
-              <div className="text-4xl font-mono font-bold text-white tracking-tight">1,234</div>
-              <p className="text-xs text-emerald-400 bg-emerald-500/10 inline-flex px-2 py-1 rounded-md mt-4 font-medium border border-emerald-500/20">
-                +20.1% from last month
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        <motion.div variants={itemVariants}>
-          <Card className="bg-zinc-900/40 backdrop-blur-xl border-zinc-800/50 text-zinc-50 hover:bg-zinc-900/60 transition-colors shadow-xl rounded-3xl overflow-hidden relative group h-full">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-zinc-400 uppercase tracking-tight">Active Campaigns</CardTitle>
-              <div className="w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center border border-zinc-700/50">
-                <LayoutDashboard className="h-4 w-4 text-emerald-400" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10 mt-2">
-              <div className="text-4xl font-mono font-bold text-white tracking-tight">12</div>
-              <p className="text-xs text-emerald-400 bg-emerald-500/10 inline-flex px-2 py-1 rounded-md mt-4 font-medium border border-emerald-500/20">
-                +3 new this week
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <Card className="bg-zinc-900/40 backdrop-blur-xl border-zinc-800/50 text-zinc-50 hover:bg-zinc-900/60 transition-colors shadow-xl rounded-3xl overflow-hidden relative group h-full">
-            <div className="absolute inset-0 bg-linear-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-zinc-400 uppercase tracking-tight">Automation Health</CardTitle>
-              <div className="w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center border border-zinc-700/50">
-                <Settings className="h-4 w-4 text-emerald-400" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10 mt-2">
-              <div className="text-4xl font-mono font-bold text-emerald-400 tracking-tight">99.9%</div>
-              <p className="text-xs text-zinc-500 mt-4 font-medium">
-                All systems running normally
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="grid gap-5 md:grid-cols-3 mb-12">
+        {[
+          {
+            label: 'Total Leads',
+            value: '1,234',
+            badge: '+20.1% from last month',
+            icon: User,
+          },
+          {
+            label: 'Active Campaigns',
+            value: '12',
+            badge: '+3 new this week',
+            icon: LayoutDashboard,
+          },
+          {
+            label: 'Automation Health',
+            value: '99.9%',
+            badge: 'All systems normal',
+            icon: Settings,
+            valueClass: 'text-blue-400',
+            badgeNeutral: true,
+          },
+        ].map((metric) => (
+          <motion.div variants={itemVariants} key={metric.label}>
+            <Card className="bg-white/4 backdrop-blur-xl border-white/8 text-white hover:bg-white/6 transition-colors shadow-xl rounded-2xl overflow-hidden relative group h-full">
+              <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                <CardTitle className="text-xs font-medium text-white/40 uppercase tracking-widest">{metric.label}</CardTitle>
+                <div className="w-8 h-8 rounded-lg bg-white/6 flex items-center justify-center border border-white/8">
+                  <metric.icon className="h-4 w-4 text-blue-400" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10 mt-1">
+                <div className={`text-3xl font-mono font-bold tracking-tight ${metric.valueClass ?? 'text-white'}`}>
+                  {metric.value}
+                </div>
+                <p className={`text-xs inline-flex px-2 py-1 rounded-lg mt-3 font-medium border ${
+                  metric.badgeNeutral
+                    ? 'bg-white/5 text-white/40 border-white/8'
+                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                }`}>
+                  {metric.badge}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
       {/* Feedback Section */}
-      <motion.div variants={itemVariants} className="mt-16">
-        <Card className="bg-zinc-900/60 backdrop-blur-2xl border-zinc-800/60 text-zinc-50 max-w-2xl shadow-2xl rounded-3xl overflow-hidden">
-          <CardHeader className="bg-zinc-900/40 border-b border-zinc-800/50 pb-6 pt-8 px-8">
-            <CardTitle className="flex items-center gap-3 text-2xl font-bold tracking-tight text-white">
-              <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                <MessageSquare className="w-5 h-5 text-emerald-500" />
+      <motion.div variants={itemVariants} id="feedback">
+        <Card className="bg-white/4 backdrop-blur-2xl border-white/8 text-white max-w-2xl shadow-2xl rounded-2xl overflow-hidden">
+          <CardHeader className="bg-white/3 border-b border-white/6 pb-5 pt-7 px-7">
+            <CardTitle className="flex items-center gap-3 text-xl font-bold tracking-tight text-white">
+              <div className="p-2 bg-blue-500/12 rounded-lg border border-blue-500/20">
+                <MessageSquare className="w-4 h-4 text-blue-400" />
               </div>
               Submit Feedback
             </CardTitle>
-            <CardDescription className="text-zinc-400 text-base mt-2">
-              Found a bug or have a feature request? Let us know, and it will be sent directly to our Linear engineering board.
+            <CardDescription className="text-white/40 text-sm mt-2">
+              Found a bug or have a feature request? Sent directly to our Linear engineering board.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-8">
-            <form action={submitFeedbackAction} className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="title" className="text-zinc-300 font-medium text-sm">Issue Title</Label>
-                <Input 
-                  id="title" 
-                  name="title" 
-                  placeholder="e.g., Campaign analytics are not updating" 
-                  required 
-                  className="h-12 bg-zinc-950/50 border-zinc-800/80 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 text-white placeholder:text-zinc-600 rounded-xl transition-all shadow-inner"
+          <CardContent className="p-7">
+            <form action={submitFeedbackAction} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-white/50 font-medium text-xs uppercase tracking-wider">Issue Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  placeholder="e.g., Campaign analytics are not updating"
+                  required
+                  className="h-11 bg-white/5 border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-white placeholder:text-white/20 rounded-xl transition-all shadow-none"
                 />
               </div>
-              <div className="space-y-3">
-                <Label htmlFor="description" className="text-zinc-300 font-medium text-sm">Detailed Description</Label>
-                <Textarea 
-                  id="description" 
-                  name="description" 
-                  placeholder="Please provide steps to reproduce or details about your feature request..." 
-                  required 
-                  className="bg-zinc-950/50 border-zinc-800/80 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 min-h-[140px] text-white placeholder:text-zinc-600 rounded-xl transition-all shadow-inner resize-y p-4"
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-white/50 font-medium text-xs uppercase tracking-wider">Detailed Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  placeholder="Please provide steps to reproduce or details about your feature request..."
+                  required
+                  className="bg-white/5 border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 min-h-[120px] text-white placeholder:text-white/20 rounded-xl transition-all shadow-none resize-y p-4"
                 />
               </div>
-              <Button type="submit" className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] border-0 transition-all flex items-center justify-center gap-2 mt-2">
+              <Button
+                type="submit"
+                className="w-full h-11 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.2)] border-0 transition-all flex items-center justify-center gap-2 active:scale-[0.97]"
+              >
                 <Send className="w-4 h-4" />
                 Submit to Linear
               </Button>

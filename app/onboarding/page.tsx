@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-zinc-950 font-sans flex text-zinc-50">
+    <div className="min-h-dvh bg-zinc-950 font-sans flex text-zinc-50">
       <OnboardingWizard />
     </div>
   )

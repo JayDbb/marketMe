@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { ArrowLeft, Activity, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 function SubmitButton() {
@@ -29,7 +29,7 @@ function SubmitButton() {
   )
 }
 
-export default function SignupPage() {
+function SignupContent() {
   const searchParams = useSearchParams()
   const message = searchParams.get('message')
   const [showPassword, setShowPassword] = useState(false)
@@ -181,11 +181,13 @@ export default function SignupPage() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0a0a14] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
       <SignupContent />
     </Suspense>
   )

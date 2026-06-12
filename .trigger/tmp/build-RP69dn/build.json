@@ -1,0 +1,104 @@
+{
+  "build": {
+  },
+  "cliPackageVersion": "4.4.6",
+  "config": {
+    "dirs": [
+      "./src/trigger"
+    ],
+    "project": "proj_tzdygkuaynmpopiwidtt"
+  },
+  "configPath": "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\marketMe\\marketMe\\trigger.config.mjs",
+  "contentHash": "e2452727129f9e4626b2f312337019dd",
+  "customConditions": [
+  ],
+  "deploy": {
+    "env": {
+    }
+  },
+  "environment": "dev",
+  "externals": [
+    {
+      "name": "import-in-the-middle",
+      "version": "1.11.0"
+    }
+  ],
+  "files": [
+    {
+      "entry": "src/trigger/example.ts",
+      "out": "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\marketMe\\marketMe\\src\\trigger\\example.mjs"
+    }
+  ],
+  "indexWorkerEntryPoint": "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\Users\\javar\\AppData\\Local\\npm-cache\\_npx\\f51a09bd0abf5f10\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-index-worker.mjs",
+  "otelImportHook": {
+    "include": [
+    ]
+  },
+  "outputHashes": {
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\Users\\javar\\AppData\\Local\\npm-cache\\_npx\\f51a09bd0abf5f10\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-index-worker.mjs": "smu1bfMLqFA",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\Users\\javar\\AppData\\Local\\npm-cache\\_npx\\f51a09bd0abf5f10\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-index-worker.mjs.map": "mkkmeB+tjyg",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\Users\\javar\\AppData\\Local\\npm-cache\\_npx\\f51a09bd0abf5f10\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-run-worker.mjs": "GWkYvhtS/J0",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\Users\\javar\\AppData\\Local\\npm-cache\\_npx\\f51a09bd0abf5f10\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-run-worker.mjs.map": "6wMYLQKdZsE",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-DCEHRCWR.mjs": "HX52Tq05/SE",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-DCEHRCWR.mjs.map": "bJpYhwPvDeU",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-FRUHISJF.mjs": "hAOAuSGgm2M",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-FRUHISJF.mjs.map": "MQGJOcyFmos",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-GWKRNY4C.mjs": "/YFzc0SQj3I",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-GWKRNY4C.mjs.map": "LMPzUuAiOIM",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-K3KGQAPZ.mjs": "q0gtwomzyMA",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-K3KGQAPZ.mjs.map": "8cky1pkaSGA",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-LD4YIQ6R.mjs": "jMq8IVtDePw",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-LD4YIQ6R.mjs.map": "YloW/bJolM8",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-PW2CUVGB.mjs": "rpVgau6UWnQ",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-PW2CUVGB.mjs.map": "xcrXFFakb+g",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-UW7LKCID.mjs": "BT7ImNtDabk",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\chunk-UW7LKCID.mjs.map": "O1DThn+/bKw",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\crypto.node-5QJ4WSS3.mjs": "n+qiyymumqY",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\crypto.node-5QJ4WSS3.mjs.map": "Iowl80NjDJ8",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\crypto.node-ZXAEPQH6.mjs": "mBcV0jD+ULo",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\crypto.node-ZXAEPQH6.mjs.map": "0b4tlwmkM3g",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\esm-RUGFQMYQ.mjs": "wucZSIhHAZE",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\esm-RUGFQMYQ.mjs.map": "H6JvjkpJG3A",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\esm-VVLX4HAP.mjs": "eQgdyPh5DCU",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\esm-VVLX4HAP.mjs.map": "VON93E1In1A",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-bsd-7IZPOJPD.mjs": "wAi6pNjkThI",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-bsd-7IZPOJPD.mjs.map": "HidMkGWWT3U",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-darwin-FP5WT4SE.mjs": "3SJlbz//dFQ",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-darwin-FP5WT4SE.mjs.map": "PfdWcXG8j8U",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-linux-FMCBM5PK.mjs": "N1mlNAMLl4A",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-linux-FMCBM5PK.mjs.map": "kzuJ4zGmF1Q",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-unsupported-PLUCUVAM.mjs": "0dsR2fxnea0",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-unsupported-PLUCUVAM.mjs.map": "Xa1TNFQW0SY",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-win-3EELWG5F.mjs": "6f5hd9NjAnQ",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\getMachineId-win-3EELWG5F.mjs.map": "F1b1ox16mBI",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\marketMe\\marketMe\\src\\trigger\\example.mjs": "3MSLO+/J+DY",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\marketMe\\marketMe\\src\\trigger\\example.mjs.map": "Sh+K8sfT1Sg",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\marketMe\\marketMe\\trigger.config.mjs": "9fuIdkfElhs",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\marketMe\\marketMe\\trigger.config.mjs.map": "huKtBhIHUE4",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\s2s-L7P3J7UL.mjs": "XsGzCUTKBmk",
+    "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\s2s-L7P3J7UL.mjs.map": "VG09UMhB4og"
+  },
+  "outputPath": "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn",
+  "packageVersion": "4.4.6",
+  "runWorkerEntryPoint": "C:\\marketMe\\marketMe\\.trigger\\tmp\\build-RP69dn\\Users\\javar\\AppData\\Local\\npm-cache\\_npx\\f51a09bd0abf5f10\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-run-worker.mjs",
+  "runtime": "node",
+  "sources": {
+    "package.json": {
+      "contentHash": "2fdd751c144e771cda87a7f1967f7e7a",
+      "contents": "eJx1kU1uwyAQRvc+xYh1jH/kpkpWWfQclihMLRQbWwxxW0W5ewW2EY7SHbwHzDfDPQNgRgzIzsAGYa/oBmQHT2e0pEfjRckrXi50snoWzh939oYBkbR6csTOcM8AAJjC2d8y+OPArw8L/rzpXkWx7FZFTlgX1bJbVa9NMEhhlQE8QlWFExqFRmpMSl+c1V2HliucC1JXf7PhDT9uz/kCHlZHXvP3jVoUcsEnXvNmh3M1DolKAswf/2QQuv/WRkmiYhrJSfKWtfHdXco4ll3Oi/udkAozqvA1bV0+mRi5rU6v1BY70esIPXxiuRzNl+7y19NJ+tn3EcqF3w/8LQwne/wBDtigDw=="
+    },
+    "src/trigger/example.ts": {
+      "contentHash": "2b915c4237d5a82232856d51d31aa0a9",
+      "contents": "eJxdkL1qw0AQhPt7iolIIYMiGYybEw4pUqRMYXDrQ3dWDku3ZvfkH4TePehiY0izzezMfLu+PxFHjIhGjgUuxkdMODD1yD4i+7Z1XFp3rsQeq/Mqq5Vy12RpKEjEj+s62hF3dmvkiE3KyUcFeKuRJfntMutZoYDeXD8HNtFT0FgtlwWqCmv0PgzRiQJ4CBpGbqFBfjK3jozVGNE7EdM6DYnsQ4tpgc075hokEOpc2VGbZ19z4R//9kn/khW4p5X3qEWtkruqsJuPPhBjDXENBStJMekZ8ygPxPn4EDXWmB52dnHgcCfBk3P/zdQ4EWc1Xsd/3dO+SPtTrYCpUHPaL/jTfNw="
+    },
+    "trigger.config.ts": {
+      "contentHash": "924d25ab1cee07d40881524e02f9d688",
+      "contents": "eJxlUMtu2zAQvOsrBjqlgGq5NdADc2mRXAy0p+ZSFEXBiCt5a5IrkEvZSeB/LyTbRYJe+JjhzHCHwyhJ8QJHPUe6k9jzgBP6JAH1Z008DJRWjqY2u307berbqqLjInLU2+L1jfTmpQLGJH+oU4N6Pv3WZ/c07It9imGUkQ/sVOumAlKJyoEM6iiOFsjL8JUm8ga1l2GB2hYPO0KwR3QSxqKETJ1El2GhNu/BGdZ7OZCDyuy6wraH7uhMpxJBx47IZeiOM1xJVlliA1Yc2Hs8ErLKOJJbnRN/SEFnI2SilNjRWSgRNoKj44ldsX7xvyi+E2GnOmbTtq9rc9LlNpWY22CP76/RFeaB7i83g82n9XqphDQxZYO5R4CiffTktvGeJgNNhZoFv1R/fbaYfVGlMGo22DRXlOMDB5Ki2/gtG3xYn1Muiv+4f2RvO5Vk8PEKJBudBH6m1784zduyOE7Z4Ge9anPqruPXv5rq9O62+guL6sPG"
+    },
+    "tsconfig.json": {
+      "contentHash": "5be2803150dc9171a561e4c8ee65d200",
+      "contents": "eJx1UctqwzAQvAf8D0JHk9htL4WcCiWHhoZCewyhyNbWUaMX0jpNCfn3Iil2UtGe7J2ZHe94jsWEENoaZYUE92JRGO3pnBwDTghF5jpAOid08XZ3c3tPp2dCiobOyZpyo+iUhEclEBxrJIQZvIYD0s0gZ1Kar2VwRtfDgPqdsM+iedxCu8spdKLFDNRmoUQOgl8Z3kt40gjO2IxVkQsBzif9Jl7BG9mH1EHS9JpLcKPGBXYPS2/0avC5NhfeSIbAE5mn+/SHYOqAtTgLw7imWwcKNDKZrVjZdyIWsE4IGZpI+ZmKUWKQAT+ll/FXW4bbqwoJoQ91Gbuq6pJuEhqXTnElnCN7DpePRv8Z6H3FK/Tj2WVZl3/Ml1xV2Kvx24Kvc3HiOOz/4eOsrgB0ouvAVa3RH6IL0kCklBQO48lUGw7v6tzAppiciskPM/6+dw=="
+    }
+  },
+  "target": "dev"
+}

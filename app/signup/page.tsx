@@ -2,6 +2,7 @@
 
 import { useFormStatus } from 'react-dom'
 import { signup } from '@/app/login/actions'
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -175,5 +176,17 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <SignupContent />
+    </Suspense>
   )
 }

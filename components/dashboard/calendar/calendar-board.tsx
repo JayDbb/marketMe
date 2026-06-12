@@ -5,18 +5,18 @@ import { DaySchedule } from '@/types/content';
 import { PostCard } from './post-card';
 
 interface CalendarBoardProps {
-  initialSchedule: DaySchedule[];
+  schedule: DaySchedule[];
+  setSchedule: React.Dispatch<React.SetStateAction<DaySchedule[]>>;
 }
 
-export function CalendarBoard({ initialSchedule }: CalendarBoardProps) {
-  const [schedule, setSchedule] = useState(initialSchedule);
+export function CalendarBoard({ schedule, setSchedule }: CalendarBoardProps) {
 
-  const handleApprove = (postId: string) => {
+  const handleApprove = (postId: number) => {
     setSchedule(prev =>
       prev.map(day => ({
         ...day,
         posts: day.posts.map(post =>
-          post.id === postId ? { ...post, status: 'approved' as const } : post
+          post.post_id === postId ? { ...post, status: 'pending_approval' as const } : post
         ),
       }))
     );
@@ -52,11 +52,11 @@ export function CalendarBoard({ initialSchedule }: CalendarBoardProps) {
                 {day.posts.length > 0 ? (
                   day.posts.map(post => (
                     <PostCard
-                      key={post.id}
+                      key={post.post_id}
                       post={post}
                       onApprove={
                         post.status === 'draft'
-                          ? () => handleApprove(post.id)
+                          ? () => handleApprove(post.post_id)
                           : undefined
                       }
                     />

@@ -4,11 +4,19 @@ import { type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
+function sanitizeRedirect(next: string | null): string {
+  const fallback = '/dashboard'
+  if (!next) return fallback
+  // Only allow relative paths that start with a single slash (not //)
+  if (!next.startsWith('/') || next.startsWith('//')) return fallback
+  return next
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
-  const next = searchParams.get('next') ?? '/dashboard'
+  const next = sanitizeRedirect(searchParams.get('next'))
 
   if (token_hash && type) {
     const supabase = await createClient()
@@ -24,5 +32,5 @@ export async function GET(request: NextRequest) {
   }
 
   // redirect the user to an error page with some instructions
-  redirect('/login?message=Invalid token')
+  redirect('/login?message=Invalid or expired token&type=error')
 }

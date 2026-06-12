@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { Post } from '@/types/content';
+import { Post, Platform } from '@/types/content';
 import { MessageCircle, Briefcase, Camera, Clock, CheckCircle2, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,7 +11,7 @@ interface PostCardProps {
 }
 
 // ── Platform icon inside a small circle, matching the reference ────────────
-function PlatformIcon({ platform }: { platform: Post['platform'] }) {
+function PlatformIcon({ platform }: { platform: Platform }) {
   const icons = {
     twitter:   <MessageCircle className="w-3.5 h-3.5" />,
     linkedin:  <Briefcase     className="w-3.5 h-3.5" />,
@@ -26,15 +26,15 @@ function PlatformIcon({ platform }: { platform: Post['platform'] }) {
 
 // ── Status badge — exactly replicates the reference pill styles ────────────
 function StatusBadge({ status }: { status: Post['status'] }) {
-  if (status === 'posted') {
+  if (status === 'published') {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/12 bg-white/6 text-white/55 text-[10px] font-bold uppercase tracking-widest">
         <Send className="w-3 h-3" />
-        Posted
+        Published
       </span>
     );
   }
-  if (status === 'scheduled') {
+  if (status === 'pending_approval') {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/35 bg-blue-500/10 text-blue-300 text-[10px] font-bold uppercase tracking-widest">
         <Clock className="w-3 h-3" />
@@ -79,7 +79,7 @@ export function PostCard({ post, onApprove }: PostCardProps) {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  }).format(new Date(post.scheduledFor));
+  }).format(new Date(post.scheduled_date));
 
   return (
     <div
@@ -91,15 +91,26 @@ export function PostCard({ post, onApprove }: PostCardProps) {
     >
       {/* Top row: platform icon + time */}
       <div className="flex items-center gap-2.5">
-        <PlatformIcon platform={post.platform} />
+        <PlatformIcon platform={post.social_account?.platform || 'twitter'} />
         <span className="text-[11px] font-mono text-white/40 tracking-wide">
           {timeString}
         </span>
       </div>
 
+      {/* Asset Image */}
+      {post.media_url && (
+        <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/5 mt-1">
+          <img 
+            src={post.media_url} 
+            alt="Post media" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+
       {/* Post content */}
-      <p className="text-sm text-white/80 leading-relaxed line-clamp-4 font-light">
-        {post.content}
+      <p className="text-sm text-white/80 leading-relaxed line-clamp-4 font-light mt-1">
+        {post.caption}
       </p>
 
       {/* Status badge row */}

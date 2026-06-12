@@ -1,15 +1,22 @@
-export type PostStatus = 'draft' | 'approved' | 'scheduled' | 'posted';
+export type PostStatus = 'draft' | 'pending_approval' | 'approved' | 'published';
 export type Platform = 'twitter' | 'linkedin' | 'instagram';
 
 export interface Post {
-  id: string;
-  content: string;
+  post_id: number;
+  business_id: number;
+  account_id: number;
+  idea_id?: number | null;
+  schedule_id?: number | null;
+  caption: string;
+  media_url?: string | null;
+  scheduled_date: string; // ISO string
   status: PostStatus;
-  platform: Platform;
-  scheduledFor: string; // ISO string representation of the date and time
-  createdAt: string;
-  authorId: string;
-  assetUrl?: string; // Optional image/video associated with the post
+  // Joined relation for UI convenience
+  social_account?: {
+    platform: Platform;
+  };
+  // Local only UI property for file uploads
+  file?: File | null;
 }
 
 export interface DaySchedule {

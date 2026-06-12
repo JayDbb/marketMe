@@ -43,7 +43,6 @@ export function OnboardingWizard() {
   const [direction, setDirection] = useState<1 | -1>(1)
 
   const handleNext = () => {
-    if (currentStep === 0 && !formData.businessName.trim()) return
     setDirection(1)
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1)
@@ -97,7 +96,10 @@ export function OnboardingWizard() {
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-2xl bg-white/4 border border-white/8 backdrop-blur-xl shadow-2xl z-10 p-8 md:p-12 rounded-2xl relative">
+      <form 
+        onSubmit={(e) => { e.preventDefault(); handleNext(); }} 
+        className="w-full max-w-2xl bg-white/4 border border-white/8 backdrop-blur-xl shadow-2xl z-10 p-8 md:p-12 rounded-2xl relative"
+      >
 
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-10">
@@ -349,15 +351,15 @@ export function OnboardingWizard() {
           </Button>
 
           <motion.button
+            type="submit"
             whileTap={{ scale: 0.97 }}
-            onClick={handleNext}
             className="h-11 px-8 bg-white hover:bg-white/90 text-zinc-950 font-bold rounded-xl shadow-xl transition-all flex items-center justify-center gap-2 text-sm border-0 active:scale-[0.97]"
           >
             {currentStep === steps.length - 1 ? 'Complete Setup' : 'Continue'}
             {currentStep < steps.length - 1 && <ArrowRight className="w-4 h-4" />}
           </motion.button>
         </div>
-      </div>
+      </form>
     </div>
   )
 }

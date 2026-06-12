@@ -15,11 +15,31 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
-    redirect('/login?message=Could not authenticate user')
+    redirect(`/login?message=${encodeURIComponent(error.message)}&type=error`)
   }
 
   revalidatePath('/', 'layout')
   redirect('/onboarding')
+}
+
+export async function signInWithMagicLink(formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get('email') as string
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${origin}/auth/confirm`,
+    },
+  })
+
+  if (error) {
+    redirect(`/login?message=${encodeURIComponent(error.message)}&type=error`)
+  }
+
+  redirect('/login?message=Check your email for the magic link!&type=success')
 }
 
 export async function signup(formData: FormData) {
@@ -42,7 +62,7 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    redirect('/signup?message=Could not create user')
+    redirect(`/signup?message=${encodeURIComponent(error.message)}&type=error`)
   }
 
   // If email confirmation is disabled, user is automatically signed in. If not, they must check email.
@@ -53,18 +73,8 @@ export async function signup(formData: FormData) {
 
 export async function logout() {
   const supabase = await createClient()
+  await supabase.auth.signOut()
   
-  // Enforce a strict timeout so a slow/blocked local database doesn't freeze the app
-  try {
-    await Promise.race([
-      supabase.auth.signOut(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 800))
-    ])
-  } catch (e) {
-    console.warn('Logout network timeout - proceeding with local session clear', e)
-  }
-  
-  // Removed revalidatePath('/', 'layout') to prevent unnecessary heavy server rendering 
-  // of the entire dashboard tree when the user is just leaving.
+  revalidatePath('/', 'layout')
   redirect('/login')
 }

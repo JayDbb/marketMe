@@ -29,7 +29,7 @@ function SubmitButton() {
   )
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams()
   const message = searchParams.get('message')
   const [showPassword, setShowPassword] = useState(false)

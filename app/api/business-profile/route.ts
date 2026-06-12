@@ -7,13 +7,23 @@ import type { BusinessProfile, BusinessProfileInput } from '@/types/business-pro
  * GET /api/business-profile
  * Returns the authenticated user's business profile.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  let user = null
+  let authError = null
+
+  const authHeader = request.headers.get('authorization')
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7)
+    const { data, error } = await supabase.auth.getUser(token)
+    user = data?.user
+    authError = error
+  } else {
+    const { data, error } = await supabase.auth.getUser()
+    user = data?.user
+    authError = error
+  }
 
   if (authError || !user) {
     return NextResponse.json(
@@ -52,10 +62,20 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  let user = null
+  let authError = null
+
+  const authHeader = request.headers.get('authorization')
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7)
+    const { data, error } = await supabase.auth.getUser(token)
+    user = data?.user
+    authError = error
+  } else {
+    const { data, error } = await supabase.auth.getUser()
+    user = data?.user
+    authError = error
+  }
 
   if (authError || !user) {
     return NextResponse.json(

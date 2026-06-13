@@ -3,8 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -27,7 +28,7 @@ export async function PATCH(
         status,
         ...(scheduled_at && { scheduled_at })
       })
-      .eq('id', params.id)
+      .eq('id', id)
       // Enforce user ownership
       .eq('user_id', user.id)
       .select()

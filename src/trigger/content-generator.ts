@@ -138,8 +138,11 @@ export const generateImage = task({
     // MAR-20: Ensure we have an image prompt
     let prompt = post.image_prompt;
     if (!prompt) {
+      const isOpenRouter = process.env.OPENAI_API_KEY?.startsWith('sk-or-');
+      const modelName = isOpenRouter ? "openai/gpt-4o-mini" : "gpt-4o-mini";
+
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: modelName,
         messages: [
           { role: "system", content: "You write image prompts for AI image generators like DALL-E." },
           { role: "user", content: `Write a highly detailed image generation prompt for this post: "${post.content}". Style: ${payload.style || 'High quality, professional photograph'}.` }
@@ -159,18 +162,43 @@ export const generateImage = task({
       size: "1024x1024",
     });
 
-    const imageUrl = imageResponse.data[0].url;
+    const imageUrl = imageResponse.data?.[0]?.url;
 
     if (!imageUrl) throw new Error("No image generated");
 
-    // In a production app, we would download the image buffer from imageUrl 
-    // and upload it to supabase storage here to prevent URL expiration.
-    // For now, we save the DALL-E URL directly.
+    // Download the image buffer from the DALL-E URL
+    const fetchResponse = await fetch(imageUrl);
+    const arrayBuffer = await fetchResponse.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const fileName = `Posts/post-${payload.postId}-${Date.now()}.png`;
+    const bucketName = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'generated-content';
+
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabaseAdmin
+      .storage
+      .from(bucketName)
+      .upload(fileName, buffer, {
+        contentType: 'image/png',
+        upsert: true,
+      });
+
+    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}. Make sure the bucket '${bucketName}' exists and is public!`);
+
+    // Get the permanent public URL
+    const { data: publicUrlData } = supabaseAdmin
+      .storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+
+    const permanentUrl = publicUrlData.publicUrl;
+
+    // Save the permanent URL to the database
     await supabaseAdmin
       .from('posts')
-      .update({ image_url: imageUrl, status: 'draft' })
+      .update({ image_url: permanentUrl, status: 'draft' })
       .eq('id', payload.postId);
 
-    return { success: true, imageUrl };
+    return { success: true, imageUrl: permanentUrl };
   },
 });

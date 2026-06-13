@@ -14,6 +14,12 @@ export default async function DashboardPage() {
     return redirect('/login')
   }
 
+  const { data: profile } = await supabase
+    .from('business_profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
+
   return (
     <div className="relative min-h-full font-sans">
       {/* Ambient Backgrounds */}
@@ -22,7 +28,7 @@ export default async function DashboardPage() {
       <div className="fixed bottom-0 left-0 -mb-20 -ml-20 w-[600px] h-[600px] bg-indigo-700/8 blur-[150px] rounded-full pointer-events-none" />
 
       {/* Render the interactive shell */}
-      <DashboardContent submitFeedbackAction={submitFeedback} />
+      <DashboardContent submitFeedbackAction={submitFeedback} profile={profile} />
     </div>
   )
 }

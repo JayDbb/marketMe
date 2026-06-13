@@ -21,11 +21,43 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100, damping: 20 } }
 }
 
+import { useState } from 'react'
+
 interface DashboardContentProps {
   submitFeedbackAction: (formData: FormData) => void;
+  profile?: any;
 }
 
-export function DashboardContent({ submitFeedbackAction }: DashboardContentProps) {
+export function DashboardContent({ submitFeedbackAction, profile }: DashboardContentProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateStatus, setGenerateStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleGenerate = async () => {
+    if (!profile) return;
+    
+    setIsGenerating(true);
+    setGenerateStatus('idle');
+    
+    try {
+      const res = await fetch('/api/content-plans/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessProfileId: profile.id,
+          startDate: new Date().toISOString(),
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to generate');
+      
+      setGenerateStatus('success');
+      setTimeout(() => setGenerateStatus('idle'), 3000);
+    } catch (err) {
+      setGenerateStatus('error');
+    } finally {
+      setIsGenerating(false);
+    }
+  }
   return (
     <motion.div
       variants={containerVariants}
@@ -49,7 +81,7 @@ export function DashboardContent({ submitFeedbackAction }: DashboardContentProps
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-xs font-medium text-white/40 tracking-widest uppercase">Active Profile</CardTitle>
-                  <h2 className="text-2xl font-bold text-white mt-1">Vanguard Atelier</h2>
+                  <h2 className="text-2xl font-bold text-white mt-1">{profile?.business_name || 'Complete Your Profile'}</h2>
                 </div>
                 <div className="w-11 h-11 rounded-xl bg-white/6 flex items-center justify-center border border-white/8">
                   <Briefcase className="h-5 w-5 text-blue-400" />
@@ -64,14 +96,14 @@ export function DashboardContent({ submitFeedbackAction }: DashboardContentProps
                     <Target className="w-3.5 h-3.5" />
                     Target Audience
                   </div>
-                  <p className="font-medium text-white text-sm">High-Net-Worth Individuals</p>
+                  <p className="font-medium text-white text-sm line-clamp-1">{profile?.target_audience || 'Not specified'}</p>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-white/40 text-xs">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    Current Strategy
+                    Brand Voice
                   </div>
-                  <p className="font-medium text-blue-400 text-sm">Aggressive Growth</p>
+                  <p className="font-medium text-blue-400 text-sm line-clamp-1">{profile?.brand_voice || 'Not specified'}</p>
                 </div>
               </div>
               <div className="mt-6 pt-5 border-t border-white/6">
@@ -95,15 +127,35 @@ export function DashboardContent({ submitFeedbackAction }: DashboardContentProps
 
             <h3 className="text-lg font-bold text-white mb-2">Weekly Content</h3>
             <p className="text-xs text-white/40 mb-7 max-w-[180px] leading-relaxed">
-              Generate optimized social posts and emails for Vanguard Atelier.
+              Generate optimized social posts and emails for {profile?.business_name || 'your business'}.
             </p>
 
             <motion.button
-              whileTap={{ scale: 0.97 }}
-              className="w-full py-3 px-5 bg-white text-zinc-950 font-bold rounded-xl shadow-[0_0_30px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_50px_-15px_rgba(255,255,255,0.5)] transition-shadow duration-300 flex items-center justify-center gap-2 text-sm"
+              whileTap={{ scale: profile && !isGenerating ? 0.97 : 1 }}
+              onClick={handleGenerate}
+              disabled={!profile || isGenerating}
+              className={`w-full py-3 px-5 font-bold rounded-xl shadow-[0_0_30px_-10px_rgba(255,255,255,0.3)] transition-all duration-300 flex items-center justify-center gap-2 text-sm ${
+                !profile ? 'bg-white/10 text-white/40 cursor-not-allowed' :
+                generateStatus === 'success' ? 'bg-green-500 text-white shadow-[0_0_50px_-15px_rgba(34,197,94,0.5)]' :
+                generateStatus === 'error' ? 'bg-red-500 text-white' :
+                'bg-white text-zinc-950 hover:shadow-[0_0_50px_-15px_rgba(255,255,255,0.5)]'
+              }`}
             >
-              <Sparkles className="w-4 h-4" />
-              Generate Now
+              {isGenerating ? (
+                <>
+                  <div className="w-4 h-4 rounded-full border-2 border-zinc-950 border-t-transparent animate-spin" />
+                  Generating...
+                </>
+              ) : generateStatus === 'success' ? (
+                'Job Triggered!'
+              ) : generateStatus === 'error' ? (
+                'Failed to Start'
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Generate Now
+                </>
+              )}
             </motion.button>
           </Card>
         </motion.div>

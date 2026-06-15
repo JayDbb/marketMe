@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ArrowRight, ArrowLeft, Building2, Globe, MapPin, AtSign, Users, Target, MessageSquare, Briefcase, Rocket, Sparkles, Megaphone, X } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Building2, Globe, MapPin, AtSign, Users, Target, MessageSquare, Briefcase, Rocket, Sparkles, Megaphone, X, Loader2, CheckCircle2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Activity } from 'lucide-react'
@@ -17,6 +17,14 @@ const steps = [
   { id: 'strategy', title: 'Brand & Strategy', description: 'Help us dial in the AI to match your exact voice.' },
 ]
 
+const analysisSteps = [
+  "Crawling website & extracting business context...",
+  "Analyzing Instagram content & audience...",
+  "Identifying core services & brand tone...",
+  "Generating content pillars...",
+  "Building Business Profile..."
+];
+
 const primaryGoals = ['Lead Generation', 'Brand Awareness', 'Direct Sales', 'Bookings / Consultations']
 const contentChannels = ['Instagram', 'LinkedIn', 'Twitter / X', 'Email Newsletter', 'TikTok']
 
@@ -26,6 +34,8 @@ const labelClass = "text-white/45 font-medium text-xs uppercase tracking-wider f
 export function OnboardingWizard() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisStep, setAnalysisStep] = useState(0)
   const [formData, setFormData] = useState({
     businessName: '',
     industry: '',
@@ -42,12 +52,29 @@ export function OnboardingWizard() {
   })
   const [direction, setDirection] = useState<1 | -1>(1)
 
+  useEffect(() => {
+    if (isAnalyzing) {
+      let current = 0;
+      const interval = setInterval(() => {
+        if (current < analysisSteps.length - 1) {
+          current++;
+          setAnalysisStep(current);
+        } else {
+          clearInterval(interval);
+          setTimeout(() => router.push('/dashboard'), 1500);
+        }
+      }, 1500);
+
+      return () => clearInterval(interval);
+    }
+  }, [isAnalyzing, router]);
+
   const handleNext = () => {
     setDirection(1)
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1)
     } else {
-      setTimeout(() => router.push('/dashboard'), 400)
+      setIsAnalyzing(true)
     }
   }
 
@@ -69,6 +96,57 @@ export function OnboardingWizard() {
         ? prev.channels.filter(c => c !== channel)
         : [...prev.channels, channel]
     }))
+  }
+
+  if (isAnalyzing) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#0a0a14] font-sans items-center justify-center py-12 px-4 relative overflow-hidden w-full">
+        {/* Pulsing ambient orb for analysis mode */}
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-blue-600/20 blur-[150px] rounded-full pointer-events-none animate-pulse" aria-hidden="true" />
+        <div className="fixed inset-0 bg-[linear-gradient(to_right,#ffffff04_1px,transparent_1px),linear-gradient(to_bottom,#ffffff04_1px,transparent_1px)] bg-size-[32px_32px] pointer-events-none" aria-hidden="true" />
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md bg-white/4 border border-white/8 backdrop-blur-xl shadow-2xl z-10 p-10 rounded-2xl relative flex flex-col items-center"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/30 mb-8 relative">
+            <Activity className="w-8 h-8 text-blue-400 absolute animate-ping opacity-20" />
+            <Activity className="w-8 h-8 text-blue-400 relative z-10" />
+          </div>
+          
+          <h2 className="text-2xl font-serif font-light text-white mb-8 text-center tracking-tight">
+            AI Analysis in Progress
+          </h2>
+          
+          <div className="w-full space-y-5">
+            {analysisSteps.map((step, idx) => {
+              const isCompleted = idx < analysisStep;
+              const isActive = idx === analysisStep;
+              const isPending = idx > analysisStep;
+              
+              return (
+                <div key={idx} className={`flex items-center gap-4 transition-all duration-500 ${isPending ? 'opacity-30' : 'opacity-100'}`}>
+                  <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                    {isCompleted ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
+                    ) : isActive ? (
+                      <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                    ) : (
+                      <div className="w-2 h-2 rounded-full bg-white/20" />
+                    )}
+                  </div>
+                  <span className={`text-[15px] font-medium transition-colors duration-500 ${isActive ? 'text-white' : 'text-white/60'}`}>
+                    {step}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   return (

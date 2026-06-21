@@ -28,7 +28,7 @@ function SubmitButton() {
   )
 }
 
-export default function SignupPage() {
+function SignupContent() {
   const searchParams = useSearchParams()
   const message = searchParams.get('message')
   const type = searchParams.get('type')
@@ -64,6 +64,7 @@ export default function SignupPage() {
         </div>
 
         <div className="space-y-5">
+
           <GoogleAuthButton />
 
           <div className="relative" aria-hidden="true">
@@ -122,5 +123,19 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0a0a14] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SignupContent />
+    </Suspense>
   )
 }

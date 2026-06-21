@@ -28,7 +28,7 @@ function SubmitButton() {
   )
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams()
   const message = searchParams.get('message')
   const type = searchParams.get('type')
@@ -64,6 +64,7 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-5">
+
           <GoogleAuthButton />
 
           <div className="relative" aria-hidden="true">
@@ -122,5 +123,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

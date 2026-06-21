@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { LeadsContent } from '@/components/dashboard/leads-content'
+import { ConnectionsContent } from '@/components/dashboard/connections-content'
 
-export default async function LeadsPage() {
+export default async function ConnectionsPage() {
   const supabase = await createClient()
 
   const {
@@ -15,7 +15,7 @@ export default async function LeadsPage() {
 
   return (
     <div className="relative min-h-full font-sans">
-      <LeadsContent />
+      <ConnectionsContent />
     </div>
   )
 }

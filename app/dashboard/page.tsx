@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { submitFeedback } from '@/app/dashboard/actions'
 import { DashboardContent } from '@/components/dashboard/dashboard-content'
+import { getBusinessProfile } from '@/app/api/business-profile/_actions'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -14,6 +15,18 @@ export default async function DashboardPage() {
     return redirect('/login')
   }
 
+  const { data: profile } = await getBusinessProfile()
+
+  const { count: plansCount } = await supabase
+    .from('content_plans')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  const { count: postsCount } = await supabase
+    .from('posts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
   return (
     <div className="relative min-h-full font-sans">
       {/* Ambient Backgrounds */}
@@ -22,7 +35,12 @@ export default async function DashboardPage() {
       <div className="fixed bottom-0 left-0 -mb-20 -ml-20 w-[600px] h-[600px] bg-indigo-700/8 blur-[150px] rounded-full pointer-events-none" />
 
       {/* Render the interactive shell */}
-      <DashboardContent submitFeedbackAction={submitFeedback} />
+      <DashboardContent 
+        submitFeedbackAction={submitFeedback} 
+        profile={profile} 
+        plansCount={plansCount || 0}
+        postsCount={postsCount || 0}
+      />
     </div>
   )
 }

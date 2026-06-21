@@ -10,6 +10,7 @@ import { ArrowRight, ArrowLeft, Building2, Globe, MapPin, AtSign, Users, Target,
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Activity } from 'lucide-react'
+import { upsertBusinessProfile } from '@/app/api/business-profile/_actions'
 
 const steps = [
   { id: 'basics', title: 'The Basics', description: 'Tell us who you are and where you operate.' },
@@ -55,7 +56,28 @@ export function OnboardingWizard() {
   useEffect(() => {
     if (isAnalyzing) {
       let current = 0;
-      const interval = setInterval(() => {
+      let hasSaved = false;
+      
+      const interval = setInterval(async () => {
+        // Trigger the backend save on the first tick in the background
+        if (current === 0 && !hasSaved) {
+          hasSaved = true;
+          upsertBusinessProfile({
+            business_name: formData.businessName,
+            industry: formData.industry,
+            location: formData.location,
+            website: formData.website,
+            services: formData.services,
+            usp: formData.usp,
+            primary_goal: formData.primaryGoal,
+            social_handle: formData.socialHandle,
+            tone: formData.tone,
+            target_customers: formData.targetCustomers,
+            competitors: formData.competitors,
+            channels: formData.channels,
+          }).catch(err => console.error("Failed to save profile:", err));
+        }
+
         if (current < analysisSteps.length - 1) {
           current++;
           setAnalysisStep(current);
@@ -67,7 +89,7 @@ export function OnboardingWizard() {
 
       return () => clearInterval(interval);
     }
-  }, [isAnalyzing, router]);
+  }, [isAnalyzing, router, formData]);
 
   const handleNext = () => {
     setDirection(1)

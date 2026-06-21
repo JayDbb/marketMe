@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { SettingsContent } from '@/components/dashboard/settings-content'
+import { StudioContent } from '@/components/dashboard/studio-content'
+import { getUserTemplatesAction } from '@/app/dashboard/studio/actions'
 
-export default async function SettingsPage() {
+export default async function StudioPage() {
   const supabase = await createClient()
 
   const {
@@ -13,12 +14,11 @@ export default async function SettingsPage() {
     return redirect('/login')
   }
 
+  const templates = await getUserTemplatesAction()
+
   return (
     <div className="relative min-h-full font-sans">
-      <SettingsContent 
-        initialEmail={user.email || ''} 
-        initialName={user.user_metadata?.full_name || ''} 
-      />
+      <StudioContent initialTemplates={templates} />
     </div>
   )
 }

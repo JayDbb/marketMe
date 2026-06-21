@@ -29,11 +29,11 @@ export default function PricingPage() {
 
         <PricingTeaser />
         
-        <div className="w-full max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent my-12" />
+        <div className="w-full max-w-5xl mx-auto h-px bg-linear-to-r from-transparent via-zinc-800 to-transparent my-12" />
         
         <FaqSection />
         
-        <div className="w-full max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-zinc-800 to-transparent my-12" />
+        <div className="w-full max-w-5xl mx-auto h-px bg-linear-to-r from-transparent via-zinc-800 to-transparent my-12" />
         
         <FinalCta />
       </main>

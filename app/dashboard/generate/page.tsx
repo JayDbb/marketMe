@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { SettingsContent } from '@/components/dashboard/settings-content'
+import { GenerateContent } from '@/components/dashboard/generate-content'
 
-export default async function SettingsPage() {
+export default async function GeneratePage() {
   const supabase = await createClient()
 
   const {
@@ -15,10 +15,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="relative min-h-full font-sans">
-      <SettingsContent 
-        initialEmail={user.email || ''} 
-        initialName={user.user_metadata?.full_name || ''} 
-      />
+      <GenerateContent />
     </div>
   )
 }

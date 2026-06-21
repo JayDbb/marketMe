@@ -1,5 +1,5 @@
-import { Activity, LayoutDashboard, Settings, User, MessageSquare, Rocket, Calendar as CalendarIcon } from "lucide-react"
-import { LogoutButton } from "@/components/dashboard/logout-button"
+import { Activity, LayoutDashboard, Mail, MessageSquare, Rocket, Calendar as CalendarIcon, Edit3, Link2, MonitorPlay, Workflow, Sparkles } from "lucide-react"
+import { UserNav } from "@/components/dashboard/user-nav"
 
 import {
   Sidebar,
@@ -30,7 +30,7 @@ export function AppSidebar() {
       <SidebarContent className="bg-[#0c0c18] pt-4">
         <SidebarGroup>
           <SidebarGroupLabel className="text-white/25 uppercase tracking-wider font-semibold text-[10px] mb-1 px-4">
-            Overview
+            Publish
           </SidebarGroupLabel>
           <SidebarGroupContent className="px-2">
             <SidebarMenu>
@@ -46,12 +46,72 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  render={<Link href="/dashboard/leads" />}
-                  tooltip="Leads"
+                  render={<Link href="/dashboard/posts" />}
+                  tooltip="Posts"
                   className="hover:bg-white/5 hover:text-blue-400 focus:bg-white/5 focus:text-blue-400 transition-colors h-10 px-3 rounded-xl mt-0.5 text-white/55"
                 >
-                  <User className="w-4 h-4 mr-3 shrink-0" />
-                  <span className="font-medium text-[14px]">Leads</span>
+                  <Edit3 className="w-4 h-4 mr-3 shrink-0" />
+                  <span className="font-medium text-[14px]">Posts</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href="/dashboard/calendar" />}
+                  tooltip="Planner"
+                  className="hover:bg-white/5 hover:text-blue-400 focus:bg-white/5 focus:text-blue-400 transition-colors h-10 px-3 rounded-xl mt-0.5 text-white/55"
+                >
+                  <CalendarIcon className="w-4 h-4 mr-3 shrink-0" />
+                  <span className="font-medium text-[14px]">Planner</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href="/dashboard/inbox" />}
+                  tooltip="Inbox"
+                  className="hover:bg-white/5 hover:text-blue-400 focus:bg-white/5 focus:text-blue-400 transition-colors h-10 px-3 rounded-xl mt-0.5 text-white/55"
+                >
+                  <Mail className="w-4 h-4 mr-3 shrink-0" />
+                  <span className="font-medium text-[14px]">Inbox</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href="/dashboard/studio" />}
+                  tooltip="Studio"
+                  className="hover:bg-white/5 hover:text-blue-400 focus:bg-white/5 focus:text-blue-400 transition-colors h-10 px-3 rounded-xl mt-0.5 text-white/55"
+                >
+                  <MonitorPlay className="w-4 h-4 mr-3 shrink-0" />
+                  <span className="font-medium text-[14px]">Studio</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-3">
+          <SidebarGroupLabel className="text-white/25 uppercase tracking-wider font-semibold text-[10px] mb-1 px-4">
+            Automate
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="px-2">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href="/dashboard/workflows" />}
+                  tooltip="Workflows"
+                  className="hover:bg-white/5 hover:text-blue-400 focus:bg-white/5 focus:text-blue-400 transition-colors h-10 px-3 rounded-xl mt-0.5 text-white/55"
+                >
+                  <Workflow className="w-4 h-4 mr-3 shrink-0" />
+                  <span className="font-medium text-[14px]">Workflows</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  render={<Link href="/dashboard/generate" />}
+                  tooltip="Generate AI Content"
+                  className="hover:bg-white/5 hover:text-purple-400 focus:bg-white/5 focus:text-purple-400 transition-colors h-10 px-3 rounded-xl mt-0.5 text-white/55"
+                >
+                  <Sparkles className="w-4 h-4 mr-3 shrink-0" />
+                  <span className="font-medium text-[14px]">Generate</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -76,12 +136,12 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  render={<Link href="/dashboard/calendar" />}
-                  tooltip="Calendar"
+                  render={<Link href="/dashboard/connections" />}
+                  tooltip="Connections"
                   className="hover:bg-white/5 hover:text-blue-400 focus:bg-white/5 focus:text-blue-400 transition-colors h-10 px-3 rounded-xl mt-0.5 text-white/55"
                 >
-                  <CalendarIcon className="w-4 h-4 mr-3 shrink-0" />
-                  <span className="font-medium text-[14px]">Calendar</span>
+                  <Link2 className="w-4 h-4 mr-3 shrink-0" />
+                  <span className="font-medium text-[14px]">Connections</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -94,23 +154,14 @@ export function AppSidebar() {
                   <span className="font-medium text-[14px]">Setup Profile</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<Link href="/dashboard/settings" />}
-                  tooltip="Settings"
-                  className="hover:bg-white/5 hover:text-blue-400 focus:bg-white/5 focus:text-blue-400 transition-colors h-10 px-3 rounded-xl mt-0.5 text-white/55"
-                >
-                  <Settings className="w-4 h-4 mr-3 shrink-0" />
-                  <span className="font-medium text-[14px]">Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-white/6 p-3 bg-[#0c0c18]">
-        <LogoutButton />
+        <UserNav />
       </SidebarFooter>
     </Sidebar>
   )

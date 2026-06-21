@@ -2,10 +2,8 @@ import { Navbar } from "@/components/marketing/navbar";
 import { Hero } from "@/components/marketing/hero";
 import { LogoBar } from "@/components/marketing/logo-bar";
 import { ProblemStatement } from "@/components/marketing/problem-statement";
-import { BentoFeatures } from "@/components/marketing/bento-features";
 import { SocialProof } from "@/components/marketing/social-proof";
 import { HowItWorks } from "@/components/marketing/how-it-works";
-import { PricingTeaser } from "@/components/marketing/pricing-teaser";
 import { FaqSection } from "@/components/marketing/faq-section";
 import { FinalCta } from "@/components/marketing/final-cta";
 import { Footer } from "@/components/marketing/footer";
@@ -28,10 +26,8 @@ export default function Home() {
         <div className="w-full max-w-5xl mx-auto h-px bg-linear-to-r from-transparent via-zinc-800 to-transparent my-12" />
         
         <ProblemStatement />
-        <BentoFeatures />
         <SocialProof />
         <HowItWorks />
-        <PricingTeaser />
         <FaqSection />
         <FinalCta />
       </main>

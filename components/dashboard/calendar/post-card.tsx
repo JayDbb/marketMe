@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Post, Platform } from '@/types/content';
-import { MessageCircle, Briefcase, Camera, Clock, CheckCircle2, Send } from 'lucide-react';
+import { MessageCircle, Briefcase, Camera, Clock, CheckCircle2, Send, AlertCircle, Clock3, CalendarClock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface PostCardProps {
@@ -34,11 +34,27 @@ function StatusBadge({ status }: { status: Post['status'] }) {
       </span>
     );
   }
+  if (status === 'failed') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-red-400/35 bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-widest">
+        <AlertCircle className="w-3 h-3" />
+        Failed
+      </span>
+    );
+  }
+  if (status === 'scheduled') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-orange-400/35 bg-orange-500/10 text-orange-300 text-[10px] font-bold uppercase tracking-widest">
+        <CalendarClock className="w-3 h-3" />
+        Queued
+      </span>
+    );
+  }
   if (status === 'pending_approval') {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/35 bg-blue-500/10 text-blue-300 text-[10px] font-bold uppercase tracking-widest">
-        <Clock className="w-3 h-3" />
-        Scheduled
+        <Clock3 className="w-3 h-3" />
+        Pending
       </span>
     );
   }

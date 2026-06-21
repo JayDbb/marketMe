@@ -23,7 +23,7 @@ function PostPreview({ platform, content, previewUrl }: { platform: Platform, co
         {/* Instagram Header */}
         <div className="p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 p-[2px]">
+            <div className="w-8 h-8 rounded-full bg-linear-to-tr from-yellow-400 via-red-500 to-purple-500 p-[2px]">
               <div className="w-full h-full bg-white rounded-full border-2 border-white flex items-center justify-center overflow-hidden">
                 <span className="font-bold text-gray-900 text-[10px]">MM</span>
               </div>

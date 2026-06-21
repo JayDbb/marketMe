@@ -159,7 +159,7 @@ export const generateImage = task({
       size: "1024x1024",
     });
 
-    const imageUrl = imageResponse.data[0].url;
+    const imageUrl = imageResponse.data?.[0]?.url;
 
     if (!imageUrl) throw new Error("No image generated");
 

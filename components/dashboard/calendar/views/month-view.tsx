@@ -44,7 +44,7 @@ export function MonthView({ posts, currentDate }: { posts: Post[], currentDate: 
             <span className={`text-sm font-bold transition-colors ${
               cell.date.toDateString() === new Date().toDateString() 
                 ? 'text-purple-400' 
-                : cell.isCurrentMonth 'text-zinc-500 dark:hover:text-white/40 group-hover:text- dark:hover:text-$3$3' dark:text-white/20'
+                : cell.isCurrentMonth ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-white/20'
             }`}>
               {cell.day}
             </span>

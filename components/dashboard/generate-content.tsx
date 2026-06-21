@@ -428,10 +428,10 @@ export function GenerateContent() {
                     transition={{ delay: index * 0.1 }}
                     className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-500 ${
                       isCurrent ? 'bg-white dark:bg-white/10   shadow-[inset_0_0_20px_rgba(168,85,247,0.1)]' : 
-                      isPast dark:bg-white/5   dark:border-white/10' 'bg-transparent border-transparent'
+                      isPast ? 'dark:bg-white/5   dark:border-white/10' : 'bg-transparent border-transparent'
                     }`}
                   >
-                    <span className={`text-sm font-medium ${isPast ? 'text-zinc-900 dark:text-white' : isCurrent 'text-zinc-500 dark:text-white/20'}`}>
+                    <span className={`text-sm font-medium ${isPast ? 'text-zinc-900 dark:text-white' : isCurrent ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-white/20'}`}>
                       {step}
                     </span>
                     <div className="flex items-center">
@@ -510,7 +510,10 @@ export function GenerateContent() {
                           Post 0{idx + 1}
                         </span>
                         <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider ${
-                          post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'approved' 'bg-green-500/10 text-green-400 border-green-500/20' 'rejected' 'bg-red-500/10 text-red-400 border-red-500/20' 'draft' 'bg-white dark:bg-white/5 border-zinc-200 text-zinc-500 dark:text-white/40  dark:border-white/10'
+                          post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
+                          post.status === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
+                          post.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
+                          post.status === 'draft' ? 'bg-white dark:bg-white/5 border-zinc-200 text-zinc-500 dark:text-white/40  dark:border-white/10' :
                           'bg-orange-500/10 text-orange-400 border-orange-500/20'
                         }`}>
                           {post.status.replace('_', ' ')}

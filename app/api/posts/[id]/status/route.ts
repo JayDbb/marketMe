@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -21,13 +21,14 @@ export async function PATCH(
     }
 
     // Update the post status
+    const resolvedParams = await params;
     const { data: post, error: updateError } = await supabase
       .from('posts')
       .update({
         status,
         ...(scheduled_at && { scheduled_at })
       })
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       // Enforce user ownership
       .eq('user_id', user.id)
       .select()

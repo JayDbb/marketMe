@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -19,8 +19,9 @@ export async function POST(
     const { feedback } = body;
 
     // Trigger the background task
+    const resolvedParams = await params;
     const handle = await tasks.trigger<typeof regenerateCaption>("regenerate-caption", {
-      postId: params.id,
+      postId: resolvedParams.id,
       feedback,
     });
 

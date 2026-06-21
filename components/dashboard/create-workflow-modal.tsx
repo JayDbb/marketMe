@@ -36,20 +36,20 @@ export function CreateWorkflowModal({ open, onOpenChange }: CreateWorkflowModalP
             <Label className="text-zinc-500 dark:text-white/50 font-medium text-xs">Workflow Name</Label>
             <Input
               placeholder="e.g., Weekly Twitter Thread"
-              className="h-11 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white rounded-xl shadow-none"
+              className="h-11 bg-white dark:bg-white/5 border-transparent dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white rounded-xl shadow-none"
             />
           </div>
 
           <div className="space-y-2">
             <Label className="text-zinc-500 dark:text-white/50 font-medium text-xs">Trigger</Label>
-            <div className="h-11 bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 rounded-xl flex items-center px-4 cursor-not-allowed opacity-50">
+            <div className="h-11 bg-white dark:bg-white/5 border-transparent border dark:border-white/10 rounded-xl flex items-center px-4 cursor-not-allowed opacity-50">
               <span className="text-sm text-zinc-500 dark:text-white/50">Select trigger event...</span>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label className="text-zinc-500 dark:text-white/50 font-medium text-xs">Action</Label>
-            <div className="h-11 bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 rounded-xl flex items-center px-4 cursor-not-allowed opacity-50">
+            <div className="h-11 bg-white dark:bg-white/5 border-transparent border dark:border-white/10 rounded-xl flex items-center px-4 cursor-not-allowed opacity-50">
               <span className="text-sm text-zinc-500 dark:text-white/50">Select action...</span>
             </div>
           </div>
@@ -59,7 +59,7 @@ export function CreateWorkflowModal({ open, onOpenChange }: CreateWorkflowModalP
           <Button 
             variant="outline" 
             onClick={() => onOpenChange(false)}
-            className="h-11 bg-transparent border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/5 font-medium rounded-xl"
+            className="h-11 bg-transparent border-transparent dark:border-white/10 text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/5 font-medium rounded-xl"
           >
             Cancel
           </Button>

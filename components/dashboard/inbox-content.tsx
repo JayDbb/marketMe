@@ -55,16 +55,16 @@ export function InboxContent() {
     >
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 shrink-0">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Inbox.</h1>
-          <p className="text-white/40 mt-2 text-base">Manage all your social interactions in one place.</p>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-zinc-900 dark:text-white">Inbox.</h1>
+          <p className="text-zinc-500 dark:text-white/40 mt-2 text-base">Manage all your social interactions in one place.</p>
         </div>
 
         <div className="flex w-full md:w-auto items-center gap-3">
           <div className="relative w-full md:w-[300px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-white/30" />
             <Input
               placeholder="Search conversations..."
-              className="pl-10 h-11 bg-white/5 border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-white placeholder:text-white/25 rounded-xl transition-all"
+              className="pl-10 h-11 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:text-white/25 rounded-xl transition-all"
             />
           </div>
         </div>
@@ -79,14 +79,14 @@ export function InboxContent() {
             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
           >
             {/* Column Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-white/5">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-white/5 bg-white dark:bg-white/5">
               <div className="flex items-center gap-2">
-                <column.icon className="w-4 h-4 text-white/50" />
-                <h3 className="font-semibold text-[14px] text-white tracking-tight">
+                <column.icon className="w-4 h-4 text-zinc-500 dark:text-white/50" />
+                <h3 className="font-semibold text-[14px] text-zinc-900 dark:text-white tracking-tight">
                   {column.title}
                 </h3>
               </div>
-              <span className="w-6 h-6 rounded-full bg-white/10 text-white/50 flex items-center justify-center text-[11px] font-bold">
+              <span className="w-6 h-6 rounded-full bg-white dark:bg-white/10 border-zinc-200 text-zinc-500 dark:text-white/50 flex items-center justify-center text-[11px] font-bold">
                 {column.messages.length}
               </span>
             </div>
@@ -98,11 +98,11 @@ export function InboxContent() {
                 null
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-6 opacity-60">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-                    <column.icon className="w-5 h-5 text-white/30" />
+                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 flex items-center justify-center mb-4">
+                    <column.icon className="w-5 h-5 text-zinc-500 dark:text-white/30" />
                   </div>
-                  <h4 className="text-sm font-semibold text-white mb-1">{column.emptyMessage}</h4>
-                  <p className="text-xs text-white/40 max-w-[200px] leading-relaxed">
+                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">{column.emptyMessage}</h4>
+                  <p className="text-xs text-zinc-500 dark:text-white/40 max-w-[200px] leading-relaxed">
                     {column.emptySub}
                   </p>
                 </div>

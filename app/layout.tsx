@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${cormorant.variable} h-full antialiased scheme-dark`}
+      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${cormorant.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans relative transition-colors duration-500 ease-in-out">

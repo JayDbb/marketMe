@@ -111,8 +111,7 @@ export function HowItWorks() {
                     ].map((platform, i) => (
                       <div key={i} className={`relative p-5 rounded-xl flex flex-col items-center justify-center gap-3 transition-colors cursor-pointer group ${
                         platform.dashed ? 'border border-dashed border-white/20 hover:border-white/40 hover:bg-white/5' : 
-                        platform.connected ? 'bg-white/5 border border-white/10 hover:bg-white/10 shadow-lg' :
-                        'bg-white/5 border border-white/10 hover:bg-white/10 opacity-50 hover:opacity-100'
+                        platform.connected 'bg-white/5 border border-white/10 hover:bg-white/10 shadow-lg' opacity-50 hover:opacity-100'
                       }`}>
                         {platform.icon && (
                           <platform.icon 

@@ -20,11 +20,11 @@ export function DayView({ posts, currentDate }: { posts: Post[], currentDate: Da
         
         return (
           <div key={hour} className="flex gap-6 min-h-[80px]">
-            <div className="w-16 text-right text-[11px] font-medium text-white/30 pt-2 shrink-0">
+            <div className="w-16 text-right text-[11px] font-medium text-zinc-500 dark:text-white/30 pt-2 shrink-0">
               {hour > 12 ? `${hour - 12} pm` : `${hour} am`}
             </div>
             
-            <div className="flex-1 border-t border-white/5 pt-2 relative">
+            <div className="flex-1 border-t border-zinc-200 dark:border-white/5 pt-2 relative">
               {hourPosts.map((post, idx) => (
                 <motion.div 
                   initial={{ opacity: 0, x: -20 }}
@@ -43,7 +43,7 @@ export function DayView({ posts, currentDate }: { posts: Post[], currentDate: Da
               ))}
               
               {hourPosts.length === 0 && (
-                <div className="flex-1 min-h-[4rem] group relative border border-dashed border-white/5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer flex items-center justify-center"></div>
+                <div className="flex-1 min-h-[4rem] group relative border border-dashed border-zinc-200 dark:border-white/5 rounded-xl hover:bg-white dark:bg-white/5 transition-colors cursor-pointer flex items-center justify-center"></div>
               )}
             </div>
           </div>

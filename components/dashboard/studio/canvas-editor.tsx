@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Stage, Layer, Text, Rect, Image as KonvaImage, Transformer } from 'react-konva'
 import useImage from 'use-image'
-import { CanvasData, TextNode, ImageNode, RectNode, Layer as CanvasLayer } from '@/types/canvas'
+import { CanvasData, TextNode, ImageNode, RectNode, CanvasNode as CanvasLayer } from '@/types/canvas'
 
 interface CanvasEditorProps {
   canvasData: CanvasData
@@ -15,7 +15,7 @@ interface CanvasEditorProps {
 // A helper component to load images via URL for Konva
 function URLImage({ imageNode, onSelect, onChange, isSelected }: { imageNode: ImageNode, onSelect?: any, onChange?: any, isSelected?: boolean }) {
   const [img] = useImage(imageNode.src, 'anonymous')
-  const shapeRef = useRef<any>()
+  const shapeRef = useRef<any>(null)
 
   return (
     <KonvaImage
@@ -121,18 +121,18 @@ export function CanvasEditor({ canvasData, onChange, selectedId, onSelect }: Can
   return (
     <div className="flex flex-col items-center gap-4 w-full h-full">
       <div className="flex justify-between w-full items-center" style={{ maxWidth: canvasData.canvas.width * scale }}>
-        <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">
+        <h3 className="text-xs font-bold text-zinc-500 dark:text-white/40 uppercase tracking-wider">
           {canvasData.canvas.aspectRatioName} Format
         </h3>
         <button 
           onClick={handleExport} 
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors shadow-lg"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-zinc-900 dark:text-white rounded-lg text-xs font-bold transition-colors shadow-lg"
         >
           Export PNG
         </button>
       </div>
 
-      <div className="bg-[#0c0c18] border border-white/10 overflow-hidden shadow-2xl rounded-xl">
+      <div className="bg-[#0c0c18] border border-zinc-200 dark:border-white/10 overflow-hidden shadow-2xl rounded-xl">
         <Stage 
           width={canvasData.canvas.width * scale} 
           height={canvasData.canvas.height * scale}
@@ -268,7 +268,7 @@ export function CanvasEditor({ canvasData, onChange, selectedId, onSelect }: Can
       </div>
       
       {!onChange && (
-        <p className="text-[11px] text-white/30 mt-2 font-medium">
+        <p className="text-[11px] text-zinc-500 dark:text-white/30 mt-2 font-medium">
           This is a live canvas. AI modifies the underlying JSON, and this canvas renders the changes instantly.
         </p>
       )}

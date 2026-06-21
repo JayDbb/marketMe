@@ -63,16 +63,16 @@ export default function CalendarPage() {
       <CalendarSidebar currentDate={currentDate} onDateChange={setCurrentDate} />
 
       {/* Main Calendar Area - Adapted to Dark Theme */}
-      <div className="flex-1 flex flex-col bg-[#0c0c18]/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative">
+      <div className="flex-1 flex flex-col bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-2xl border border-zinc-200 dark:border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative">
         {/* Header */}
-        <div className="px-8 py-6 flex flex-col xl:flex-row xl:items-center justify-between border-b border-white/5 gap-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-white tracking-tight">
+        <div className="px-8 py-6 flex flex-col xl:flex-row xl:items-center justify-between border-b border-zinc-200 dark:border-white/5 gap-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-zinc-900 dark:text-white tracking-tight">
             {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
           </h2>
 
           <div className="flex items-center gap-4 lg:gap-6 overflow-x-auto pb-2 xl:pb-0 hide-scrollbar">
             {/* View Toggles */}
-            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 shrink-0">
+            <div className="flex bg-white dark:bg-white/5 border-zinc-200 p-1 rounded-xl border dark:border-white/10 shrink-0">
               {(['Month', 'Week', 'Day'] as ViewMode[]).map(mode => (
                 <button
                   key={mode}
@@ -80,7 +80,7 @@ export default function CalendarPage() {
                   className={`px-5 py-1.5 rounded-lg text-sm font-bold transition-all ${
                     viewMode === mode 
                       ? 'bg-white text-black shadow-lg' 
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                      : 'text-zinc-500 dark:hover:text-white/50 hover:text- dark:hover:text-$3$3 hover:bg-white dark:bg-white/5 border-zinc-200'
                   }`}
                 >
                   {mode}
@@ -90,23 +90,23 @@ export default function CalendarPage() {
 
             {/* Navigation */}
             <div className="flex items-center gap-2 shrink-0">
-              <button onClick={handlePrev} className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors border border-white/5">
+              <button onClick={handlePrev} className="w-9 h-9 rounded-xl bg-white dark:hover:bg-white/5 border-zinc-200 flex items-center justify-center text-zinc-500 dark:hover:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button onClick={handleToday} className="px-4 py-1.5 rounded-xl bg-white/5 text-sm font-bold text-white/90 hover:bg-white/10 transition-colors border border-white/5">
+              <button onClick={handleToday} className="px-4 py-1.5 rounded-xl bg-white dark:hover:bg-white/5 border-zinc-200 text-sm font-bold text-zinc-500 dark:text-white/90 hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
                 Today
               </button>
-              <button onClick={handleNext} className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors border border-white/5">
+              <button onClick={handleNext} className="w-9 h-9 rounded-xl bg-white dark:hover:bg-white/5 border-zinc-200 flex items-center justify-center text-zinc-500 dark:hover:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
             
-            <div className="w-px h-8 bg-white/10 shrink-0 hidden md:block" />
+            <div className="w-px h-8 bg-white dark:bg-white/10 border-zinc-200 shrink-0 hidden md:block" />
 
             {/* Add Event Action */}
             <Button 
               onClick={() => setIsModalOpen(true)} 
-              className="h-10 px-6 rounded-xl bg-purple-600 hover:bg-purple-500 flex items-center shadow-[0_0_20px_rgba(168,85,247,0.4)] text-white font-bold gap-2 shrink-0 border-0"
+              className="h-10 px-6 rounded-xl bg-purple-600 hover:bg-purple-500 flex items-center shadow-[0_0_20px_rgba(168,85,247,0.4)] text-zinc-900 dark:text-white font-bold gap-2 shrink-0 border-0"
             >
                <Plus className="w-4 h-4" /> Create Post
             </Button>

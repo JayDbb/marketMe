@@ -56,7 +56,7 @@ export function PricingTeaser() {
               className={`relative overflow-visible bg-white/4 backdrop-blur-sm rounded-2xl p-8 flex flex-col h-full border transition-all ${
                 plan.recommended 
                   ? 'border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)] md:-mt-4 ring-0' 
-                  : 'border-white/8 ring-0'
+                  : 'border-white/8
               }`}
             >
               {plan.recommended && (

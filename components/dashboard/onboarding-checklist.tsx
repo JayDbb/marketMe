@@ -114,7 +114,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -16, scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 120, damping: 22 }}
-        className="relative rounded-2xl overflow-hidden border border-white/8 bg-white/3 backdrop-blur-xl shadow-xl mb-6"
+        className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-white/8 bg-white dark:bg-white/3 backdrop-blur-xl shadow-xl mb-6"
       >
         {/* Gradient accent bar */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-r from-blue-500/60 via-indigo-400/40 to-transparent" />
@@ -130,7 +130,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-sm font-semibold text-white tracking-tight">
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-white tracking-tight">
                 {allDone ? "You're all set! 🎉" : 'Getting started'}
               </h2>
               {allDone && (
@@ -141,7 +141,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
             </div>
             <div className="flex items-center gap-3">
               {/* Progress bar */}
-              <div className="flex-1 h-1 rounded-full bg-white/8 overflow-hidden">
+              <div className="flex-1 h-1 rounded-full bg-white dark:bg-white/8 border-zinc-200 overflow-hidden">
                 <motion.div
                   className="h-full rounded-full bg-linear-to-r from-blue-500 to-indigo-400"
                   initial={{ width: 0 }}
@@ -149,7 +149,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                   transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
                 />
               </div>
-              <span className="text-[11px] text-white/40 font-mono shrink-0">
+              <span className="text-[11px] text-zinc-500 dark:text-white/40 font-mono shrink-0">
                 {completedCount}/{totalCount}
               </span>
             </div>
@@ -158,7 +158,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setIsCollapsed((c) => !c)}
-              className="w-8 h-8 rounded-lg hover:bg-white/6 text-white/30 hover:text-white/60 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-lg hover:bg-white dark:hover:bg-white/6 border-zinc-200 text-zinc-500 dark:hover:text-white/30 hover:text- /60dark:hover:text-$3$3 flex items-center justify-center transition-colors"
               aria-label={isCollapsed ? 'Expand checklist' : 'Collapse checklist'}
             >
               {isCollapsed ? (
@@ -169,7 +169,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
             </button>
             <button
               onClick={handleDismiss}
-              className="w-8 h-8 rounded-lg hover:bg-white/6 text-white/20 hover:text-white/50 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-lg hover:bg-white dark:hover:bg-white/6 border-zinc-200 text-zinc-500 dark:hover:text-white/20 hover:text- /50dark:hover:text-$3$3 flex items-center justify-center transition-colors"
               aria-label="Dismiss onboarding checklist"
             >
               <X className="w-3.5 h-3.5" />
@@ -189,7 +189,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
               className="overflow-hidden"
             >
               <div className="px-6 pb-5 space-y-1 relative z-10">
-                <div className="h-px bg-white/5 mb-4" />
+                <div className="h-px bg-white dark:bg-white/5 border-zinc-200 mb-4" />
                 {ITEMS.map((item, i) => {
                   const done = state[item.id]
                   const Icon = item.icon
@@ -210,7 +210,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                         {done ? (
                           <CheckCircle2 className="w-5 h-5 text-blue-400" />
                         ) : (
-                          <Circle className="w-5 h-5 text-white/20" />
+                          <Circle className="w-5 h-5 text-zinc-500 dark:text-white/20" />
                         )}
                       </div>
 
@@ -219,23 +219,23 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                         className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
                           done
                             ? 'bg-blue-500/8 border-blue-500/15'
-                            : 'bg-white/4 border-white/8 group-hover:bg-white/6 group-hover:border-white/12'
+                            : 'bg-white dark:bg-white/4 border-zinc-200  dark:border-white/8 group-hover:bg-white dark:bg-white/6 group-hover: dark:border-white/12'
                         }`}
                       >
-                        <Icon className={`w-4 h-4 ${done ? 'text-blue-400/70' : 'text-white/40'}`} />
+                        <Icon className={`w-4 h-4 ${done ? 'text-blue-400/70' : 'text-zinc-500 dark:text-white/40'}`} />
                       </div>
 
                       {/* Text */}
                       <div className="flex-1 min-w-0">
                         <p
                           className={`text-[13px] font-medium leading-snug ${
-                            done ? 'line-through text-white/30' : 'text-white/80'
+                            done ? 'line-through text-zinc-500 dark:text-white/30' : 'text-zinc-500 dark:text-white/80'
                           }`}
                         >
                           {item.label}
                         </p>
                         {!done && (
-                          <p className="text-[11px] text-white/30 mt-0.5 leading-relaxed">
+                          <p className="text-[11px] text-zinc-500 dark:text-white/30 mt-0.5 leading-relaxed">
                             {item.description}
                           </p>
                         )}
@@ -262,8 +262,8 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                     className="mt-4 flex items-center justify-between rounded-xl border border-blue-500/20 bg-blue-500/8 px-5 py-4"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-white">Setup complete!</p>
-                      <p className="text-xs text-white/40 mt-0.5">
+                      <p className="text-sm font-semibold text-zinc-900 dark:text-white">Setup complete!</p>
+                      <p className="text-xs text-zinc-500 dark:text-white/40 mt-0.5">
                         You're ready to grow your business with Marketme.
                       </p>
                     </div>

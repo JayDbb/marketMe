@@ -253,13 +253,13 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-              className="w-full max-w-4xl bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto flex flex-col max-h-[90vh]"
+              className="w-full max-w-4xl bg-zinc-950 border border-zinc-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto flex flex-col max-h-[90vh]"
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-                <h2 className="text-lg font-medium text-white">Create New Post</h2>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-white/10">
+                <h2 className="text-lg font-medium text-zinc-900 dark:text-white">Create New Post</h2>
                 <button
                   onClick={onClose}
-                  className="p-2 text-white/50 hover:text-white hover:bg-white/5 rounded-full transition-colors"
+                  className="p-2 text-zinc-500 dark:hover:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5 border-zinc-200 rounded-full transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -267,13 +267,13 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
 
               <div className="flex flex-1 min-h-0 overflow-hidden">
                 {/* Left Side: Form */}
-                <div className="w-full md:w-1/2 flex flex-col border-r border-white/10">
+                <div className="w-full md:w-1/2 flex flex-col border-r border-zinc-200 dark:border-white/10">
                   <div className="overflow-y-auto p-6 flex-1 space-y-6 custom-scrollbar">
                     <form id="create-post-form" onSubmit={handleSubmit} className="space-y-6">
                       
                       {/* Platform Selection */}
                       <div className="space-y-3">
-                        <Label className="text-xs uppercase tracking-wider text-white/50">Platform</Label>
+                        <Label className="text-xs uppercase tracking-wider text-zinc-500 dark:text-white/50">Platform</Label>
                         <div className="flex gap-2">
                           {(['twitter', 'linkedin', 'instagram'] as Platform[]).map(p => (
                             <button
@@ -283,7 +283,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
                               className={`flex-1 py-2 rounded-xl text-sm font-medium capitalize border transition-colors ${
                                 platform === p 
                                   ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
-                                  : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                                  : 'bg-white dark:bg-white/5 border-zinc-200  dark:border-white/10 text-zinc-500 dark:text-white/60 hover:bg-white dark:bg-white/10 '
                               }`}
                             >
                               {p}
@@ -294,48 +294,48 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
 
                       {/* Content */}
                       <div className="space-y-3">
-                        <Label className="text-xs uppercase tracking-wider text-white/50">Post Content</Label>
+                        <Label className="text-xs uppercase tracking-wider text-zinc-500 dark:text-white/50">Post Content</Label>
                         <Textarea
                           value={content}
                           onChange={(e) => setContent(e.target.value)}
                           placeholder="What do you want to share?"
-                          className="min-h-[120px] bg-white/5 border-white/10 text-white resize-y"
+                          className="min-h-[120px] bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white resize-y"
                           required
                         />
                       </div>
 
                       {/* Image Upload */}
                       <div className="space-y-3">
-                        <Label className="text-xs uppercase tracking-wider text-white/50">Media (Optional)</Label>
+                        <Label className="text-xs uppercase tracking-wider text-zinc-500 dark:text-white/50">Media (Optional)</Label>
                         <ImageUpload value={file} onChange={setFile} />
                       </div>
 
                       {/* Date/Time */}
                       <div className="space-y-3">
-                        <Label className="text-xs uppercase tracking-wider text-white/50">Schedule For</Label>
+                        <Label className="text-xs uppercase tracking-wider text-zinc-500 dark:text-white/50">Schedule For</Label>
                         <div className="relative">
                           <Input
                             type="datetime-local"
                             value={scheduledFor}
                             onChange={(e) => setScheduledFor(e.target.value)}
-                            className="bg-white/5 border-white/10 text-white pl-10"
+                            className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white pl-10"
                             required
                           />
-                          <CalendarIcon className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <CalendarIcon className="w-4 h-4 text-zinc-500 dark:text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                       </div>
                     </form>
                   </div>
 
                   {/* Form Footer */}
-                  <div className="px-6 py-4 border-t border-white/10 bg-white/5 flex justify-end gap-3">
-                    <Button type="button" variant="ghost" onClick={onClose} className="text-white hover:bg-white/10">
+                  <div className="px-6 py-4 border-t border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 flex justify-end gap-3">
+                    <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/10 border-zinc-200">
                       Cancel
                     </Button>
                     <Button 
                       type="submit" 
                       form="create-post-form"
-                      className="bg-blue-500 hover:bg-blue-600 text-white gap-2 border-0"
+                      className="bg-blue-500 hover:bg-blue-600 text-zinc-900 dark:text-white gap-2 border-0"
                     >
                       <Send className="w-4 h-4" />
                       Schedule Post
@@ -345,8 +345,8 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
 
                 {/* Right Side: Live Preview */}
                 <div className="hidden md:flex w-1/2 bg-[#0d1117] flex-col relative overflow-y-auto custom-scrollbar">
-                  <div className="sticky top-0 p-4 border-b border-white/10 bg-[#0d1117]/80 backdrop-blur z-10">
-                    <h3 className="text-sm font-medium text-white/70">Live Preview</h3>
+                  <div className="sticky top-0 p-4 border-b border-zinc-200 dark:border-white/10 bg-[#0d1117]/80 backdrop-blur z-10">
+                    <h3 className="text-sm font-medium text-zinc-500 dark:text-white/70">Live Preview</h3>
                   </div>
                   <div className="p-8 flex items-start justify-center flex-1 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-size-[20px_20px]">
                     <PostPreview platform={platform} content={content} previewUrl={previewUrl} />

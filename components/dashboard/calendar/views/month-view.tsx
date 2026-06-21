@@ -29,7 +29,7 @@ export function MonthView({ posts, currentDate }: { posts: Post[], currentDate: 
   });
 
   return (
-    <div className="flex-1 w-full grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-2xl overflow-hidden auto-rows-fr">
+    <div className="flex-1 w-full grid grid-cols-7 gap-px bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/5 rounded-2xl overflow-hidden auto-rows-fr">
       {calendarCells.map((cell, idx) => {
         // Find posts for this exact date
         const dayPosts = posts.filter(p => {
@@ -40,11 +40,11 @@ export function MonthView({ posts, currentDate }: { posts: Post[], currentDate: 
         });
         
         return (
-          <div key={idx} className={`bg-[#0c0c18]/90 min-h-[120px] p-3 flex flex-col transition-colors cursor-pointer group ${cell.isCurrentMonth ? 'hover:bg-white/5' : 'opacity-40'}`}>
+          <div key={idx} className={`bg-zinc-50/90 dark:bg-[#0c0c18]/90 min-h-[120px] p-3 flex flex-col transition-colors cursor-pointer group ${cell.isCurrentMonth ? 'hover:bg-white dark:bg-white/5 border-zinc-200' : 'opacity-40'}`}>
             <span className={`text-sm font-bold transition-colors ${
               cell.date.toDateString() === new Date().toDateString() 
                 ? 'text-purple-400' 
-                : cell.isCurrentMonth ? 'text-white/40 group-hover:text-white' : 'text-white/20'
+                : cell.isCurrentMonth 'text-zinc-500 dark:hover:text-white/40 group-hover:text- dark:hover:text-$3$3' dark:text-white/20'
             }`}>
               {cell.day}
             </span>

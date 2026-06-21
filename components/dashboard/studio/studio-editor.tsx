@@ -113,9 +113,9 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
     if (!selectedLayer) {
       return (
         <div className="space-y-4">
-          <h4 className="text-sm font-bold text-white mb-4">Canvas Settings</h4>
+          <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Canvas Settings</h4>
           <div className="space-y-2">
-            <Label className="text-xs text-white/50 uppercase tracking-wider">Background Color</Label>
+            <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Background Color</Label>
             <div className="flex gap-2">
               <input 
                 type="color" 
@@ -126,7 +126,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
               <Input 
                 value={canvasData.canvas.backgroundColor} 
                 onChange={e => setCanvasData(prev => ({ ...prev, canvas: { ...prev.canvas, backgroundColor: e.target.value } }))}
-                className="bg-white/5 border-white/10 text-white font-mono uppercase"
+                className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase"
               />
             </div>
           </div>
@@ -136,30 +136,30 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
 
     return (
       <div className="space-y-6">
-        <h4 className="text-sm font-bold text-white mb-4 capitalize">{selectedLayer.type} Properties</h4>
+        <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-4 capitalize">{selectedLayer.type} Properties</h4>
         
         {selectedLayer.type === 'text' && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs text-white/50 uppercase tracking-wider">Text Content</Label>
+              <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Text Content</Label>
               <textarea 
                 value={(selectedLayer as TextNode).content}
                 onChange={e => updateLayer({ ...selectedLayer, content: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 text-white p-3 rounded-xl min-h-[100px] resize-y text-sm"
+                className="w-full bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 text-zinc-900 dark:text-white p-3 rounded-xl min-h-[100px] resize-y text-sm"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs text-white/50 uppercase tracking-wider">Font Size</Label>
+                <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Font Size</Label>
                 <Input 
                   type="number"
                   value={(selectedLayer as TextNode).fontSize}
                   onChange={e => updateLayer({ ...selectedLayer, fontSize: Number(e.target.value) })}
-                  className="bg-white/5 border-white/10 text-white"
+                  className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-white/50 uppercase tracking-wider">Color</Label>
+                <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Color</Label>
                 <div className="flex gap-2 h-10">
                   <input 
                     type="color" 
@@ -170,7 +170,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
                   <Input 
                     value={(selectedLayer as TextNode).fill as string} 
                     onChange={e => updateLayer({ ...selectedLayer, fill: e.target.value })}
-                    className="bg-white/5 border-white/10 text-white font-mono uppercase h-full"
+                    className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase h-full"
                   />
                 </div>
               </div>
@@ -181,7 +181,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
         {selectedLayer.type === 'rect' && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs text-white/50 uppercase tracking-wider">Fill Color</Label>
+              <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Fill Color</Label>
               <div className="flex gap-2">
                 <input 
                   type="color" 
@@ -192,27 +192,27 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
                 <Input 
                   value={(selectedLayer as RectNode).fill as string} 
                   onChange={e => updateLayer({ ...selectedLayer, fill: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white font-mono uppercase"
+                  className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs text-white/50 uppercase tracking-wider">Border Radius</Label>
+              <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Border Radius</Label>
               <Input 
                 type="number"
                 value={(selectedLayer as RectNode).cornerRadius as number || 0}
                 onChange={e => updateLayer({ ...selectedLayer, cornerRadius: Number(e.target.value) })}
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white"
               />
             </div>
           </div>
         )}
         
         {/* Opacity slider common for all */}
-        <div className="space-y-2 pt-4 border-t border-white/5">
+        <div className="space-y-2 pt-4 border-t border-zinc-200 dark:border-white/5">
           <div className="flex justify-between">
-             <Label className="text-xs text-white/50 uppercase tracking-wider">Opacity</Label>
-             <span className="text-xs text-white/50">{Math.round((selectedLayer.opacity ?? 1) * 100)}%</span>
+             <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Opacity</Label>
+             <span className="text-xs text-zinc-500 dark:text-white/50">{Math.round((selectedLayer.opacity ?? 1) * 100)}%</span>
           </div>
           <input 
             type="range" min="0" max="1" step="0.05"
@@ -228,9 +228,9 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
   return (
     <div className="w-full h-full min-h-[600px] flex gap-4">
       {/* Left Sidebar: Layers */}
-      <div className="w-64 shrink-0 flex flex-col bg-[#0c0c18]/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/2">
-          <h3 className="text-sm font-bold text-white">Layers</h3>
+      <div className="w-64 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-zinc-200 dark:border-white/5 flex items-center justify-between bg-white dark:bg-white/2">
+          <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Layers</h3>
           <div className="flex gap-1">
             <input 
               type="file" 
@@ -242,14 +242,14 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
             <button 
               onClick={() => fileInputRef.current?.click()} 
               title="Add Image"
-              className="w-6 h-6 rounded-md bg-purple-500/20 text-purple-400 flex items-center justify-center hover:bg-purple-500 hover:text-white transition-colors"
+              className="w-6 h-6 rounded-md bg-purple-500/20 text-purple-400 flex items-center justify-center hover:bg-purple-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               <ImageIcon className="w-3.5 h-3.5" />
             </button>
             <button 
               onClick={addTextLayer} 
               title="Add Text"
-              className="w-6 h-6 rounded-md bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-colors"
+              className="w-6 h-6 rounded-md bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               <Type className="w-3.5 h-3.5" />
             </button>
@@ -261,21 +261,21 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
               key={layer.id}
               onClick={() => setSelectedId(layer.id)}
               className={`flex items-center justify-between p-2 rounded-xl cursor-pointer border transition-colors ${
-                selectedId === layer.id ? 'bg-white/10 border-white/20' : 'bg-transparent border-transparent hover:bg-white/5'
+                selectedId === layer.id ? 'bg-white dark:bg-white/10   dark:border-white/20' : 'bg-transparent border-transparent hover:bg-white dark:bg-white/5 '
               }`}
             >
               <div className="flex items-center gap-2 overflow-hidden">
-                {layer.type === 'text' && <Type className="w-4 h-4 text-white/50 shrink-0" />}
-                {layer.type === 'image' && <ImageIcon className="w-4 h-4 text-white/50 shrink-0" />}
-                {layer.type === 'rect' && <Square className="w-4 h-4 text-white/50 shrink-0" />}
-                <span className="text-xs text-white truncate">
+                {layer.type === 'text' && <Type className="w-4 h-4 text-zinc-500 dark:text-white/50 shrink-0" />}
+                {layer.type === 'image' && <ImageIcon className="w-4 h-4 text-zinc-500 dark:text-white/50 shrink-0" />}
+                {layer.type === 'rect' && <Square className="w-4 h-4 text-zinc-500 dark:text-white/50 shrink-0" />}
+                <span className="text-xs text-zinc-900 dark:text-white truncate">
                   {layer.type === 'text' ? (layer as TextNode).content : layer.id}
                 </span>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity">
                 <div className="flex flex-col">
-                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'up') }} className="hover:text-white text-white/40"><ChevronUp className="w-3 h-3" /></button>
-                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'down') }} className="hover:text-white text-white/40"><ChevronDown className="w-3 h-3" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'up') }} className="hover:text- dark:hover:text-white text-zinc-500 /40dark:hover:text-white$3"><ChevronUp className="w-3 h-3" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'down') }} className="hover:text- dark:hover:text-white text-zinc-500 /40dark:hover:text-white$3"><ChevronDown className="w-3 h-3" /></button>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); deleteLayer(layer.id) }} className="w-6 h-6 flex items-center justify-center text-red-400 hover:bg-red-500/20 rounded-md">
                   <Trash2 className="w-3 h-3" />
@@ -287,7 +287,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
       </div>
 
       {/* Center: Canvas Area */}
-      <div className="flex-1 bg-black/40 border border-white/10 rounded-2xl overflow-hidden p-8 flex items-center justify-center relative">
+      <div className="flex-1 bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl overflow-hidden p-8 flex items-center justify-center relative">
         <CanvasEditor 
           canvasData={canvasData} 
           onChange={setCanvasData}
@@ -297,7 +297,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
       </div>
 
       {/* Right Sidebar: Properties */}
-      <div className="w-72 shrink-0 bg-[#0c0c18]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 overflow-y-auto custom-scrollbar shadow-xl">
+      <div className="w-72 shrink-0 bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl p-6 overflow-y-auto custom-scrollbar shadow-xl">
         {renderProperties()}
       </div>
     </div>

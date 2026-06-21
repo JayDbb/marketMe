@@ -30,7 +30,7 @@ export function ClientNavbar({ user }: ClientNavbarProps) {
         className={`pointer-events-auto flex items-center justify-between rounded-full transition-all duration-300 ${
           isCondensed 
             ? "w-fit gap-8 md:gap-16 px-4 py-2.5 border border-white/10 bg-white/5 backdrop-blur-[20px] backdrop-saturate-[1.8] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]" 
-            : "w-full max-w-[1000px] gap-4 px-6 py-4 border border-transparent bg-transparent shadow-none"
+            : "w-full max-w-[1000px] gap-4 px-6 py-4 border-transparent bg-transparent shadow-none"
         }`}
         transition={{ type: "spring", bounce: 0, duration: 0.7 }}
       >

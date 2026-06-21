@@ -247,44 +247,44 @@ export function GenerateContent() {
             className="w-full max-w-3xl px-6 relative z-10"
           >
             <div className="mb-12 text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 shadow-[0_0_40px_rgba(168,85,247,0.2)] mb-6">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 shadow-[0_0_40px_rgba(168,85,247,0.2)] mb-6">
                 <Sparkles className="w-6 h-6 text-purple-300" />
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-white mb-4">
-                Generate <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">Weekly Content</span>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-900 dark:text-white mb-4">
+                Generate <span className="text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-blue-400">Weekly Content</span>
               </h1>
-              <p className="text-lg text-white/50 max-w-lg mx-auto leading-relaxed">
+              <p className="text-lg text-zinc-500 dark:text-white/50 max-w-lg mx-auto leading-relaxed">
                 Configure your AI engine to craft a week's worth of high-converting social posts in seconds.
               </p>
             </div>
 
-            <div className="bg-[#0a0a14]/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent" />
+            <div className="bg-[#0a0a14]/60 backdrop-blur-2xl border border-zinc-200 dark:border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-purple-500/30 to-transparent" />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Form Group */}
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
                     <Briefcase className="w-3.5 h-3.5" /> Business Profile
                   </label>
                   <Input 
                     value={setupData.business} onChange={e => setSetupData({...setupData, business: e.target.value})}
-                    className="h-12 bg-black/40 border-white/10 text-white placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible:border-purple-500/50 transition-all shadow-inner" 
+                    className="h-12 bg-black/40  dark:border-white/10 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible: transition-all shadow-inner" 
                   />
                 </div>
 
                 {/* Form Group */}
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
                     <Flag className="w-3.5 h-3.5" /> Strategy Goal
                   </label>
                   <div className="relative">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-black/40 border border-white/10 text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
+                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-black/40 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
                         <span className="truncate">{setupData.goal}</span>
-                        <ChevronRight className="w-4 h-4 text-white/30 rotate-90 group-data-[state=open]:-rotate-90 transition-transform shrink-0 ml-2" />
+                        <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-white/30 rotate-90 group-data-[state=open]:-rotate-90 transition-transform shrink-0 ml-2" />
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[--anchor-width] bg-[#0c0c18] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-xl p-1.5 z-50">
+                      <DropdownMenuContent className="w-[--anchor-width] bg-[#0c0c18] border border-zinc-200 dark:border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-xl p-1.5 z-50">
                         {['Increase Brand Awareness', 'Lead Generation', 'Community Engagement', 'Product Launch'].map((goal) => (
                           <DropdownMenuItem
                             key={goal}
@@ -292,7 +292,7 @@ export function GenerateContent() {
                             className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${
                               setupData.goal === goal 
                                 ? 'bg-purple-500/10 text-purple-300' 
-                                : 'text-white/70 hover:text-white hover:bg-white/5 focus:bg-white/5'
+                                : 'text-zinc-500 dark:hover:text-white/70 hover:text- dark:hover:text-$3$3 hover:bg-white dark:bg-white/5 border-zinc-200 focus:bg-white '
                             }`}
                           >
                             {goal}
@@ -306,16 +306,16 @@ export function GenerateContent() {
                 
                 {/* Form Group */}
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
                     Platform
                   </label>
                   <div className="relative">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-black/40 border border-white/10 text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
+                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-black/40 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
                         <span className="truncate">{setupData.platform}</span>
-                        <ChevronRight className="w-4 h-4 text-white/30 rotate-90 group-data-[state=open]:-rotate-90 transition-transform shrink-0 ml-2" />
+                        <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-white/30 rotate-90 group-data-[state=open]:-rotate-90 transition-transform shrink-0 ml-2" />
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[--anchor-width] bg-[#0c0c18] border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-xl p-1.5 z-50">
+                      <DropdownMenuContent className="w-[--anchor-width] bg-[#0c0c18] border border-zinc-200 dark:border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-xl p-1.5 z-50">
                         {['Instagram', 'LinkedIn', 'Twitter', 'Facebook'].map((platform) => (
                           <DropdownMenuItem
                             key={platform}
@@ -323,7 +323,7 @@ export function GenerateContent() {
                             className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${
                               setupData.platform === platform 
                                 ? 'bg-purple-500/10 text-purple-300' 
-                                : 'text-white/70 hover:text-white hover:bg-white/5 focus:bg-white/5'
+                                : 'text-zinc-500 dark:hover:text-white/70 hover:text- dark:hover:text-$3$3 hover:bg-white dark:bg-white/5 border-zinc-200 focus:bg-white '
                             }`}
                           >
                             {platform}
@@ -337,25 +337,25 @@ export function GenerateContent() {
                 
                 {/* Form Group */}
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
                     Number of Posts
                   </label>
                   <Input 
                     type="number" min={1} max={14}
                     value={setupData.numPosts} onChange={e => setSetupData({...setupData, numPosts: parseInt(e.target.value)})}
-                    className="h-12 bg-black/40 border-white/10 text-white rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible:border-purple-500/50 transition-all shadow-inner" 
+                    className="h-12 bg-black/40 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible:border-purple-500/50 transition-all shadow-inner" 
                   />
                 </div>
 
                 {/* Form Group (Full Width) */}
                 <div className="col-span-1 md:col-span-2 space-y-2">
-                  <label className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
                     <Tag className="w-3.5 h-3.5" /> Tone (Optional)
                   </label>
                   <Input 
                     placeholder="e.g. Professional, Witty, Casual, Urgent..."
                     value={setupData.tone} onChange={e => setSetupData({...setupData, tone: e.target.value})}
-                    className="h-12 bg-black/40 border-white/10 text-white placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible:border-purple-500/50 transition-all shadow-inner" 
+                    className="h-12 bg-black/40  dark:border-white/10 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible: transition-all shadow-inner" 
                   />
                 </div>
               </div>
@@ -363,7 +363,7 @@ export function GenerateContent() {
               <div className="mt-10">
                 <Button 
                   onClick={handleStartGeneration}
-                  className="w-full h-14 bg-white text-black hover:bg-white/90 font-bold rounded-xl text-base transition-all gap-2 group shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)]"
+                  className="w-full h-14 bg-white text-black hover:bg-zinc-100 dark:hover:bg-white/90 font-bold rounded-xl text-base transition-all gap-2 group shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)]"
                 >
                   <Sparkles className="w-5 h-5 text-purple-600 group-hover:scale-110 transition-transform" /> 
                   Generate {setupData.numPosts} Posts
@@ -394,23 +394,23 @@ export function GenerateContent() {
                 />
                 <motion.div 
                   animate={{ rotate: -360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                  className={`absolute inset-2 border-[2px] border-blue-500/40 rounded-full border-t-transparent ${generationComplete ? 'opacity-0' : 'opacity-100'}`} 
+                  className={`absolute inset-2 border-2 border-blue-500/40 rounded-full border-t-transparent ${generationComplete ? 'opacity-0' : 'opacity-100'}`} 
                 />
                 
-                <div className="relative z-10 w-16 h-16 bg-[#0a0a14] rounded-full border border-white/10 flex items-center justify-center shadow-2xl">
+                <div className="relative z-10 w-16 h-16 bg-[#0a0a14] rounded-full border border-zinc-200 dark:border-white/10 flex items-center justify-center shadow-2xl">
                   {generationComplete ? (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 15 }}>
                       <CheckCircle2 className="w-8 h-8 text-green-400" />
                     </motion.div>
                   ) : (
-                    <Sparkles className="w-7 h-7 text-white animate-pulse" />
+                    <Sparkles className="w-7 h-7 text-zinc-900 dark:text-white animate-pulse" />
                   )}
                 </div>
               </div>
-              <h2 className="text-3xl font-bold text-white mb-3 tracking-tight">
+              <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-3 tracking-tight">
                 {generationComplete ? 'Content Generation Complete' : 'Synthesizing Content...'}
               </h2>
-              <p className="text-white/40 text-lg">
+              <p className="text-zinc-500 dark:text-white/40 text-lg">
                 {generationComplete ? 'Your strategy has been executed successfully.' : 'Hold tight while the AI builds your weekly strategy.'}
               </p>
             </div>
@@ -427,11 +427,11 @@ export function GenerateContent() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                     className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-500 ${
-                      isCurrent ? 'bg-white/10 border-purple-500/30 shadow-[inset_0_0_20px_rgba(168,85,247,0.1)]' : 
-                      isPast ? 'bg-white/5 border-white/10' : 'bg-transparent border-transparent'
+                      isCurrent ? 'bg-white dark:bg-white/10   shadow-[inset_0_0_20px_rgba(168,85,247,0.1)]' : 
+                      isPast dark:bg-white/5   dark:border-white/10' 'bg-transparent border-transparent'
                     }`}
                   >
-                    <span className={`text-sm font-medium ${isPast ? 'text-white' : isCurrent ? 'text-white' : 'text-white/20'}`}>
+                    <span className={`text-sm font-medium ${isPast ? 'text-zinc-900 dark:text-white' : isCurrent 'text-zinc-500 dark:text-white/20'}`}>
                       {step}
                     </span>
                     <div className="flex items-center">
@@ -444,7 +444,7 @@ export function GenerateContent() {
                           <Loader2 className="w-3.5 h-3.5 animate-spin" /> In progress
                         </span>
                       ) : (
-                        <span className="text-white/10 text-[11px] font-mono tracking-widest uppercase">Waiting</span>
+                        <span className="text-zinc-500 dark:text-white/10 text-[11px] font-mono tracking-widest uppercase">Waiting</span>
                       )}
                     </div>
                   </motion.div>
@@ -484,10 +484,10 @@ export function GenerateContent() {
             className="w-full flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)] px-6"
           >
             {/* Left Sidebar: Post List */}
-            <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col bg-[#0c0c18]/80 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden">
-              <div className="p-6 border-b border-white/10 bg-white/[0.02]">
-                <h2 className="text-xl font-bold text-white mb-1 tracking-tight">Review Content</h2>
-                <p className="text-white/40 text-sm leading-relaxed">Approve or edit the AI-generated posts below before scheduling.</p>
+            <div className="w-full lg:w-80 xl:w-96 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-3xl overflow-hidden">
+              <div className="p-6 border-b border-zinc-200 dark:border-white/10 bg-white/2">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1 tracking-tight">Review Content</h2>
+                <p className="text-zinc-500 dark:text-white/40 text-sm leading-relaxed">Approve or edit the AI-generated posts below before scheduling.</p>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
@@ -500,27 +500,24 @@ export function GenerateContent() {
                       className={`relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 group overflow-hidden ${
                         isActive 
                           ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]' 
-                          : 'bg-white/4 border-white/8 hover:border-white/20 hover:bg-white/8'
+                          : 'bg-white dark:bg-white/4 border-zinc-200  dark:border-white/8 hover: dark:border-white/20 hover:bg-white dark:bg-white/8 '
                       }`}
                     >
                       {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-2xl" />}
                       
                       <div className="flex justify-between items-start mb-3">
-                        <span className={`text-[10px] font-mono font-bold tracking-[0.2em] uppercase ${isActive ? 'text-blue-400' : 'text-white/30'}`}>
+                        <span className={`text-[10px] font-mono font-bold tracking-[0.2em] uppercase ${isActive ? 'text-blue-400' : 'text-zinc-500 dark:text-white/30'}`}>
                           Post 0{idx + 1}
                         </span>
                         <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider ${
-                          post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                          post.status === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                          post.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                          post.status === 'draft' ? 'bg-white/5 text-white/40 border border-white/10' :
-                          'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+                          post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'approved' 'bg-green-500/10 text-green-400 border-green-500/20' 'rejected' 'bg-red-500/10 text-red-400 border-red-500/20' 'draft' 'bg-white dark:bg-white/5 border-zinc-200 text-zinc-500 dark:text-white/40  dark:border-white/10'
+                          'bg-orange-500/10 text-orange-400 border-orange-500/20'
                         }`}>
                           {post.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <h4 className="text-base font-semibold text-white mb-1.5 truncate group-hover:text-blue-300 transition-colors">{post.title}</h4>
-                      <p className="text-xs text-white/40 line-clamp-2 leading-relaxed">{post.caption}</p>
+                      <h4 className="text-base font-semibold text-zinc-900 dark:text-white mb-1.5 truncate group-hover:text-blue-300 transition-colors">{post.title}</h4>
+                      <p className="text-xs text-zinc-500 dark:text-white/40 line-clamp-2 leading-relaxed">{post.caption}</p>
                     </div>
                   )
                 })}
@@ -529,19 +526,19 @@ export function GenerateContent() {
 
             {/* Main Area: Selected Post Editor */}
             {selectedPost ? (
-              <div className="flex-1 bg-[#0c0c18]/80 backdrop-blur-xl border border-white/10 rounded-3xl flex flex-col overflow-hidden relative">
+              <div className="flex-1 bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-3xl flex flex-col overflow-hidden relative">
                 {/* Header */}
-                <div className="p-6 md:px-8 border-b border-white/10 bg-white/[0.02] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="p-6 md:px-8 border-b border-zinc-200 dark:border-white/10 bg-white/2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <h3 className="text-2xl font-bold text-white tracking-tight">{selectedPost.title}</h3>
-                    <div className="flex items-center gap-2 mt-2 text-sm font-medium text-white/40 bg-white/5 w-fit px-3 py-1 rounded-lg">
+                    <h3 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">{selectedPost.title}</h3>
+                    <div className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-500 dark:text-white/40 bg-white dark:bg-white/5 border-zinc-200 w-fit px-3 py-1 rounded-lg">
                       <Clock className="w-3.5 h-3.5" /> Scheduled: {new Date(selectedPost.scheduledDate).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3">
                     {selectedPost.status !== 'rejected' && selectedPost.status !== 'scheduled' && (
-                      <Button onClick={() => updatePostStatus(selectedPost.id, 'rejected')} variant="outline" className="h-10 px-5 rounded-xl border-white/10 text-white/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all">
+                      <Button onClick={() => updatePostStatus(selectedPost.id, 'rejected')} variant="outline" className="h-10 px-5 rounded-xl border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-white/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all">
                         Reject
                       </Button>
                     )}
@@ -558,46 +555,46 @@ export function GenerateContent() {
                   <div className="flex-1 flex flex-col max-w-3xl">
                     <div className="space-y-6 flex-1">
                       <div>
-                        <label className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                        <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                           <AlignLeft className="w-3.5 h-3.5" /> Post Caption
                         </label>
                         <Textarea 
                           value={editCaption} 
                           onChange={(e) => setEditCaption(e.target.value)}
-                          className="min-h-[220px] bg-black/40 border-white/10 text-white/90 text-sm leading-relaxed p-4 rounded-2xl resize-y focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
+                          className="min-h-[220px] bg-black/40 border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-white/90 text-sm leading-relaxed p-4 rounded-2xl resize-y focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                        <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                           <Hash className="w-3.5 h-3.5" /> Hashtags
                         </label>
                         <Input 
                           value={editHashtags} 
                           onChange={(e) => setEditHashtags(e.target.value)}
-                          className="h-12 bg-black/40 border-white/10 text-white/80 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
+                          className="h-12 bg-black/40 border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-white/80 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
                         />
                       </div>
                     </div>
 
                     {/* AI Revisions Box */}
-                    <div className="mt-10 p-1 rounded-2xl bg-gradient-to-r from-purple-500/30 via-blue-500/30 to-purple-500/30 relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-purple-500/20 rounded-2xl blur-md" />
+                    <div className="mt-10 p-1 rounded-2xl bg-linear-to-r from-purple-500/30 via-blue-500/30 to-purple-500/30 relative">
+                      <div className="absolute inset-0 bg-linear-to-r from-purple-500/20 via-blue-500/20 to-purple-500/20 rounded-2xl blur-md" />
                       
                       <div className="relative bg-[#0c0c18] p-6 rounded-xl overflow-hidden">
                         <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none"><Wand2 className="w-32 h-32" /></div>
                         <label className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                           <Sparkles className="w-3.5 h-3.5" /> AI Revision Engine
                         </label>
-                        <p className="text-sm text-white/40 mb-4 leading-relaxed">Describe how you want to tweak the caption above. The AI will instantly rewrite it.</p>
+                        <p className="text-sm text-zinc-500 dark:text-white/40 mb-4 leading-relaxed">Describe how you want to tweak the caption above. The AI will instantly rewrite it.</p>
                         <div className="flex gap-3">
                           <Input 
                             placeholder='e.g. "Make it punchier and add a call to action at the end"'
                             value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
-                            className="h-12 bg-black/60 border-purple-500/20 text-white placeholder:text-white/20 focus-visible:ring-1 focus-visible:ring-purple-500 rounded-xl"
+                            className="h-12 bg-black/60 border-purple-500/20 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 focus-visible:ring-1 focus-visible:ring-purple-500 rounded-xl"
                           />
                           <Button 
                             onClick={handleApplyAiEdit} disabled={!aiPrompt.trim() || isApplyingAi}
-                            className="h-12 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] disabled:shadow-none"
+                            className="h-12 px-6 bg-purple-600 hover:bg-purple-500 text-zinc-900 dark:text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] disabled:shadow-none"
                           >
                             {isApplyingAi ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                           </Button>
@@ -607,34 +604,34 @@ export function GenerateContent() {
                   </div>
 
                   {/* Right Column: Visuals / Post Actions */}
-                  <div className="w-full xl:w-96 flex-shrink-0 flex flex-col gap-6">
-                    <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-5 flex flex-col items-center">
-                      <label className="text-[11px] w-full font-bold text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                  <div className="w-full xl:w-96 shrink-0 flex flex-col gap-6">
+                    <div className="bg-white/2 border border-zinc-200 dark:border-white/10 rounded-2xl p-5 flex flex-col items-center">
+                      <label className="text-[11px] w-full font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                         <ImageIcon className="w-3.5 h-3.5" /> Generated Graphic
                       </label>
-                      <div className="w-full max-w-[320px] aspect-square rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-black flex items-center justify-center">
+                      <div className="w-full max-w-[320px] aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-white/10 shadow-lg relative bg-black flex items-center justify-center">
                         {/* 
                           Canvas-first integration: Rendering the JSON data via React-Konva instead of a flat image.
                         */}
                         <CanvasEditor canvasData={selectedPost.canvasData} />
                         
                         <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm pointer-events-none">
-                          <span className="text-white font-bold tracking-wider uppercase text-sm">Editable in Studio</span>
+                          <span className="text-zinc-900 dark:text-white font-bold tracking-wider uppercase text-sm">Editable in Studio</span>
                         </div>
                       </div>
-                      <p className="text-[10px] text-white/30 text-center mt-4 tracking-wider uppercase">
+                      <p className="text-[10px] text-zinc-500 dark:text-white/30 text-center mt-4 tracking-wider uppercase">
                         Rendered via Canvas Template
                       </p>
                     </div>
 
                     <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-6">
-                      <h4 className="text-sm font-bold text-white mb-1">Ready to queue?</h4>
-                      <p className="text-xs text-white/50 mb-5">Approve the post to unlock publishing actions.</p>
+                      <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-1">Ready to queue?</h4>
+                      <p className="text-xs text-zinc-500 dark:text-white/50 mb-5">Approve the post to unlock publishing actions.</p>
                       <div className="space-y-3">
                         <Button 
                           onClick={handleSchedulePost}
                           disabled={selectedPost.status !== 'approved' || isScheduling} 
-                          className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] disabled:opacity-50 disabled:shadow-none"
+                          className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-zinc-900 dark:text-white font-bold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] disabled:opacity-50 disabled:shadow-none"
                         >
                           {isScheduling ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Schedule to Queue'}
                         </Button>
@@ -644,11 +641,11 @@ export function GenerateContent() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center bg-white/[0.02] border border-white/10 rounded-3xl backdrop-blur-xl">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-                  <AlignLeft className="w-8 h-8 text-white/20" />
+              <div className="flex-1 flex flex-col items-center justify-center bg-white/2 border border-zinc-200 dark:border-white/10 rounded-3xl backdrop-blur-xl">
+                <div className="w-16 h-16 rounded-2xl bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 flex items-center justify-center mb-4">
+                  <AlignLeft className="w-8 h-8 text-zinc-500 dark:text-white/20" />
                 </div>
-                <p className="text-white/40 text-sm font-medium">Select a post from the sidebar to review.</p>
+                <p className="text-zinc-500 dark:text-white/40 text-sm font-medium">Select a post from the sidebar to review.</p>
               </div>
             )}
           </motion.div>

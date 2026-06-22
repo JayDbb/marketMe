@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { UploadCloud, X, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ImageUploadProps {
@@ -9,7 +9,7 @@ interface ImageUploadProps {
   onChange: (file: File | null) => void;
 }
 
-export function ImageUpload({ value, onChange }: ImageUploadProps) {
+export function ImageUpload({ onChange }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +67,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
             exit={{ opacity: 0, scale: 0.95 }}
             className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 group"
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
               alt="Preview"

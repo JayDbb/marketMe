@@ -1,21 +1,26 @@
-import { createClient } from '@/lib/supabase/server'
+import { getUserAndProfile } from '@/lib/user'
 import { redirect } from 'next/navigation'
 import { SettingsContent } from '@/components/dashboard/settings-content'
+import { Suspense } from 'react'
 
-export default async function SettingsPage() {
-  const supabase = await createClient()
+export const unstable_instant = { prefetch: 'static' }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+async function SettingsData() {
+  const { user, profile } = await getUserAndProfile()
 
   if (!user) {
     return redirect('/login')
   }
 
+  return <SettingsContent profile={profile} />
+}
+
+export default function SettingsPage() {
   return (
     <div className="relative min-h-full font-sans">
-      <SettingsContent />
+      <Suspense fallback={<div className="flex h-[50vh] items-center justify-center text-white/40">Loading settings...</div>}>
+        <SettingsData />
+      </Suspense>
     </div>
   )
 }

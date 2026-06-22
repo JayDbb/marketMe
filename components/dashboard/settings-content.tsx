@@ -20,7 +20,13 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100, damping: 20 } }
 }
 
-export function SettingsContent() {
+import { BusinessProfile } from '@/types/business-profile'
+
+interface SettingsContentProps {
+  profile?: BusinessProfile | null;
+}
+
+export function SettingsContent({ profile }: SettingsContentProps) {
   return (
     <motion.div
       variants={containerVariants}
@@ -71,7 +77,7 @@ export function SettingsContent() {
                 <div className="space-y-2 max-w-lg">
                   <Label className="text-white/50 font-medium text-xs uppercase tracking-wider">Workspace Name</Label>
                   <Input
-                    defaultValue="Vanguard Atelier"
+                    defaultValue={profile?.business_name || ''}
                     className="h-11 bg-white/5 border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-white rounded-xl shadow-none"
                   />
                 </div>

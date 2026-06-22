@@ -99,7 +99,7 @@ export function Footer() {
       <div className="border-t border-white/6">
         <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-[11px] text-white/20 font-mono tracking-wide">
-            © {new Date().getFullYear()} Marketme. All rights reserved.
+            © 2026 Marketme. All rights reserved.
           </p>
           <p className="text-[11px] text-white/20">
             Built for ambitious teams.

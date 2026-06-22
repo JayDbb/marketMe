@@ -3,93 +3,82 @@ import { openai } from "@/lib/openai";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { GenerateWeeklyContentPayload, RegenerateCaptionPayload, GenerateImagePayload } from "@/types/ai";
 
+const API_URL = process.env.MARKETME_AI_API_URL || 'http://localhost:8000';
+
 /**
  * Task 1: Generate Weekly Content
+ * Delegates AI logic and persistence to MarketMe-AI Python backend.
  */
 export const generateWeeklyContent = task({
   id: "generate-weekly-content",
-  run: async (payload: GenerateWeeklyContentPayload, { ctx }) => {
+  run: async (payload: GenerateWeeklyContentPayload) => {
     // 1. Fetch Business Profile
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('business_profiles')
       .select('*')
       .eq('id', payload.businessProfileId)
+      .eq('user_id', payload.userId)
       .single();
 
     if (profileError || !profile) {
       throw new Error(`Business profile not found: ${profileError?.message}`);
     }
 
-    // 2. Fetch context from AI Memory (pgvector RAG)
-    // Using a dummy embedding for now, to represent the query
-    const dummyQueryEmbedding = new Array(1536).fill(0.1); 
-    
-    // In a real app we would embed the target audience or recent goal to query past successful posts
-    // const { data: memory } = await supabaseAdmin.rpc('match_marketing_knowledge', { ... })
-    
-    // 3. Generate Strategy & Posts using OpenAI
-    const systemPrompt = `You are an expert marketing AI. You manage the social media strategy for ${profile.business_name}.
-Industry: ${profile.industry}
-Target Customers: ${profile.target_customers}
-Services: ${profile.services}
-Tone: ${profile.tone}`;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Generate a social media content plan for the week of ${payload.startDate}. Return JSON containing target_audience, strategy_summary, and an array of 3 'posts' (each with platform, post_type, content, and image_prompt).` }
-      ],
-      response_format: { type: "json_object" }
+    // 2. Call MarketMe-AI Strategy Generation
+    const strategyRes = await fetch(`${API_URL}/api/v1/strategy/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        business_id: profile.id,
+        business_name: profile.business_name || 'My Business',
+        industry: profile.industry || 'General',
+        target_audience: profile.target_customers || 'Everyone',
+        goals: profile.primary_goal || 'Growth',
+        platforms: Array.isArray(profile.channels) && profile.channels.length > 0
+          ? profile.channels
+          : ['instagram'],
+      })
     });
 
-    const aiOutputText = completion.choices[0].message.content || '{}';
-    const aiOutput = JSON.parse(aiOutputText);
+    if (!strategyRes.ok) {
+      const errorText = await strategyRes.text();
+      throw new Error(`Failed to generate strategy: ${strategyRes.status} ${errorText}`);
+    }
 
-    // 4. Save Content Plan
-    const { data: plan, error: planError } = await supabaseAdmin
-      .from('content_plans')
-      .insert({
-        user_id: profile.user_id,
-        business_profile_id: profile.id,
-        start_date: payload.startDate,
-        end_date: new Date(new Date(payload.startDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        target_audience: aiOutput.target_audience,
-        strategy_summary: aiOutput.strategy_summary,
-        status: 'draft'
+    const strategyData = await strategyRes.json();
+    const strategyId = strategyData.strategy_id;
+
+    if (!strategyId) {
+      throw new Error('No strategy_id returned from MarketMe-AI');
+    }
+
+    // 3. Call MarketMe-AI Posts Generation
+    const postsRes = await fetch(`${API_URL}/api/v1/posts/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        strategy_id: strategyId,
+        platform: 'instagram',
+        num_posts: 3
       })
-      .select()
-      .single();
+    });
 
-    if (planError) throw new Error(`Failed to save plan: ${planError.message}`);
+    if (!postsRes.ok) {
+      const errorText = await postsRes.text();
+      throw new Error(`Failed to generate posts: ${postsRes.status} ${errorText}`);
+    }
 
-    // 5. Save Posts
-    const postsToInsert = aiOutput.posts.map((post: any) => ({
-      content_plan_id: plan.id,
-      user_id: profile.user_id,
-      platform: post.platform,
-      post_type: post.post_type,
-      content: post.content,
-      image_prompt: post.image_prompt,
-      status: 'draft'
-    }));
-
-    const { error: postsError } = await supabaseAdmin
-      .from('posts')
-      .insert(postsToInsert);
-
-    if (postsError) throw new Error(`Failed to save posts: ${postsError.message}`);
-
-    return { success: true, contentPlanId: plan.id };
+    return { success: true, contentPlanId: strategyId };
   },
 });
 
 /**
  * Task 2: Regenerate Caption (MAR-18)
+ * (Left as-is until a dedicated Python endpoint is added)
  */
 export const regenerateCaption = task({
   id: "regenerate-caption",
-  run: async (payload: RegenerateCaptionPayload, { ctx }) => {
+  run: async (payload: RegenerateCaptionPayload) => {
     // 1. Fetch Post
     const { data: post, error: postError } = await supabaseAdmin
       .from('posts')
@@ -122,10 +111,11 @@ export const regenerateCaption = task({
 
 /**
  * Task 3: Generate Image (MAR-20 & MAR-23)
+ * Uses MarketMe-AI for the prompt, then DALL-E 3 for the image.
  */
 export const generateImage = task({
   id: "generate-image",
-  run: async (payload: GenerateImagePayload, { ctx }) => {
+  run: async (payload: GenerateImagePayload) => {
     // 1. Fetch Post
     const { data: post, error: postError } = await supabaseAdmin
       .from('posts')
@@ -135,29 +125,36 @@ export const generateImage = task({
 
     if (postError || !post) throw new Error("Post not found");
 
-    // MAR-20: Ensure we have an image prompt
+    // 2. Call MarketMe-AI for creative brief and refined prompt
     let prompt = post.image_prompt;
     if (!prompt) {
-      const isOpenRouter = process.env.OPENAI_API_KEY?.startsWith('sk-or-');
-      const modelName = isOpenRouter ? "openai/gpt-4o-mini" : "gpt-4o-mini";
-
-      const completion = await openai.chat.completions.create({
-        model: modelName,
-        messages: [
-          { role: "system", content: "You write image prompts for AI image generators like DALL-E." },
-          { role: "user", content: `Write a highly detailed image generation prompt for this post: "${post.content}". Style: ${payload.style || 'High quality, professional photograph'}.` }
-        ],
+      const creativeRes = await fetch(`${API_URL}/api/v1/creative/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_id: payload.postId,
+          style_hint: payload.style || 'High quality, professional photograph'
+        })
       });
-      prompt = completion.choices[0].message.content;
+
+      if (!creativeRes.ok) {
+        const errorText = await creativeRes.text();
+        throw new Error(`Failed to generate creative brief: ${creativeRes.status} ${errorText}`);
+      }
+
+      const creativeData = await creativeRes.json();
+      prompt = creativeData.refined_prompt;
       
-      // Save the generated prompt
+      if (!prompt) throw new Error("No refined prompt returned from MarketMe-AI");
+
+      // Save the generated prompt to the post
       await supabaseAdmin.from('posts').update({ image_prompt: prompt }).eq('id', payload.postId);
     }
 
-    // MAR-23: Call DALL-E 3
+    // 3. Call DALL-E 3
     const imageResponse = await openai.images.generate({
       model: "dall-e-3",
-      prompt: prompt!,
+      prompt: prompt,
       n: 1,
       size: "1024x1024",
     });

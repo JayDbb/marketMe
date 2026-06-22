@@ -100,6 +100,7 @@ export function PostCard({ post, onApprove }: PostCardProps) {
       {/* Asset Image */}
       {post.media_url && (
         <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/5 mt-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={post.media_url} 
             alt="Post media" 

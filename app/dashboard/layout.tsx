@@ -1,14 +1,12 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
-import { createClient } from '@/lib/supabase/server'
+import { getUserAndProfile } from '@/lib/user'
 import { redirect } from 'next/navigation'
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
+export const unstable_instant = false
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user } = await getUserAndProfile()
 
   if (!user) {
     return redirect('/login')

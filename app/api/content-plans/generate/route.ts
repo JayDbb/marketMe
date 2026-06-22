@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { generateWeeklyContent } from "@/src/trigger/content-generator";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, AuthError } from "@/lib/services/auth.service";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  let session
+  try {
+    session = await requireAuth()
+  } catch (e) {
+    if (e instanceof AuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status })
+    }
+    return NextResponse.json({ error: "Authentication error" }, { status: 401 })
   }
 
   try {
@@ -19,14 +23,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Verify ownership of the business profile
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('business_profiles')
+      .select('id')
+      .eq('id', businessProfileId)
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: "Profile not found or unauthorized" }, { status: 403 });
+    }
+
     // Trigger the background task
     const handle = await tasks.trigger<typeof generateWeeklyContent>("generate-weekly-content", {
       businessProfileId,
       startDate,
+      userId: session.user.id,
     });
 
     return NextResponse.json({ success: true, jobId: handle.id });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

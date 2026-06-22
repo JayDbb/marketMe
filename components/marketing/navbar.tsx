@@ -1,12 +1,40 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/server'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 import { Activity } from 'lucide-react'
+import { Suspense } from 'react'
 
-export async function Navbar() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+async function NavbarUserAction() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  const user = session?.user ?? null
 
+  if (user) {
+    return (
+      <Link href="/dashboard">
+        <Button
+          size="sm"
+          className="bg-white text-zinc-950 font-semibold rounded-full px-5 hover:bg-white/90 active:scale-[0.97] transition-all duration-150 border-0 shadow-[0_0_20px_rgba(99,130,255,0.25)]"
+        >
+          Dashboard
+        </Button>
+      </Link>
+    )
+  }
+
+  return (
+    <Link href="/signup">
+      <Button
+        size="sm"
+        className="bg-white text-zinc-950 font-semibold rounded-full px-5 hover:bg-white/90 active:scale-[0.97] transition-all duration-150 border-0 shadow-[0_0_20px_rgba(99,130,255,0.25)]"
+      >
+        Get for free
+      </Button>
+    </Link>
+  )
+}
+
+export function Navbar() {
   return (
     <nav
       aria-label="Main navigation"
@@ -58,26 +86,10 @@ export async function Navbar() {
       </div>
 
       {/* CTA */}
-      <div className="flex items-center gap-3 relative z-10">
-        {user ? (
-          <Link href="/dashboard">
-            <Button
-              size="sm"
-              className="bg-white text-zinc-950 font-semibold rounded-full px-5 hover:bg-white/90 active:scale-[0.97] transition-all duration-150 border-0 shadow-[0_0_20px_rgba(99,130,255,0.25)]"
-            >
-              Dashboard
-            </Button>
-          </Link>
-        ) : (
-          <Link href="/signup">
-            <Button
-              size="sm"
-              className="bg-white text-zinc-950 font-semibold rounded-full px-5 hover:bg-white/90 active:scale-[0.97] transition-all duration-150 border-0 shadow-[0_0_20px_rgba(99,130,255,0.25)]"
-            >
-              Get for free
-            </Button>
-          </Link>
-        )}
+      <div className="flex items-center gap-3 relative z-10 min-w-[104px] justify-end">
+        <Suspense fallback={<div className="w-[104px] h-9" />}>
+          <NavbarUserAction />
+        </Suspense>
       </div>
     </nav>
   )

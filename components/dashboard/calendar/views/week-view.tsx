@@ -55,7 +55,7 @@ export function WeekView({ posts, currentDate }: WeekViewProps) {
       {/* Sticky Header for Days */}
       <div className="flex pl-[60px] pb-4 mb-4 border-b border-zinc-200 dark:border-white/5 shrink-0 pr-4">
         {weekDays.map((d, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-white/5 border-zinc-200 mx-1 py-3 rounded-2xl border dark:border-white/5">
+          <div key={i} className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-white/5 border-transparent mx-1 py-3 rounded-2xl border dark:border-white/5">
             <span className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-wider mb-1">
               {d.toLocaleDateString('en-US', { weekday: 'long' })}
             </span>
@@ -128,7 +128,7 @@ export function WeekView({ posts, currentDate }: WeekViewProps) {
               
               <div className="mt-auto pt-2 flex items-center justify-between">
                 <div className="flex -space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-white dark:bg-white/20 border border-black/10 flex items-center justify-center text-[10px] font-bold">M</div>
+                  <div className="w-6 h-6 rounded-full bg-white dark:bg-white/20 border border-transparent flex items-center justify-center text-[10px] font-bold">M</div>
                 </div>
                 {post.media_url ? (
                   <button className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center hover:bg-black/20 transition-colors">
@@ -147,10 +147,10 @@ export function WeekView({ posts, currentDate }: WeekViewProps) {
 
         {/* Add an empty placeholder slot to match the screenshot vibe */}
         <div 
-          className="rounded-2xl border-2 border-dashed border-zinc-200 dark:border-white/20 bg-white dark:hover:bg-white/5 flex items-center justify-center cursor-pointer hover:bg-white dark:hover:bg-white/10 transition-colors"
+          className="rounded-2xl border-2 border-dashed border-transparent dark:border-white/20 bg-white dark:bg-white/5 flex items-center justify-center cursor-pointer hover:bg-white dark:hover:bg-white/10 transition-colors"
           style={{ gridColumn: 4, gridRow: '2 / span 2' }}
         >
-          <div className="w-8 h-8 rounded-full border border-zinc-200 dark:border-white/30 flex items-center justify-center text-zinc-500 dark:text-white/50">
+          <div className="w-8 h-8 rounded-full border border-black/10 dark:border-white/30 flex items-center justify-center text-zinc-500 dark:text-white/50">
             +
           </div>
         </div>

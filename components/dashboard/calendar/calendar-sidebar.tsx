@@ -55,10 +55,10 @@ export function CalendarSidebar({ currentDate, onDateChange }: CalendarSidebarPr
             {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
           </h4>
           <div className="flex gap-1">
-            <button onClick={handlePrevMonth} className="w-7 h-7 rounded-lg bg-white dark:hover:bg-white/5 border-zinc-200 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:bg-white dark:hover:bg-white/10 transition-colors">
+            <button onClick={handlePrevMonth} className="w-7 h-7 rounded-lg bg-white dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:bg-white dark:hover:bg-white/10 transition-colors">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={handleNextMonth} className="w-7 h-7 rounded-lg bg-white dark:hover:bg-white/5 border-zinc-200 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:bg-white dark:hover:bg-white/10 transition-colors">
+            <button onClick={handleNextMonth} className="w-7 h-7 rounded-lg bg-white dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:bg-white dark:hover:bg-white/10 transition-colors">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -94,12 +94,12 @@ export function CalendarSidebar({ currentDate, onDateChange }: CalendarSidebarPr
       </div>
 
       {/* Upcoming Event Card (Floating Glassmorphism) */}
-      <div className="relative rounded-2xl bg-linear-to-br from-[#1a1a2e] to-[#0c0c18] border border-zinc-200 dark:border-white/10 p-5 mb-8 overflow-hidden group">
+      <div className="relative rounded-2xl bg-white dark:bg-[#0c0c18] border border-black/5 dark:border-white/10 p-5 mb-8 overflow-hidden group shadow-xl shadow-black/5 dark:shadow-none">
         <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-2xl rounded-full pointer-events-none" />
         
         <div className="flex items-center justify-between mb-3 relative z-10">
           <span className="text-[11px] font-mono text-zinc-500 dark:text-white/50">12:00 - 13:30</span>
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-white/5 rounded-full text-[10px] font-bold text-purple-400 border border-purple-500/20">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-50 dark:bg-white/5 rounded-full text-[10px] font-bold text-purple-600 dark:text-purple-400 border border-purple-500/20">
             <Clock className="w-3 h-3" /> 14 min
           </div>
         </div>
@@ -109,10 +109,10 @@ export function CalendarSidebar({ currentDate, onDateChange }: CalendarSidebarPr
         </h4>
         
         <div className="flex gap-2 relative z-10">
-          <button className="flex-1 py-2 rounded-xl bg-transparent border border-zinc-200 dark:border-white/10 text-xs font-bold text-zinc-500 dark:text-white/70 hover:bg-white dark:hover:bg-white/5 transition-colors">
+          <button className="flex-1 py-2 rounded-xl bg-transparent border border-black/10 dark:border-white/10 text-xs font-bold text-zinc-500 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
             Later
           </button>
-          <button className="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-zinc-900 dark:text-white shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-colors">
+          <button className="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-colors">
             Details
           </button>
         </div>

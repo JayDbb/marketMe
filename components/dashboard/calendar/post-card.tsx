@@ -18,7 +18,7 @@ function PlatformIcon({ platform }: { platform: Platform }) {
     instagram: <Camera        className="w-3.5 h-3.5" />,
   };
   return (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-white/8 border-zinc-200 border dark:border-white/10 text-zinc-500 dark:text-white/50 shrink-0">
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-white/8 border border-black/5 dark:border-white/10 text-zinc-500 dark:text-white/50 shrink-0">
       {icons[platform as keyof typeof icons]}
     </span>
   );
@@ -28,7 +28,7 @@ function PlatformIcon({ platform }: { platform: Platform }) {
 function StatusBadge({ status }: { status: Post['status'] }) {
   if (status === 'published') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-white/12 bg-white dark:bg-white/6 text-zinc-500 dark:text-white/55 text-[10px] font-bold uppercase tracking-widest">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-black/5 dark:border-white/12 bg-white dark:bg-white/6 text-zinc-500 dark:text-white/55 text-[10px] font-bold uppercase tracking-widest">
         <Send className="w-3 h-3" />
         Published
       </span>
@@ -72,7 +72,7 @@ function StatusBadge({ status }: { status: Post['status'] }) {
   }
   // draft
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 text-zinc-500 dark:text-white/35 text-[10px] font-bold uppercase tracking-widest">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-white/5 text-zinc-500 dark:text-white/35 text-[10px] font-bold uppercase tracking-widest">
       <Clock className="w-3 h-3" />
       Draft
     </span>
@@ -115,7 +115,7 @@ export function PostCard({ post, onApprove }: PostCardProps) {
 
       {/* Asset Image */}
       {post.media_url && (
-        <div className="relative w-full h-32 rounded-lg overflow-hidden border border-zinc-200 dark:border-white/5 mt-1">
+        <div className="relative w-full h-32 rounded-lg overflow-hidden border border-transparent dark:border-white/5 mt-1">
           <img 
             src={post.media_url} 
             alt="Post media" 

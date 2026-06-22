@@ -205,7 +205,7 @@ export function DashboardContent({ submitFeedbackAction, profile, plansCount, po
           },
         ].map((metric) => (
           <motion.div variants={itemVariants} key={metric.label}>
-            <Card className="bg-white dark:hover:bg-white/4 border-zinc-200 backdrop-blur-xl dark:border-white/8 text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/6 transition-colors shadow-xl rounded-2xl overflow-hidden relative group h-full">
+            <Card className="bg-white dark:bg-white/2 dark:hover:bg-white/4 border-zinc-200 backdrop-blur-xl dark:border-white/8 text-zinc-900 dark:text-white hover:bg-zinc-50 transition-colors shadow-xl rounded-2xl overflow-hidden relative group h-full">
               <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
                 <CardTitle className="text-xs font-medium text-zinc-500 dark:text-white/40 uppercase tracking-widest">{metric.label}</CardTitle>

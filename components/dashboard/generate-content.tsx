@@ -212,6 +212,8 @@ export function GenerateContent() {
 
       if (res.success) {
         updatePostStatus(selectedPost.id, 'scheduled');
+      } else {
+        alert("Failed to schedule post: " + res.error);
       }
     } catch (error) {
       console.error("Failed to schedule post", error)
@@ -258,7 +260,7 @@ export function GenerateContent() {
               </p>
             </div>
 
-            <div className="bg-[#0a0a14]/60 backdrop-blur-2xl border border-zinc-200 dark:border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
+            <div className="bg-white dark:bg-[#0a0a14]/60 backdrop-blur-2xl border border-black/5 dark:border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-purple-500/30 to-transparent" />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -269,7 +271,7 @@ export function GenerateContent() {
                   </label>
                   <Input 
                     value={setupData.business} onChange={e => setSetupData({...setupData, business: e.target.value})}
-                    className="h-12 bg-black/40  dark:border-white/10 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible: transition-all shadow-inner" 
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 transition-all shadow-inner" 
                   />
                 </div>
 
@@ -280,7 +282,7 @@ export function GenerateContent() {
                   </label>
                   <div className="relative">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-black/40 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
+                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
                         <span className="truncate">{setupData.goal}</span>
                         <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-white/30 rotate-90 group-data-[state=open]:-rotate-90 transition-transform shrink-0 ml-2" />
                       </DropdownMenuTrigger>
@@ -311,7 +313,7 @@ export function GenerateContent() {
                   </label>
                   <div className="relative">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-black/40 border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
+                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
                         <span className="truncate">{setupData.platform}</span>
                         <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-white/30 rotate-90 group-data-[state=open]:-rotate-90 transition-transform shrink-0 ml-2" />
                       </DropdownMenuTrigger>
@@ -343,7 +345,7 @@ export function GenerateContent() {
                   <Input 
                     type="number" min={1} max={14}
                     value={setupData.numPosts} onChange={e => setSetupData({...setupData, numPosts: parseInt(e.target.value)})}
-                    className="h-12 bg-black/40 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible:border-purple-500/50 transition-all shadow-inner" 
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible:border-purple-500/50 transition-all shadow-inner" 
                   />
                 </div>
 
@@ -355,7 +357,7 @@ export function GenerateContent() {
                   <Input 
                     placeholder="e.g. Professional, Witty, Casual, Urgent..."
                     value={setupData.tone} onChange={e => setSetupData({...setupData, tone: e.target.value})}
-                    className="h-12 bg-black/40  dark:border-white/10 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible: transition-all shadow-inner" 
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 transition-all shadow-inner" 
                   />
                 </div>
               </div>
@@ -397,13 +399,13 @@ export function GenerateContent() {
                   className={`absolute inset-2 border-2 border-blue-500/40 rounded-full border-t-transparent ${generationComplete ? 'opacity-0' : 'opacity-100'}`} 
                 />
                 
-                <div className="relative z-10 w-16 h-16 bg-[#0a0a14] rounded-full border border-zinc-200 dark:border-white/10 flex items-center justify-center shadow-2xl">
+                <div className="relative z-10 w-16 h-16 bg-white dark:bg-[#0a0a14] rounded-full border border-black/5 dark:border-white/10 flex items-center justify-center shadow-2xl">
                   {generationComplete ? (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 15 }}>
                       <CheckCircle2 className="w-8 h-8 text-green-400" />
                     </motion.div>
                   ) : (
-                    <Sparkles className="w-7 h-7 text-zinc-900 dark:text-white animate-pulse" />
+                    <Sparkles className="w-7 h-7 text-purple-600 dark:text-white animate-pulse" />
                   )}
                 </div>
               </div>
@@ -500,7 +502,7 @@ export function GenerateContent() {
                       className={`relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 group overflow-hidden ${
                         isActive 
                           ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]' 
-                          : 'bg-white dark:bg-white/4 border-zinc-200  dark:border-white/8 hover: dark:border-white/20 hover:bg-white dark:bg-white/8 '
+                          : 'bg-white dark:bg-white/4 border-zinc-200 dark:border-white/8 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/8'
                       }`}
                     >
                       {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-2xl" />}
@@ -564,7 +566,7 @@ export function GenerateContent() {
                         <Textarea 
                           value={editCaption} 
                           onChange={(e) => setEditCaption(e.target.value)}
-                          className="min-h-[220px] bg-black/40 border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-white/90 text-sm leading-relaxed p-4 rounded-2xl resize-y focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
+                          className="min-h-[220px] bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white/90 text-sm leading-relaxed p-4 rounded-2xl resize-y focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
                         />
                       </div>
                       <div>
@@ -574,7 +576,7 @@ export function GenerateContent() {
                         <Input 
                           value={editHashtags} 
                           onChange={(e) => setEditHashtags(e.target.value)}
-                          className="h-12 bg-black/40 border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-white/80 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
+                          className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white/80 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
                         />
                       </div>
                     </div>
@@ -583,7 +585,7 @@ export function GenerateContent() {
                     <div className="mt-10 p-1 rounded-2xl bg-linear-to-r from-purple-500/30 via-blue-500/30 to-purple-500/30 relative">
                       <div className="absolute inset-0 bg-linear-to-r from-purple-500/20 via-blue-500/20 to-purple-500/20 rounded-2xl blur-md" />
                       
-                      <div className="relative bg-[#0c0c18] p-6 rounded-xl overflow-hidden">
+                      <div className="relative bg-white dark:bg-[#0c0c18] p-6 rounded-xl overflow-hidden">
                         <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none"><Wand2 className="w-32 h-32" /></div>
                         <label className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                           <Sparkles className="w-3.5 h-3.5" /> AI Revision Engine
@@ -593,11 +595,11 @@ export function GenerateContent() {
                           <Input 
                             placeholder='e.g. "Make it punchier and add a call to action at the end"'
                             value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
-                            className="h-12 bg-black/60 border-purple-500/20 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 focus-visible:ring-1 focus-visible:ring-purple-500 rounded-xl"
+                            className="h-12 bg-zinc-50 dark:bg-black/60 border border-purple-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/40 focus-visible:ring-1 focus-visible:ring-purple-500 rounded-xl"
                           />
                           <Button 
                             onClick={handleApplyAiEdit} disabled={!aiPrompt.trim() || isApplyingAi}
-                            className="h-12 px-6 bg-purple-600 hover:bg-purple-500 text-zinc-900 dark:text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] disabled:shadow-none"
+                            className="h-12 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] disabled:shadow-none"
                           >
                             {isApplyingAi ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                           </Button>
@@ -612,14 +614,14 @@ export function GenerateContent() {
                       <label className="text-[11px] w-full font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                         <ImageIcon className="w-3.5 h-3.5" /> Generated Graphic
                       </label>
-                      <div className="w-full max-w-[320px] aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-white/10 shadow-lg relative bg-black flex items-center justify-center">
+                      <div className="w-full max-w-[320px] relative flex flex-col items-center">
                         {/* 
                           Canvas-first integration: Rendering the JSON data via React-Konva instead of a flat image.
                         */}
-                        <CanvasEditor canvasData={selectedPost.canvasData} />
+                        <CanvasEditor canvasData={selectedPost.canvasData} maxWidth={320} />
                         
-                        <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm pointer-events-none">
-                          <span className="text-zinc-900 dark:text-white font-bold tracking-wider uppercase text-sm">Editable in Studio</span>
+                        <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px] rounded-2xl pointer-events-none">
+                          <span className="text-white font-bold tracking-wider uppercase text-sm drop-shadow-md">Editable in Studio</span>
                         </div>
                       </div>
                       <p className="text-[10px] text-zinc-500 dark:text-white/30 text-center mt-4 tracking-wider uppercase">

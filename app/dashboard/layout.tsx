@@ -24,9 +24,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         {/* Sticky Header */}
         <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-zinc-200 dark:border-white/6 bg-zinc-50/80 dark:bg-[#0a0a14]/80 backdrop-blur-2xl px-6">
-          <SidebarTrigger className="text-zinc-500 dark:hover:text-white/30 hover:text-$3 dark:hover:text-white transition-colors" />
+          <SidebarTrigger className="text-zinc-500 dark:text-white/30 hover:text-zinc-900 dark:hover:text-white transition-colors" />
           <div className="flex-1" />
-          <div className="text-[11px] font-mono tracking-widest uppercase text-zinc-500 dark:text-white/30 bg-white dark:bg-white/5 border-zinc-200 px-3 py-1.5 border dark:border-white/8 rounded-lg max-w-[240px] truncate" title={user.email ?? ''}>{user.email}</div>
+          <div className="text-[11px] font-mono tracking-widest uppercase text-zinc-500 dark:text-white/30 bg-white dark:bg-white/5 border-black/5 px-3 py-1.5 border dark:border-white/8 rounded-lg max-w-[240px] truncate" title={user.email ?? ''}>{user.email}</div>
         </header>
 
         {/* Page Content */}

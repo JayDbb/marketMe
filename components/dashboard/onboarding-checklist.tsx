@@ -114,7 +114,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -16, scale: 0.98 }}
         transition={{ type: 'spring', stiffness: 120, damping: 22 }}
-        className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-white/8 bg-white dark:bg-white/3 backdrop-blur-xl shadow-xl mb-6"
+        className="relative rounded-2xl overflow-hidden border border-transparent dark:border-white/8 bg-white dark:bg-white/3 backdrop-blur-xl shadow-xl mb-6"
       >
         {/* Gradient accent bar */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-r from-blue-500/60 via-indigo-400/40 to-transparent" />
@@ -158,7 +158,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setIsCollapsed((c) => !c)}
-              className="w-8 h-8 rounded-lg hover:bg-white dark:hover:bg-white/6 border-zinc-200 text-zinc-500 dark:hover:text-white/30 hover:text- /60dark:hover:text-$3$3 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-lg hover:bg-white dark:hover:bg-white/6 text-zinc-500 hover:text-zinc-900 dark:hover:text-white/60 flex items-center justify-center transition-colors border-transparent"
               aria-label={isCollapsed ? 'Expand checklist' : 'Collapse checklist'}
             >
               {isCollapsed ? (
@@ -169,7 +169,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
             </button>
             <button
               onClick={handleDismiss}
-              className="w-8 h-8 rounded-lg hover:bg-white dark:hover:bg-white/6 border-zinc-200 text-zinc-500 dark:hover:text-white/20 hover:text- /50dark:hover:text-$3$3 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-lg hover:bg-white dark:hover:bg-white/6 text-zinc-500 hover:text-zinc-900 dark:hover:text-white/60 flex items-center justify-center transition-colors border-transparent"
               aria-label="Dismiss onboarding checklist"
             >
               <X className="w-3.5 h-3.5" />
@@ -219,7 +219,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                         className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
                           done
                             ? 'bg-blue-500/8 border-blue-500/15'
-                            : 'bg-white dark:bg-white/4 border-zinc-200  dark:border-white/8 group-hover:bg-white dark:bg-white/6 group-hover: dark:border-white/12'
+                            : 'bg-white dark:bg-white/4 border-transparent dark:border-white/8 group-hover:bg-white dark:group-hover:bg-white/6 dark:group-hover:border-white/12'
                         }`}
                       >
                         <Icon className={`w-4 h-4 ${done ? 'text-blue-400/70' : 'text-zinc-500 dark:text-white/40'}`} />

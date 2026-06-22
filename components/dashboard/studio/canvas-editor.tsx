@@ -10,6 +10,7 @@ interface CanvasEditorProps {
   onChange?: (data: CanvasData) => void
   selectedId?: string | null
   onSelect?: (id: string | null) => void
+  maxWidth?: number
 }
 
 // A helper component to load images via URL for Konva
@@ -60,7 +61,7 @@ function URLImage({ imageNode, onSelect, onChange, isSelected }: { imageNode: Im
   )
 }
 
-export function CanvasEditor({ canvasData, onChange, selectedId, onSelect }: CanvasEditorProps) {
+export function CanvasEditor({ canvasData, onChange, selectedId, onSelect, maxWidth = 500 }: CanvasEditorProps) {
   const [mounted, setMounted] = useState(false)
   const stageRef = useRef<any>(null)
   const trRef = useRef<any>(null)
@@ -100,7 +101,6 @@ export function CanvasEditor({ canvasData, onChange, selectedId, onSelect }: Can
     }, 100)
   }
 
-  const maxWidth = 500
   const scale = canvasData.canvas.width > maxWidth ? maxWidth / canvasData.canvas.width : 1.0
 
   const handleNodeChange = (updatedNode: CanvasLayer) => {
@@ -126,13 +126,13 @@ export function CanvasEditor({ canvasData, onChange, selectedId, onSelect }: Can
         </h3>
         <button 
           onClick={handleExport} 
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-zinc-900 dark:text-white rounded-lg text-xs font-bold transition-colors shadow-lg"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors shadow-lg"
         >
           Export PNG
         </button>
       </div>
 
-      <div className="bg-[#0c0c18] border border-zinc-200 dark:border-white/10 overflow-hidden shadow-2xl rounded-xl">
+      <div className="bg-white dark:bg-[#0c0c18] border border-black/5 dark:border-white/10 overflow-hidden shadow-2xl rounded-xl">
         <Stage 
           width={canvasData.canvas.width * scale} 
           height={canvasData.canvas.height * scale}

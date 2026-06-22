@@ -2,6 +2,7 @@
 
 import { CanvasData } from "@/types/canvas"
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 
 /**
  * AI Revision API Contract
@@ -74,6 +75,8 @@ export async function schedulePostAction(payload: {
 
     if (postError) throw postError;
     
+    revalidatePath('/dashboard/calendar');
+    revalidatePath('/dashboard/posts');
     return { success: true };
   } catch (error: any) {
     console.error("Scheduling Error:", error);

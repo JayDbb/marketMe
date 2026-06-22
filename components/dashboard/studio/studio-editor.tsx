@@ -36,21 +36,23 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
 
   const moveLayer = (id: string, direction: 'up' | 'down') => {
     setCanvasData(prev => {
-      const layers = [...prev.layers].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
-      const idx = layers.findIndex(l => l.id === id)
+      const sorted = [...prev.layers].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+      sorted.forEach((l, i) => l.zIndex = i + 1)
+      
+      const idx = sorted.findIndex(l => l.id === id)
       if (idx < 0) return prev
-      if (direction === 'up' && idx < layers.length - 1) {
-        // Swap zIndex with next layer
-        const temp = layers[idx].zIndex
-        layers[idx].zIndex = layers[idx + 1].zIndex
-        layers[idx + 1].zIndex = temp
+      if (direction === 'up' && idx < sorted.length - 1) {
+        const temp = sorted[idx]
+        sorted[idx] = sorted[idx + 1]
+        sorted[idx + 1] = temp
       } else if (direction === 'down' && idx > 0) {
-        // Swap zIndex with prev layer
-        const temp = layers[idx].zIndex
-        layers[idx].zIndex = layers[idx - 1].zIndex
-        layers[idx - 1].zIndex = temp
+        const temp = sorted[idx]
+        sorted[idx] = sorted[idx - 1]
+        sorted[idx - 1] = temp
       }
-      return { ...prev, layers }
+      
+      sorted.forEach((l, i) => l.zIndex = i + 1)
+      return { ...prev, layers: sorted }
     })
   }
 
@@ -64,7 +66,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
       fontSize: 48,
       fontFamily: 'Inter',
       fill: '#ffffff',
-      zIndex: canvasData.layers.length + 1
+      zIndex: Math.max(0, ...canvasData.layers.map(l => l.zIndex || 0)) + 1
     }
     setCanvasData(prev => ({ ...prev, layers: [...prev.layers, newLayer] }))
     setSelectedId(newLayer.id)
@@ -96,7 +98,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
           y: 50,
           width: w,
           height: h,
-          zIndex: canvasData.layers.length + 1
+          zIndex: Math.max(0, ...canvasData.layers.map(l => l.zIndex || 0)) + 1
         }
         setCanvasData(prev => ({ ...prev, layers: [...prev.layers, newLayer] }))
         setSelectedId(newLayer.id)
@@ -126,7 +128,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
               <Input 
                 value={canvasData.canvas.backgroundColor} 
                 onChange={e => setCanvasData(prev => ({ ...prev, canvas: { ...prev.canvas, backgroundColor: e.target.value } }))}
-                className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase"
+                className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase"
               />
             </div>
           </div>
@@ -145,7 +147,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
               <textarea 
                 value={(selectedLayer as TextNode).content}
                 onChange={e => updateLayer({ ...selectedLayer, content: e.target.value })}
-                className="w-full bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 text-zinc-900 dark:text-white p-3 rounded-xl min-h-[100px] resize-y text-sm"
+                className="w-full bg-white dark:bg-white/5 border-transparent border dark:border-white/10 text-zinc-900 dark:text-white p-3 rounded-xl min-h-[100px] resize-y text-sm"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -155,7 +157,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
                   type="number"
                   value={(selectedLayer as TextNode).fontSize}
                   onChange={e => updateLayer({ ...selectedLayer, fontSize: Number(e.target.value) })}
-                  className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white"
+                  className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -170,7 +172,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
                   <Input 
                     value={(selectedLayer as TextNode).fill as string} 
                     onChange={e => updateLayer({ ...selectedLayer, fill: e.target.value })}
-                    className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase h-full"
+                    className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase h-full"
                   />
                 </div>
               </div>
@@ -192,7 +194,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
                 <Input 
                   value={(selectedLayer as RectNode).fill as string} 
                   onChange={e => updateLayer({ ...selectedLayer, fill: e.target.value })}
-                  className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase"
+                  className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase"
                 />
               </div>
             </div>
@@ -202,14 +204,14 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
                 type="number"
                 value={(selectedLayer as RectNode).cornerRadius as number || 0}
                 onChange={e => updateLayer({ ...selectedLayer, cornerRadius: Number(e.target.value) })}
-                className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white"
+                className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white"
               />
             </div>
           </div>
         )}
         
         {/* Opacity slider common for all */}
-        <div className="space-y-2 pt-4 border-t border-zinc-200 dark:border-white/5">
+        <div className="space-y-2 pt-4 border-t border-transparent dark:border-white/5">
           <div className="flex justify-between">
              <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Opacity</Label>
              <span className="text-xs text-zinc-500 dark:text-white/50">{Math.round((selectedLayer.opacity ?? 1) * 100)}%</span>
@@ -228,8 +230,8 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
   return (
     <div className="w-full h-full min-h-[600px] flex gap-4">
       {/* Left Sidebar: Layers */}
-      <div className="w-64 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-zinc-200 dark:border-white/5 flex items-center justify-between bg-white dark:bg-white/2">
+      <div className="w-64 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-white dark:bg-white/2">
           <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Layers</h3>
           <div className="flex gap-1">
             <input 
@@ -261,7 +263,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
               key={layer.id}
               onClick={() => setSelectedId(layer.id)}
               className={`flex items-center justify-between p-2 rounded-xl cursor-pointer border transition-colors ${
-                selectedId === layer.id ? 'bg-white dark:bg-white/10   dark:border-white/20' : 'bg-transparent border-transparent hover:bg-white dark:bg-white/5 '
+                selectedId === layer.id ? 'bg-white dark:bg-white/10 border-black/10 dark:border-white/20 shadow-sm' : 'bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-white/5'
               }`}
             >
               <div className="flex items-center gap-2 overflow-hidden">
@@ -274,8 +276,8 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity">
                 <div className="flex flex-col">
-                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'up') }} className="hover:text- dark:hover:text-white text-zinc-500 /40dark:hover:text-white$3"><ChevronUp className="w-3 h-3" /></button>
-                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'down') }} className="hover:text- dark:hover:text-white text-zinc-500 /40dark:hover:text-white$3"><ChevronDown className="w-3 h-3" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'up') }} className="text-zinc-500 dark:text-white/40 hover:text-zinc-900 dark:hover:text-white"><ChevronUp className="w-3 h-3" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'down') }} className="text-zinc-500 dark:text-white/40 hover:text-zinc-900 dark:hover:text-white"><ChevronDown className="w-3 h-3" /></button>
                 </div>
                 <button onClick={(e) => { e.stopPropagation(); deleteLayer(layer.id) }} className="w-6 h-6 flex items-center justify-center text-red-400 hover:bg-red-500/20 rounded-md">
                   <Trash2 className="w-3 h-3" />
@@ -287,7 +289,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
       </div>
 
       {/* Center: Canvas Area */}
-      <div className="flex-1 bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl overflow-hidden p-8 flex items-center justify-center relative">
+      <div className="flex-1 bg-zinc-100 dark:bg-black/40 border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden p-8 flex items-center justify-center relative">
         <CanvasEditor 
           canvasData={canvasData} 
           onChange={setCanvasData}
@@ -297,7 +299,7 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
       </div>
 
       {/* Right Sidebar: Properties */}
-      <div className="w-72 shrink-0 bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-2xl p-6 overflow-y-auto custom-scrollbar shadow-xl">
+      <div className="w-72 shrink-0 bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl p-6 overflow-y-auto custom-scrollbar shadow-xl">
         {renderProperties()}
       </div>
     </div>

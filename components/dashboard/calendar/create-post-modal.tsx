@@ -259,7 +259,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
                 <h2 className="text-lg font-medium text-zinc-900 dark:text-white">Create New Post</h2>
                 <button
                   onClick={onClose}
-                  className="p-2 text-zinc-500 dark:hover:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5 border-zinc-200 rounded-full transition-colors"
+                  className="p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5 border-transparent rounded-full transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -283,7 +283,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
                               className={`flex-1 py-2 rounded-xl text-sm font-medium capitalize border transition-colors ${
                                 platform === p 
                                   ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
-                                  : 'bg-white dark:bg-white/5 border-zinc-200  dark:border-white/10 text-zinc-500 dark:text-white/60 hover:bg-white dark:bg-white/10 '
+                                  : 'bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-500 dark:text-white/60 hover:bg-white dark:hover:bg-white/10'
                               }`}
                             >
                               {p}
@@ -299,7 +299,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
                           value={content}
                           onChange={(e) => setContent(e.target.value)}
                           placeholder="What do you want to share?"
-                          className="min-h-[120px] bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white resize-y"
+                          className="min-h-[120px] bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white resize-y"
                           required
                         />
                       </div>
@@ -318,7 +318,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
                             type="datetime-local"
                             value={scheduledFor}
                             onChange={(e) => setScheduledFor(e.target.value)}
-                            className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white pl-10"
+                            className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white pl-10"
                             required
                           />
                           <CalendarIcon className="w-4 h-4 text-zinc-500 dark:text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -329,7 +329,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
 
                   {/* Form Footer */}
                   <div className="px-6 py-4 border-t border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 flex justify-end gap-3">
-                    <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/10 border-zinc-200">
+                    <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/10 border-transparent">
                       Cancel
                     </Button>
                     <Button 

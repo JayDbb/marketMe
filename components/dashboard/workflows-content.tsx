@@ -51,7 +51,7 @@ export function WorkflowsContent() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-white/30" />
           <Input
             placeholder="Search..."
-            className="pl-10 h-11 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:text-white/25 rounded-xl transition-all shadow-none"
+            className="pl-10 h-11 bg-white dark:bg-white/5 border-transparent dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:placeholder:text-white/25 rounded-xl transition-all shadow-none"
           />
         </div>
         
@@ -79,7 +79,7 @@ export function WorkflowsContent() {
         </p>
         <Button 
           onClick={() => setIsModalOpen(true)}
-          className="h-11 px-6 bg-white dark:bg-white/10 border-zinc-200 hover:bg-white dark:bg-white/20 text-zinc-900 dark:text-white font-medium rounded-xl border dark:border-white/10 transition-all gap-2 shadow-none"
+          className="h-11 px-6 bg-white dark:bg-white/10 border-transparent hover:bg-white dark:hover:bg-white/20 text-zinc-900 dark:text-white font-medium rounded-xl border dark:border-white/10 transition-all gap-2 shadow-none"
         >
           <Plus className="w-4 h-4" />
           Create workflow

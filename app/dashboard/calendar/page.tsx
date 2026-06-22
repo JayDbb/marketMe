@@ -80,7 +80,7 @@ export default function CalendarPage() {
                   className={`px-5 py-1.5 rounded-lg text-sm font-bold transition-all ${
                     viewMode === mode 
                       ? 'bg-white text-black shadow-lg' 
-                      : 'text-zinc-500 dark:hover:text-white/50 hover:text- dark:hover:text-$3$3 hover:bg-white dark:bg-white/5 border-zinc-200'
+                      : 'text-zinc-500 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5 border-transparent'
                   }`}
                 >
                   {mode}
@@ -90,13 +90,13 @@ export default function CalendarPage() {
 
             {/* Navigation */}
             <div className="flex items-center gap-2 shrink-0">
-              <button onClick={handlePrev} className="w-9 h-9 rounded-xl bg-white dark:hover:bg-white/5 border-zinc-200 flex items-center justify-center text-zinc-500 dark:hover:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
+              <button onClick={handlePrev} className="w-9 h-9 rounded-xl bg-white dark:bg-white/5 border-transparent flex items-center justify-center text-zinc-500 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button onClick={handleToday} className="px-4 py-1.5 rounded-xl bg-white dark:hover:bg-white/5 border-zinc-200 text-sm font-bold text-zinc-500 dark:text-white/90 hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
+              <button onClick={handleToday} className="px-4 py-1.5 rounded-xl bg-white dark:bg-white/5 border-transparent text-sm font-bold text-zinc-500 dark:text-white/90 hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
                 Today
               </button>
-              <button onClick={handleNext} className="w-9 h-9 rounded-xl bg-white dark:hover:bg-white/5 border-zinc-200 flex items-center justify-center text-zinc-500 dark:hover:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
+              <button onClick={handleNext} className="w-9 h-9 rounded-xl bg-white dark:bg-white/5 border-transparent flex items-center justify-center text-zinc-500 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

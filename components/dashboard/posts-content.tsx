@@ -20,7 +20,7 @@ const itemVariants: Variants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 20 } }
 }
 
-const mockPosts = [
+const fallbackMockPosts = [
   {
     id: 1,
     platform: 'Instagram',
@@ -55,9 +55,32 @@ const mockPosts = [
   }
 ]
 
-export function PostsContent() {
+interface PostsContentProps {
+  initialPosts?: any[]
+}
+
+export function PostsContent({ initialPosts }: PostsContentProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('All')
+  
+  // Map DB posts to UI format if they exist, otherwise use fallback
+  const displayPosts = initialPosts && initialPosts.length > 0 
+    ? initialPosts.map(post => ({
+        id: post.id,
+        platform: post.platform || 'Instagram',
+        content: post.content || 'Untitled Post',
+        status: post.status === 'scheduled' ? 'Scheduled' : 
+                post.status === 'published' ? 'Published' : 
+                post.status === 'draft' ? 'Draft' : 'Queued',
+        date: post.scheduled_at ? new Date(post.scheduled_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-',
+        metrics: { likes: 0, comments: 0 }
+      }))
+    : fallbackMockPosts
+
+  // Filter based on active tab
+  const filteredPosts = activeTab === 'All' 
+    ? displayPosts 
+    : displayPosts.filter(p => p.status === activeTab)
 
   const tabs = ['All', 'Scheduled', 'Published', 'Drafts']
 
@@ -94,7 +117,7 @@ export function PostsContent() {
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === tab 
                   ? 'bg-white dark:bg-white/10 border-zinc-200 text-zinc-900 dark:text-white shadow-sm border dark:border-white/5' 
-                  : 'text-zinc-500 dark:hover:text-white/50 hover:text-zinc-900 dark:hover:text-white'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               {tab}
@@ -110,7 +133,7 @@ export function PostsContent() {
               className="pl-10 h-10 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:placeholder:text-white/25 rounded-xl transition-all shadow-none"
             />
           </div>
-          <Button variant="outline" className="h-10 w-10 p-0 bg-white dark:hover:bg-white/5 border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/10 shrink-0 rounded-xl">
+          <Button variant="outline" className="h-10 w-10 p-0 bg-white border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/10 shrink-0 rounded-xl">
             <Filter className="w-4 h-4" />
           </Button>
         </div>
@@ -126,7 +149,7 @@ export function PostsContent() {
         </div>
 
         <div className="divide-y divide-white/5">
-          {mockPosts.map((post) => (
+          {filteredPosts.map((post) => (
             <div key={post.id} className="grid grid-cols-12 items-center px-6 py-5 hover:bg-white dark:hover:bg-white/5 border-zinc-200 transition-colors group cursor-pointer">
               <div className="col-span-6 md:col-span-5 pr-4">
                 <div className="flex items-start gap-4">

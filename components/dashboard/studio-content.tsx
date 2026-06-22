@@ -113,15 +113,13 @@ function UploadZone({ onUploadSuccess }: { onUploadSuccess: (t: StudioTemplate) 
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
           onClick={() => inputRef.current?.click()}
-          className={`relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-12 cursor-pointer transition-all duration-300 select-none group
-            ${isDragging ? 'border-blue-400/70 bg-blue-500/6 shadow-[inset_0_0_40px_rgba(59,130,246,0.06)]' : 'border-zinc-200 dark:border-white/8 bg-white/[0.015]'}`}
+          className={`relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-12 cursor-pointer transition-all duration-300 select-none group ${isDragging ? 'border-blue-400/70 bg-blue-500/6 shadow-[inset_0_0_40px_rgba(59,130,246,0.06)]' : 'border-zinc-200 dark:border-white/8 bg-white/1.5'}`}
         >
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 border
-            ${isDragging ? 'bg-blue-500/15 border-blue-400/30 shadow-[0_0_30px_rgba(59,130,246,0.15)]' : 'bg-white dark:bg-white/4 border-zinc-200 dark:border-white/8 group-hover:bg-white dark:bg-white/6 group-hover:border-zinc-200 dark:border-white/14'}`}>
-            <Upload className={`w-5 h-5 transition-colors duration-300 ${isDragging ? 'text-blue-400' : 'text-zinc-500 dark:text-white/30 group-hover:text-zinc-500 dark:text-white/50'}`} />
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 border ${isDragging ? 'bg-blue-500/15 border-blue-400/30 shadow-[0_0_30px_rgba(59,130,246,0.15)]' : 'bg-white border-zinc-200 dark:border-white/8 group-hover:bg-white dark:group-hover:bg-white/6 group-hover:border-zinc-200 dark:group-hover:border-white/14'}`}>
+            <Upload className={`w-5 h-5 transition-colors duration-300 ${isDragging ? 'text-blue-400' : 'text-zinc-500 dark:text-white/30 group-hover:text-zinc-500 dark:group-hover:text-white/50'}`} />
           </div>
           <div className="text-center space-y-1">
-            <p className="text-sm font-medium text-zinc-500 dark:text-white/70 group-hover:text-zinc-900 dark:text-white transition-colors">
+            <p className="text-sm font-medium text-zinc-500 group-hover:text-zinc-900 dark:text-white transition-colors">
               Drop an image or{' '}<span className="text-blue-400">click to browse</span>
             </p>
             <p className="text-[11px] text-zinc-500 dark:text-white/25">JPEG · PNG · WebP · GIF &nbsp;·&nbsp; max 10 MB</p>
@@ -132,7 +130,7 @@ function UploadZone({ onUploadSuccess }: { onUploadSuccess: (t: StudioTemplate) 
       ) : (
         <motion.div
           initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white/[0.025] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] overflow-hidden"
+          className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white/2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] overflow-hidden"
         >
           {/* Preview strip */}
           <div className="flex gap-0">
@@ -152,7 +150,7 @@ function UploadZone({ onUploadSuccess }: { onUploadSuccess: (t: StudioTemplate) 
                 <label className="text-[10px] text-zinc-500 dark:text-white/30 uppercase tracking-[0.12em] font-semibold block mb-1.5">Template Name</label>
                 <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)}
                   placeholder="e.g. Summer Sale Banner"
-                  className="h-9 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/40 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:text-white/20 rounded-xl text-sm shadow-none" />
+                  className="h-9 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/40 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 rounded-xl text-sm shadow-none" />
               </div>
               {/* Category pills */}
               <div>
@@ -163,11 +161,7 @@ function UploadZone({ onUploadSuccess }: { onUploadSuccess: (t: StudioTemplate) 
                       key={c}
                       type="button"
                       onClick={() => setCategory(c)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border ${
-                        category === c
-                          ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                          : 'bg-white dark:bg-white/4 border-zinc-200 text-zinc-500 dark:text-white/40 dark:border-white/8 hover:bg-white dark:bg-white/7 hover:text-zinc-500 dark:text-white/60 hover:border-zinc-200 dark:border-white/14'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all duration-150 border ${ category === c ? 'bg-blue-500/15 text-blue-300 border-blue-500/30' : 'bg-white border-zinc-200 text-zinc-500 dark:border-white/8 hover:bg-white dark:hover:bg-white/7 hover:text-zinc-500 dark:hover:text-white/60 hover:border-zinc-200 dark:hover:border-white/14' }`}
                     >
                       {c}
                     </button>
@@ -185,7 +179,7 @@ function UploadZone({ onUploadSuccess }: { onUploadSuccess: (t: StudioTemplate) 
             }
             <div className="flex items-center gap-2">
               <button onClick={clearPending}
-                className="h-7 px-3 text-[11px] font-medium text-zinc-500 dark:text-white/40 hover:text-zinc-500 dark:text-white/70 transition-colors">
+                className="h-7 px-3 text-[11px] font-medium text-zinc-500 hover:text-zinc-500 dark:text-white/70 transition-colors">
                 Cancel
               </button>
               <Button onClick={handleSubmit} disabled={isUploading || !templateName.trim()}
@@ -248,7 +242,7 @@ function DeleteModal({
           <div className="flex items-center gap-2 px-6 pb-5">
             <button
               onClick={onCancel}
-              className="flex-1 h-9 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/4 text-zinc-500 dark:text-white/60 hover:bg-white dark:bg-white/7 hover:text-zinc-900 dark:text-white text-sm font-medium transition-all"
+              className="flex-1 h-9 rounded-xl border border-zinc-200 dark:border-white/10 bg-white text-zinc-500 hover:bg-white dark:bg-white/7 hover:text-zinc-900 dark:text-white text-sm font-medium transition-all"
             >
               Cancel
             </button>
@@ -281,7 +275,7 @@ function TemplateCard({ template, onDelete }: { template: StudioTemplate; onDele
 
   return (
     <motion.div variants={itemVariants}
-      className="group relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-white/8 bg-white dark:bg-white/4 hover:border-zinc-200 dark:border-white/16 transition-all cursor-pointer aspect-square">
+      className="group relative rounded-2xl overflow-hidden border border-zinc-200 bg-white dark:bg-white/4 hover:border-zinc-200 dark:border-white/16 transition-all cursor-pointer aspect-square">
       <img src={template.file_url} alt={template.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
       <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       <div className="absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -292,7 +286,7 @@ function TemplateCard({ template, onDelete }: { template: StudioTemplate; onDele
         {template.source === 'unsplash' && template.author_name && (
           <a href={`${template.author_url}?utm_source=marketme&utm_medium=referral`} target="_blank" rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="text-[9px] text-zinc-500 dark:text-white/40 hover:text-zinc-500 dark:text-white/60 mt-0.5">
+            className="text-[9px] text-zinc-500 hover:text-zinc-500 dark:text-white/60 mt-0.5">
             Photo by {template.author_name} · Unsplash
           </a>
         )}
@@ -385,7 +379,7 @@ function UnsplashGrid({ onSave }: { onSave: () => void }) {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-white/30" />
           <Input value={inputVal} onChange={(e) => setInputVal(e.target.value)}
             placeholder="Search photos (e.g. coffee shop, fitness...)"
-            className="pl-10 h-10 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:text-white/20 rounded-xl text-sm" />
+            className="pl-10 h-10 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 rounded-xl text-sm" />
         </div>
         <Button type="submit" className="h-10 px-5 bg-white text-zinc-950 hover:bg-zinc-100 dark:hover:bg-white/90 font-bold rounded-xl text-sm">Search</Button>
       </form>
@@ -408,8 +402,7 @@ function UnsplashGrid({ onSave }: { onSave: () => void }) {
                   </p>
                 </div>
                 <button onClick={() => handleSave(photo)} disabled={savingId === photo.id || savedIds.has(photo.id)}
-                  className={`absolute top-2 right-2 w-7 h-7 rounded-lg backdrop-blur-sm border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all
-                    ${savedIds.has(photo.id) ? 'bg-blue-500/80 border-blue-400/50 text-zinc-900 dark:text-white' : 'bg-black/50 border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-white/60 hover:text-zinc-900 dark:text-white hover:border-zinc-200 dark:border-white/30'}`}>
+                  className={`absolute top-2 right-2 w-7 h-7 rounded-lg backdrop-blur-sm border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all ${savedIds.has(photo.id) ? 'bg-blue-500/80 border-blue-400/50 text-zinc-900 dark:text-white' : 'bg-black/50 border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-200 dark:hover:border-white/30'}`}>
                   {savingId === photo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : savedIds.has(photo.id) ? <CheckCircle2 className="w-3 h-3" /> : <Bookmark className="w-3 h-3" />}
                 </button>
               </div>
@@ -419,10 +412,10 @@ function UnsplashGrid({ onSave }: { onSave: () => void }) {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 mt-6">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="h-8 px-4 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/4 text-zinc-500 dark:text-white/50 text-xs hover:text-zinc-900 dark:text-white hover:bg-white dark:bg-white/8 disabled:opacity-30 transition-all">Prev</button>
+                className="h-8 px-4 rounded-xl border border-zinc-200 dark:border-white/10 bg-white text-zinc-500 text-xs hover:text-zinc-900 dark:text-white hover:bg-white dark:bg-white/8 disabled:opacity-30 transition-all">Prev</button>
               <span className="text-xs text-zinc-500 dark:text-white/30 font-mono">Page {page} of {Math.min(totalPages, 20)}</span>
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= Math.min(totalPages, 20)}
-                className="h-8 px-4 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/4 text-zinc-500 dark:text-white/50 text-xs hover:text-zinc-900 dark:text-white hover:bg-white dark:bg-white/8 disabled:opacity-30 transition-all">Next</button>
+                className="h-8 px-4 rounded-xl border border-zinc-200 dark:border-white/10 bg-white text-zinc-500 text-xs hover:text-zinc-900 dark:text-white hover:bg-white dark:bg-white/8 disabled:opacity-30 transition-all">Next</button>
             </div>
           )}
         </>
@@ -433,13 +426,13 @@ function UnsplashGrid({ onSave }: { onSave: () => void }) {
 
 // ─── Studio Hero ──────────────────────────────────────────────────────────────
 const PREVIEW_TEMPLATES = [
-  { id: 'a', imgUrl: 'https://picsum.photos/id/64/400/400', label: 'Fashion', tag: 'Elevate Your Style', bg: 'from-zinc-800 to-zinc-900' },
-  { id: 'b', imgUrl: 'https://picsum.photos/id/436/400/400', label: 'Events', tag: 'Wedding Announcement', bg: 'from-orange-950 to-zinc-900' },
-  { id: 'c', imgUrl: 'https://picsum.photos/id/1058/400/400', label: 'Sports', tag: 'Love All. Play All.', bg: 'from-emerald-950 to-zinc-900' },
-  { id: 'd', imgUrl: 'https://picsum.photos/id/335/400/400', label: 'Retail', tag: 'Special Sale 15%', bg: 'from-amber-950 to-zinc-900' },
-  { id: 'e', imgUrl: 'https://picsum.photos/id/425/400/400', label: 'Food', tag: 'Healthy & Fresh', bg: 'from-green-950 to-zinc-900' },
-  { id: 'f', imgUrl: 'https://picsum.photos/id/163/400/400', label: 'Interior', tag: 'Comfort Starts Here', bg: 'from-slate-800 to-zinc-900' },
-  { id: 'g', imgUrl: 'https://picsum.photos/id/1/400/400', label: 'Tech', tag: 'Ship Faster', bg: 'from-blue-950 to-zinc-900' },
+  { id: 'a', imgUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=400&fit=crop', label: 'Fashion', tag: 'Elevate Your Style', bg: 'from-zinc-800 to-zinc-900' },
+  { id: 'b', imgUrl: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=400&fit=crop', label: 'Events', tag: 'Wedding Announcement', bg: 'from-orange-950 to-zinc-900' },
+  { id: 'c', imgUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&h=400&fit=crop', label: 'Sports', tag: 'Love All. Play All.', bg: 'from-emerald-950 to-zinc-900' },
+  { id: 'd', imgUrl: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=400&h=400&fit=crop', label: 'Retail', tag: 'Special Sale 15%', bg: 'from-amber-950 to-zinc-900' },
+  { id: 'e', imgUrl: 'https://images.unsplash.com/photo-1495195134817-a1a2807b1c11?w=400&h=400&fit=crop', label: 'Food', tag: 'Healthy & Fresh', bg: 'from-green-950 to-zinc-900' },
+  { id: 'f', imgUrl: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=400&h=400&fit=crop', label: 'Interior', tag: 'Comfort Starts Here', bg: 'from-slate-800 to-zinc-900' },
+  { id: 'g', imgUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=400&fit=crop', label: 'Tech', tag: 'Ship Faster', bg: 'from-blue-950 to-zinc-900' },
 ]
 
 function StudioHero({ onUploadClick, onBrowseClick }: { onUploadClick: () => void; onBrowseClick: () => void }) {
@@ -498,7 +491,7 @@ function StudioHero({ onUploadClick, onBrowseClick }: { onUploadClick: () => voi
           </button>
           <button
             onClick={onBrowseClick}
-            className="inline-flex items-center gap-2 h-11 px-6 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/4 text-zinc-900 dark:text-white text-sm font-medium hover:bg-white dark:bg-white/10 active:scale-[0.97] transition-all"
+            className="inline-flex items-center gap-2 h-11 px-6 rounded-xl border border-zinc-200 dark:border-white/10 bg-white text-zinc-900 dark:text-white text-sm font-medium hover:bg-white dark:bg-white/10 active:scale-[0.97] transition-all"
           >
             <ImageIcon className="w-4 h-4 text-zinc-500 dark:text-white/60" />
             Browse Unsplash
@@ -609,7 +602,7 @@ export function StudioContent({ initialTemplates }: StudioContentProps) {
             <div className="flex items-center gap-4 mb-8">
               <button
                 onClick={() => setActiveTab('home')}
-                className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:text-zinc-900 dark:text-white hover:bg-white dark:bg-white/10 transition-all active:scale-95"
+                className="w-10 h-10 rounded-xl bg-white border-zinc-200 border dark:border-white/10 flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:text-white hover:bg-white dark:bg-white/10 transition-all active:scale-95"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -625,7 +618,7 @@ export function StudioContent({ initialTemplates }: StudioContentProps) {
                 const Icon = tab.icon
                 return (
                   <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-white dark:bg-white/10 border-zinc-200 text-zinc-900 dark:text-white border dark:border-white/8 shadow-sm' : 'text-zinc-500 dark:text-white/40 hover:text-zinc-500 dark:text-white/70'}`}>
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-white dark:bg-white/10 border-zinc-200 text-zinc-900 dark:text-white border dark:border-white/8 shadow-sm' : 'text-zinc-500 dark:text-white/40 hover:text-zinc-500 dark:hover:text-white/70'}`}>
                     <Icon className="w-3.5 h-3.5" />
                     {tab.label}
                     {tab.count !== undefined && (
@@ -651,12 +644,12 @@ export function StudioContent({ initialTemplates }: StudioContentProps) {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 dark:text-white/30" />
                   <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search templates..."
-                    className="pl-9 h-9 w-52 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:text-white/20 rounded-xl text-sm" />
+                    className="pl-9 h-9 w-52 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 rounded-xl text-sm" />
                 </div>
                 <div className="flex items-center gap-1 flex-wrap">
                   {CATEGORIES.map((cat) => (
                     <button key={cat} onClick={() => setActiveCategory(cat)}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${activeCategory === cat ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25' : 'text-zinc-500 dark:text-white/40 hover:text-zinc-500 dark:text-white/60 border-transparent hover:border-zinc-200 dark:border-white/8'}`}>
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${activeCategory === cat ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25' : 'text-zinc-500 hover:text-zinc-500 dark:text-white/60 border-transparent hover:border-zinc-200 dark:border-white/8'}`}>
                       {cat}
                     </button>
                   ))}
@@ -695,7 +688,7 @@ export function StudioContent({ initialTemplates }: StudioContentProps) {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 dark:text-white/30" />
                 <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search saved..."
-                  className="pl-9 h-9 w-52 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:text-white/20 rounded-xl text-sm" />
+                  className="pl-9 h-9 w-52 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 placeholder:text-zinc-500 dark:text-white/20 rounded-xl text-sm" />
               </div>
             </div>
             {filteredSaved.length > 0 ? (

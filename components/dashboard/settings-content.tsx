@@ -111,7 +111,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                     className={`w-full flex items-center justify-start h-10 px-3 rounded-lg text-sm font-medium transition-colors ${
                       activeTab === item.label
                         ? 'bg-blue-500 text-zinc-900 dark:text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                        : 'text-zinc-500 dark:hover:text-white/50 hover:text- dark:hover:text-$3$3 hover:bg-white dark:bg-white/5 border-zinc-200'
+                        : 'text-zinc-500 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5'
                     }`}
                   >
                     <item.icon className={`w-4 h-4 mr-3 shrink-0 ${activeTab === item.label ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-white/40'}`} />
@@ -123,7 +123,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
           ))}
 
           {/* Affiliates Banner (Placeholder) */}
-          <div className="mt-8 p-4 rounded-xl bg-white dark:hover:bg-white/4 border-zinc-200 border dark:border-white/8 group cursor-pointer hover:bg-white dark:hover:bg-white/5 transition-colors">
+          <div className="mt-8 p-4 rounded-xl bg-white dark:bg-white/5 border border-black/5 dark:border-white/8 group cursor-pointer hover:bg-white dark:hover:bg-white/10 transition-colors">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full bg-green-500" />
               <h5 className="text-sm font-bold text-zinc-900 dark:text-white">Affiliates</h5>
@@ -145,7 +145,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
               
               <form action={handleSave} className="space-y-6">
                 {/* Image Upload */}
-                <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border-zinc-200 border dark:border-white/8 backdrop-blur-xl">
+                <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border border-black/5 dark:border-white/8 backdrop-blur-xl">
                   <h4 className="text-base font-bold text-zinc-900 dark:text-white">Image</h4>
                   <p className="text-sm text-zinc-500 dark:text-white/40 mb-4">You can upload your own image or keep the default.</p>
                   <div className="flex items-center justify-between">
@@ -158,7 +158,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                         <p className="text-xs text-zinc-500 dark:text-white/40 mt-1">PNG or JPG allowed. Maximum size: 5mb</p>
                       </div>
                     </div>
-                    <Button type="button" className="bg-white dark:hover:bg-white/10 border-zinc-200 hover:bg-white dark:hover:bg-white/20 text-zinc-900 dark:text-white font-medium shadow-none border dark:border-white/10 gap-2">
+                    <Button type="button" className="bg-white dark:bg-white/10 border border-black/5 hover:bg-white dark:hover:bg-white/20 text-zinc-900 dark:text-white font-medium shadow-none dark:border-white/10 gap-2">
                       <UploadCloud className="w-4 h-4" />
                       Upload
                     </Button>
@@ -166,7 +166,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                 </div>
 
                 {/* Basic Information */}
-                <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border-zinc-200 border dark:border-white/8 backdrop-blur-xl">
+                <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border border-black/5 dark:border-white/8 backdrop-blur-xl">
                   <h4 className="text-base font-bold text-zinc-900 dark:text-white">Basic information</h4>
                   <p className="text-sm text-zinc-500 dark:text-white/40 mb-6">You can change some basic information.</p>
                   
@@ -178,7 +178,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                         name="name"
                         defaultValue={initialName}
                         placeholder="Your full name"
-                        className="h-11 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white rounded-xl shadow-none"
+                        className="h-11 bg-white dark:bg-white/5 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white rounded-xl shadow-none"
                       />
                     </div>
                     <div className="space-y-2">
@@ -187,7 +187,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                         id="email"
                         name="email"
                         defaultValue={initialEmail}
-                        className="h-11 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-500 dark:text-white/50 rounded-xl shadow-none cursor-not-allowed"
+                        className="h-11 bg-white dark:bg-white/5 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-500 dark:text-white/50 rounded-xl shadow-none cursor-not-allowed"
                         disabled
                       />
                     </div>
@@ -195,7 +195,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                 </div>
 
                 {/* Theme Mode */}
-                <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border-zinc-200 border dark:border-white/8 backdrop-blur-xl">
+                <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border border-black/5 dark:border-white/8 backdrop-blur-xl">
                   <h4 className="text-base font-bold text-zinc-900 dark:text-white">Theme mode</h4>
                   <p className="text-sm text-zinc-500 dark:text-white/40 mb-6">Select theme for the dashboard.</p>
                   
@@ -209,7 +209,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                           <div className="w-2 h-2 bg-white rounded-full" />
                         </div>
                       )}
-                      <div className="aspect-video bg-white rounded-lg flex items-center justify-center text-zinc-950 font-bold border border-zinc-200 shadow-sm">
+                      <div className="aspect-video bg-white rounded-lg flex items-center justify-center text-zinc-950 font-bold border border-black/5 shadow-sm">
                         Light
                       </div>
                     </div>
@@ -222,7 +222,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                           <div className="w-2 h-2 bg-white rounded-full" />
                         </div>
                       )}
-                      <div className="aspect-video bg-[#0c0c18] rounded-lg flex items-center justify-center text-zinc-900 dark:text-white font-bold border border-zinc-200 dark:border-white/10">
+                      <div className="aspect-video bg-[#0c0c18] rounded-lg flex items-center justify-center text-zinc-900 dark:text-white font-bold border border-black/5 dark:border-white/10">
                         Dark
                       </div>
                     </div>
@@ -259,7 +259,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                 </Button>
               </div>
 
-              <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border-zinc-200 border dark:border-white/8 backdrop-blur-xl">
+              <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border border-black/5 dark:border-white/8 backdrop-blur-xl">
                 <div className="flex items-center justify-between mb-6">
                   <h4 className="text-base font-bold text-zinc-900 dark:text-white">Active Members</h4>
                   <span className="text-xs font-medium text-zinc-500 dark:text-white/40">1 / 3 seats used</span>
@@ -267,17 +267,17 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                 
                 <div className="space-y-4">
                   {/* Current User */}
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-zinc-200 dark:border-white/5 bg-white dark:bg-white/2">
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-black/5 dark:border-white/5 bg-white dark:bg-white/2">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg bg-green-700 text-zinc-900 dark:text-white flex items-center justify-center font-bold text-sm">
                         {initials || 'ME'}
                       </div>
                       <div>
-                        <h5 className="font-semibold text-zinc-900 dark:text-white text-sm">{initialName || 'You'} <span className="text-xs bg-white dark:bg-white/10 border-zinc-200 text-zinc-500 dark:text-white/70 px-2 py-0.5 rounded-full ml-2">You</span></h5>
+                        <h5 className="font-semibold text-zinc-900 dark:text-white text-sm">{initialName || 'You'} <span className="text-xs bg-white dark:bg-white/10 text-zinc-500 dark:text-white/70 px-2 py-0.5 rounded-full ml-2">You</span></h5>
                         <p className="text-xs text-zinc-500 dark:text-white/40">{initialEmail}</p>
                       </div>
                     </div>
-                    <div className="px-3 py-1 bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 rounded-lg text-xs font-medium text-zinc-500 dark:text-white/70">
+                    <div className="px-3 py-1 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-lg text-xs font-medium text-zinc-500 dark:text-white/70">
                       Owner
                     </div>
                   </div>
@@ -293,17 +293,17 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                 <p className="text-zinc-500 dark:text-white/40 text-sm">Manage your workspace identity and preferences.</p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border-zinc-200 border dark:border-white/8 backdrop-blur-xl space-y-6">
+              <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border border-black/5 dark:border-white/8 backdrop-blur-xl space-y-6">
                 <div className="space-y-2 max-w-md">
                   <Label className="text-zinc-500 dark:text-white/50 font-medium text-xs">Workspace Name</Label>
                   <Input
                     defaultValue="Coca Cola Campaign"
-                    className="h-11 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white rounded-xl shadow-none"
+                    className="h-11 bg-white dark:bg-white/5 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white rounded-xl shadow-none"
                   />
                 </div>
                 
                 <div className="pt-4 flex justify-start">
-                  <Button className="h-11 px-8 bg-white dark:hover:bg-white/10 border-zinc-200 hover:bg-white dark:hover:bg-white/20 text-zinc-900 dark:text-white font-medium rounded-xl border dark:border-white/10 transition-all">
+                  <Button className="h-11 px-8 bg-white dark:bg-white/10 border border-black/5 hover:bg-white dark:hover:bg-white/20 text-zinc-900 dark:text-white font-medium rounded-xl dark:border-white/10 transition-all">
                     Save Workspace
                   </Button>
                 </div>
@@ -326,11 +326,11 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                 <p className="text-zinc-500 dark:text-white/40 text-sm">Customize how your content planner looks and behaves.</p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border-zinc-200 border dark:border-white/8 backdrop-blur-xl space-y-8 max-w-2xl">
+              <div className="p-6 rounded-2xl bg-white dark:bg-white/4 border border-black/5 dark:border-white/8 backdrop-blur-xl space-y-8 max-w-2xl">
                 <div className="space-y-3">
                   <h4 className="text-sm font-bold text-zinc-900 dark:text-white">Default Timezone</h4>
                   <p className="text-xs text-zinc-500 dark:text-white/40 mb-2">All scheduled posts will use this timezone.</p>
-                  <select className="w-full h-11 bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 rounded-xl text-zinc-900 dark:text-white px-4 outline-hidden focus:border-blue-400/50 appearance-none">
+                  <select className="w-full h-11 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl text-zinc-900 dark:text-white px-4 outline-hidden focus:border-blue-400/50 appearance-none">
                     <option value="EST">Eastern Standard Time (EST)</option>
                     <option value="CST">Central Standard Time (CST)</option>
                     <option value="PST">Pacific Standard Time (PST)</option>
@@ -345,7 +345,7 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                       <input type="radio" name="week_start" defaultChecked className="accent-blue-500" />
                       <span className="text-sm font-medium text-zinc-900 dark:text-white">Sunday</span>
                     </label>
-                    <label className="flex items-center gap-3 p-4 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 cursor-pointer flex-1">
+                    <label className="flex items-center gap-3 p-4 rounded-xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/5 cursor-pointer flex-1">
                       <input type="radio" name="week_start" className="accent-blue-500" />
                       <span className="text-sm font-medium text-zinc-900 dark:text-white">Monday</span>
                     </label>
@@ -373,8 +373,8 @@ export function SettingsContent({ initialEmail = '', initialName = '' }: Setting
                 </Button>
               </div>
 
-              <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/2 overflow-hidden">
-                <div className="grid grid-cols-3 text-xs font-bold text-zinc-500 dark:text-white/40 uppercase tracking-wider px-6 py-4 border-b border-zinc-200 dark:border-white/5 bg-white dark:bg-white/5">
+              <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/2 overflow-hidden">
+                <div className="grid grid-cols-3 text-xs font-bold text-zinc-500 dark:text-white/40 uppercase tracking-wider px-6 py-4 border-b dark:border-white/5 bg-white dark:bg-white/5">
                   <div className="col-span-1">Name</div>
                   <div className="col-span-1">Key</div>
                   <div className="col-span-1 text-right">Created</div>

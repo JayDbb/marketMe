@@ -64,7 +64,7 @@ export function InboxContent() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 dark:text-white/30" />
             <Input
               placeholder="Search conversations..."
-              className="pl-10 h-11 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:text-white/25 rounded-xl transition-all"
+              className="pl-10 h-11 bg-white dark:bg-white/5 border-transparent dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white placeholder:text-zinc-500 dark:placeholder:text-white/25 rounded-xl transition-all"
             />
           </div>
         </div>
@@ -79,14 +79,14 @@ export function InboxContent() {
             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
           >
             {/* Column Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-white/5 bg-white dark:bg-white/5">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-transparent dark:border-white/5 bg-white dark:bg-white/5">
               <div className="flex items-center gap-2">
                 <column.icon className="w-4 h-4 text-zinc-500 dark:text-white/50" />
                 <h3 className="font-semibold text-[14px] text-zinc-900 dark:text-white tracking-tight">
                   {column.title}
                 </h3>
               </div>
-              <span className="w-6 h-6 rounded-full bg-white dark:bg-white/10 border-zinc-200 text-zinc-500 dark:text-white/50 flex items-center justify-center text-[11px] font-bold">
+              <span className="w-6 h-6 rounded-full bg-white dark:bg-white/10 border-transparent text-zinc-500 dark:text-white/50 flex items-center justify-center text-[11px] font-bold">
                 {column.messages.length}
               </span>
             </div>
@@ -98,7 +98,7 @@ export function InboxContent() {
                 null
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-6 opacity-60">
-                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 flex items-center justify-center mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-white/5 border-transparent border dark:border-white/10 flex items-center justify-center mb-4">
                     <column.icon className="w-5 h-5 text-zinc-500 dark:text-white/30" />
                   </div>
                   <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">{column.emptyMessage}</h4>

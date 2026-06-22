@@ -54,14 +54,14 @@ export function ConnectionsContent() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 relative z-10">
             {mockConnections.map((conn, i) => (
-              <Card key={i} className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 hover:bg-white dark:bg-white/10 transition-colors shadow-none rounded-xl group cursor-pointer">
+              <Card key={i} className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-colors shadow-none rounded-xl group cursor-pointer">
                 <CardContent className="p-4 flex flex-col justify-between h-full">
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-10 h-10 rounded-xl bg-white text-[#0c0c18] font-bold flex items-center justify-center text-lg shadow-inner relative">
                       {conn.initial}
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0c0c18]" />
                     </div>
-                    <button className="text-zinc-500 dark:text-white/30 hover:text-zinc-900 dark:text-white transition-colors">
+                    <button className="text-zinc-500 dark:text-white/30 hover:text-zinc-900 dark:hover:text-white transition-colors">
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
                   </div>

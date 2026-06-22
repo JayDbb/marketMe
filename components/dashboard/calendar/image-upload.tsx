@@ -96,7 +96,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
               w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-200
               ${isDragging 
                 ? 'border-blue-400 bg-blue-400/5' 
-                : 'border-zinc-200 dark:border-white/10 hover: dark:border-white/20 bg-white dark:bg-white/5 hover:bg-white-[0.07]'}
+                : 'border-black/10 dark:border-white/10 dark:hover:border-white/20 bg-white dark:bg-white/5 hover:bg-white/10'}
             `}
           >
             <div className={`p-3 rounded-full ${isDragging ? 'bg-blue-400/10' : 'bg-white dark:bg-white/5 border-zinc-200'} transition-colors`}>

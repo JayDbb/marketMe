@@ -9,9 +9,14 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
  * Cached per request via React cache().
  */
 export const getUserAndProfile = cache(async () => {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  let session
+  try {
+    session = await auth.api.getSession({
+      headers: await headers(),
+    })
+  } catch {
+    return { user: null, profile: null }
+  }
 
   if (!session) {
     return { user: null, profile: null }

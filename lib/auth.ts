@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth"
+import { nextCookies } from "better-auth/next-js"
 
 export const auth = betterAuth({
   database: {
@@ -29,4 +30,6 @@ export const auth = betterAuth({
     process.env.BETTER_AUTH_URL || "http://localhost:3000",
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   ],
+  // nextCookies() MUST be last in the plugins array
+  plugins: [nextCookies()],
 })

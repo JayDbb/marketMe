@@ -1,18 +1,23 @@
 import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
 
+// Guard: DATABASE_URL must be set at runtime. During build, this module
+// may be evaluated with placeholder values — better-auth will log errors
+// but won't crash the build since we added it to serverExternalPackages.
+const DATABASE_URL = process.env.DATABASE_URL || ""
+
 export const auth = betterAuth({
   database: {
     type: "postgres",
-    url: process.env.DATABASE_URL!,
+    url: DATABASE_URL,
   },
   emailAndPassword: {
     enabled: true,
   },
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     },
   },
   session: {
@@ -25,6 +30,7 @@ export const auth = betterAuth({
       maxAge: 5 * 60, // 5 minutes
     },
   },
+  secret: process.env.BETTER_AUTH_SECRET || "build-time-placeholder-secret-not-used",
   // Trust the host header from Next.js
   trustedOrigins: [
     process.env.BETTER_AUTH_URL || "http://localhost:3000",

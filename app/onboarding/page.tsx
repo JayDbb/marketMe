@@ -3,6 +3,9 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 
+// Force dynamic rendering — this page requires a live auth session
+export const dynamic = 'force-dynamic'
+
 export default async function OnboardingPage() {
   const session = await auth.api.getSession({
     headers: await headers(),

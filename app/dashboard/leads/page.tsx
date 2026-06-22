@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { LeadsContent } from '@/components/dashboard/leads-content'
 import { Suspense } from 'react'
 
-export const unstable_instant = { prefetch: 'static' }
+
 
 async function LeadsData() {
   const { user } = await getUserAndProfile()

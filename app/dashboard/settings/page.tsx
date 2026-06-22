@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { SettingsContent } from '@/components/dashboard/settings-content'
 import { Suspense } from 'react'
 
-export const unstable_instant = { prefetch: 'static' }
+
 
 async function SettingsData() {
   const { user, profile } = await getUserAndProfile()

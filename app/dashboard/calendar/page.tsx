@@ -5,7 +5,6 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { DaySchedule, Post, Platform, PostStatus } from '@/types/content'
 import { CalendarClientWrapper } from '@/components/dashboard/calendar/calendar-client-wrapper'
 
-export const unstable_instant = { prefetch: 'static' }
 
 function getWeekDays() {
   const days = []

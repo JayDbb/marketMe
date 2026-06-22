@@ -3,7 +3,8 @@ import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { getUserAndProfile } from '@/lib/user'
 import { redirect } from 'next/navigation'
 
-export const unstable_instant = false
+// Must be force-dynamic: layout calls getUserAndProfile() which reads headers()
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user } = await getUserAndProfile()

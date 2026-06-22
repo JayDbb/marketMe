@@ -4,7 +4,7 @@ import { submitFeedback } from '@/app/dashboard/actions'
 import { DashboardContent } from '@/components/dashboard/dashboard-content'
 import { Suspense } from 'react'
 
-export const unstable_instant = { prefetch: 'static' }
+
 
 async function DashboardData() {
   const { user, profile } = await getUserAndProfile()

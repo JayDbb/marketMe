@@ -14,8 +14,9 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
+import { User } from "@supabase/supabase-js"
 
-export function AppSidebar() {
+export function AppSidebar({ user }: { user?: User | null }) {
   return (
     <Sidebar variant="inset" className="border-r border-zinc-200 dark:border-white/6 bg-zinc-50 dark:bg-[#0c0c18] text-zinc-500 dark:text-white/70">
       <SidebarHeader className="border-b border-zinc-200 dark:border-white/6 p-5 h-18 flex flex-col justify-center bg-zinc-50 dark:bg-[#0c0c18]">
@@ -161,7 +162,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-zinc-200 dark:border-white/6 p-3 bg-zinc-50 dark:bg-[#0c0c18]">
-        <UserNav />
+        <UserNav user={user} />
       </SidebarFooter>
     </Sidebar>
   )

@@ -15,7 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar user={user} />
       <div className="flex-1 h-screen bg-zinc-50 dark:bg-[#0a0a14] text-zinc-900 dark:text-white relative flex flex-col overflow-hidden">
         {/* Ambient glow */}
         <div className="fixed top-0 right-0 w-[400px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" aria-hidden="true" />

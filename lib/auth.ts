@@ -1,16 +1,23 @@
 import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
+import { dash } from "@better-auth/infra"
+import { Pool } from "pg"
 
 // Guard: DATABASE_URL must be set at runtime. During build, this module
 // may be evaluated with placeholder values — better-auth will log errors
 // but won't crash the build since we added it to serverExternalPackages.
 const DATABASE_URL = process.env.DATABASE_URL || ""
+console.log("[Better Auth Init] DATABASE_URL defined:", !!DATABASE_URL, "length:", DATABASE_URL.length);
+
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+})
 
 export const auth = betterAuth({
-  database: {
-    type: "postgres",
-    url: DATABASE_URL,
-  },
+  database: pool,
   emailAndPassword: {
     enabled: true,
   },
@@ -37,5 +44,13 @@ export const auth = betterAuth({
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   ],
   // nextCookies() MUST be last in the plugins array
-  plugins: [nextCookies()],
+  plugins: [
+    dash({
+      apiKey: process.env.BETTER_AUTH_API_KEY,
+      activityTracking: {
+        enabled: false,
+      },
+    }),
+    nextCookies(),
+  ],
 })

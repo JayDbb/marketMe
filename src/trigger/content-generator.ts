@@ -68,7 +68,60 @@ export const generateWeeklyContent = task({
       throw new Error(`Failed to generate posts: ${postsRes.status} ${errorText}`);
     }
 
-    return { success: true, contentPlanId: strategyId };
+    const postsData = await postsRes.json();
+    const generatedPosts = postsData.posts;
+
+    // 4. Save Content Plan to Next.js content_plans table
+    const startDate = new Date(payload.startDate);
+    const endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
+    
+    const { data: planData, error: planError } = await supabaseAdmin
+      .from('content_plans')
+      .insert({
+        user_id: payload.userId,
+        business_profile_id: payload.businessProfileId,
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0],
+        target_audience: profile.target_customers || null,
+        strategy_summary: strategyData.strategy?.overview || 'Weekly generated content strategy',
+        status: 'draft',
+      })
+      .select()
+      .single();
+
+    if (planError || !planData) {
+      throw new Error(`Failed to save content plan: ${planError?.message}`);
+    }
+
+    // 5. Save Posts to Next.js posts table
+    if (generatedPosts && generatedPosts.length > 0) {
+      const postsToInsert = generatedPosts.map((post: any, index: number) => {
+        const scheduledDate = new Date(startDate);
+        scheduledDate.setDate(scheduledDate.getDate() + (index % 7));
+
+        const hashtagsStr = Array.isArray(post.hashtags)
+          ? post.hashtags.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ')
+          : '';
+
+        return {
+          content_plan_id: planData.id,
+          user_id: payload.userId,
+          platform: 'instagram',
+          post_type: 'image',
+          content: post.caption + (hashtagsStr ? '\n\n' + hashtagsStr : ''),
+          image_prompt: post.suggested_media_prompt || null,
+          scheduled_at: scheduledDate.toISOString(),
+          status: 'draft',
+        };
+      });
+
+      const { error: postsError } = await supabaseAdmin.from('posts').insert(postsToInsert);
+      if (postsError) {
+        throw new Error(`Failed to save posts: ${postsError.message}`);
+      }
+    }
+
+    return { success: true, contentPlanId: planData.id };
   },
 });
 

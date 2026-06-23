@@ -13,9 +13,9 @@ export function LogoutButton() {
       variant="ghost"
       onClick={() => startTransition(() => logout())}
       disabled={isPending}
-      className="w-full justify-start text-white/35 hover:text-white hover:bg-white/5 rounded-xl h-10 font-medium text-sm transition-all"
+      className="w-full justify-start text-zinc-500 dark:text-white/35 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5 border-transparent rounded-xl h-10 font-medium text-sm transition-all"
     >
-      {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-white/50" /> : null}
+      {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-zinc-500 dark:text-white/50" /> : null}
       {isPending ? 'Logging out...' : 'Log out'}
     </Button>
   )

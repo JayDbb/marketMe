@@ -45,39 +45,39 @@ CREATE TABLE IF NOT EXISTS posts (
 ALTER TABLE content_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 
--- Create policies for content_plans
-CREATE POLICY "Users can view their own content plans"
-    ON content_plans FOR SELECT
-    USING (auth.uid() = user_id);
+-- Create policies for content_plans (idempotent)
+DO $$ BEGIN
+    CREATE POLICY "Users can view their own content plans" ON content_plans FOR SELECT USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-CREATE POLICY "Users can create their own content plans"
-    ON content_plans FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+    CREATE POLICY "Users can create their own content plans" ON content_plans FOR INSERT WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-CREATE POLICY "Users can update their own content plans"
-    ON content_plans FOR UPDATE
-    USING (auth.uid() = user_id);
+DO $$ BEGIN
+    CREATE POLICY "Users can update their own content plans" ON content_plans FOR UPDATE USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-CREATE POLICY "Users can delete their own content plans"
-    ON content_plans FOR DELETE
-    USING (auth.uid() = user_id);
+DO $$ BEGIN
+    CREATE POLICY "Users can delete their own content plans" ON content_plans FOR DELETE USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- Create policies for posts
-CREATE POLICY "Users can view their own posts"
-    ON posts FOR SELECT
-    USING (auth.uid() = user_id);
+-- Create policies for posts (idempotent)
+DO $$ BEGIN
+    CREATE POLICY "Users can view their own posts" ON posts FOR SELECT USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-CREATE POLICY "Users can create their own posts"
-    ON posts FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+    CREATE POLICY "Users can create their own posts" ON posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-CREATE POLICY "Users can update their own posts"
-    ON posts FOR UPDATE
-    USING (auth.uid() = user_id);
+DO $$ BEGIN
+    CREATE POLICY "Users can update their own posts" ON posts FOR UPDATE USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-CREATE POLICY "Users can delete their own posts"
-    ON posts FOR DELETE
-    USING (auth.uid() = user_id);
+DO $$ BEGIN
+    CREATE POLICY "Users can delete their own posts" ON posts FOR DELETE USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- Function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_modified_column()
@@ -89,11 +89,13 @@ END;
 $$ language 'plpgsql';
 
 -- Add triggers for updated_at
+DROP TRIGGER IF EXISTS update_content_plans_modtime ON content_plans;
 CREATE TRIGGER update_content_plans_modtime
     BEFORE UPDATE ON content_plans
     FOR EACH ROW
     EXECUTE FUNCTION update_modified_column();
 
+DROP TRIGGER IF EXISTS update_posts_modtime ON posts;
 CREATE TRIGGER update_posts_modtime
     BEFORE UPDATE ON posts
     FOR EACH ROW

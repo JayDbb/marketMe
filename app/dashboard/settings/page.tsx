@@ -1,26 +1,20 @@
-import { getUserAndProfile } from '@/lib/user'
+import { getSession } from '@/lib/services/auth.service'
 import { redirect } from 'next/navigation'
 import { SettingsContent } from '@/components/dashboard/settings-content'
-import { Suspense } from 'react'
 
+export default async function SettingsPage() {
+  const session = await getSession()
 
-
-async function SettingsData() {
-  const { user, profile } = await getUserAndProfile()
-
-  if (!user) {
+  if (!session?.user) {
     return redirect('/login')
   }
 
-  return <SettingsContent profile={profile} />
-}
-
-export default function SettingsPage() {
   return (
     <div className="relative min-h-full font-sans">
-      <Suspense fallback={<div className="flex h-[50vh] items-center justify-center text-white/40">Loading settings...</div>}>
-        <SettingsData />
-      </Suspense>
+      <SettingsContent 
+        initialEmail={session.user.email || ''} 
+        initialName={session.user.name || ''} 
+      />
     </div>
   )
 }

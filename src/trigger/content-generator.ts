@@ -1,4 +1,4 @@
-import { task } from "@trigger.dev/sdk/v3";
+import { task, schedules } from "@trigger.dev/sdk/v3";
 import { openai } from "@/lib/openai";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { GenerateWeeklyContentPayload, RegenerateCaptionPayload, GenerateImagePayload } from "@/types/ai";
@@ -6,25 +6,60 @@ import type { GenerateWeeklyContentPayload, RegenerateCaptionPayload, GenerateIm
 const API_URL = process.env.MARKETME_AI_API_URL || 'http://localhost:8000';
 
 /**
- * Task 1: Generate Weekly Content
- * Delegates AI logic and persistence to MarketMe-AI Python backend.
+ * Task 1: Business Analysis
+ * Extracts target audience, USP, and keywords from profile data.
  */
-export const generateWeeklyContent = task({
-  id: "generate-weekly-content",
-  run: async (payload: GenerateWeeklyContentPayload) => {
-    // 1. Fetch Business Profile
+export const businessAnalysis = task({
+  id: "business-analysis",
+  run: async (payload: { businessProfileId: string }) => {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('business_profiles')
       .select('*')
       .eq('id', payload.businessProfileId)
-      .eq('user_id', payload.userId)
       .single();
 
     if (profileError || !profile) {
       throw new Error(`Business profile not found: ${profileError?.message}`);
     }
 
-    // 2. Call MarketMe-AI Strategy Generation
+    // Call OpenAI to perform simple analysis/summary of the business profile
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "You are a senior business marketing analyst. Outline key marketing keywords, target audience summary, and tone guidelines for the provided business profile. Format as a clean markdown block." },
+        { role: "user", content: `Business Name: ${profile.business_name || 'Generic'}\nIndustry: ${profile.industry || 'General'}\nUSP: ${profile.usp || 'None specified'}\nGoal: ${profile.primary_goal || 'Growth'}` }
+      ],
+    });
+
+    const summary = completion.choices[0].message.content || "Analysis complete.";
+
+    // Trigger notification
+    await sendNotification.trigger({
+      title: "Business Profile Analysis Complete",
+      body: `Successfully analyzed business: ${profile.business_name}`
+    });
+
+    return { success: true, summary };
+  }
+});
+
+/**
+ * Task 2: Marketing Strategy
+ * Calls FastAPI strategy endpoint.
+ */
+export const marketingStrategy = task({
+  id: "marketing-strategy",
+  run: async (payload: { businessProfileId: string }) => {
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('business_profiles')
+      .select('*')
+      .eq('id', payload.businessProfileId)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error(`Business profile not found: ${profileError?.message}`);
+    }
+
     const strategyRes = await fetch(`${API_URL}/api/v1/strategy/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -46,11 +81,40 @@ export const generateWeeklyContent = task({
     }
 
     const strategyData = await strategyRes.json();
-    const strategyId = strategyData.strategy_id;
+    return { success: true, strategyId: strategyData.strategy_id, strategy: strategyData.strategy };
+  }
+});
 
-    if (!strategyId) {
-      throw new Error('No strategy_id returned from MarketMe-AI');
+/**
+ * Task 3: Generate Weekly Content
+ * Orchestrates weekly plan and posts generation.
+ */
+export const generateWeeklyContent = task({
+  id: "generate-weekly-content",
+  run: async (payload: GenerateWeeklyContentPayload) => {
+    // 1. Fetch Business Profile
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('business_profiles')
+      .select('*')
+      .eq('id', payload.businessProfileId)
+      .eq('user_id', payload.userId)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error(`Business profile not found: ${profileError?.message}`);
     }
+
+    // 2. Call marketingStrategy subtask
+    const strategyResult = await marketingStrategy.triggerAndWait({
+      businessProfileId: payload.businessProfileId
+    });
+
+    if (!strategyResult.ok || !strategyResult.output.strategyId) {
+      throw new Error("Failed to generate marketing strategy in subtask");
+    }
+
+    const strategyId = strategyResult.output.strategyId;
+    const strategyData = strategyResult.output.strategy;
 
     // 3. Call MarketMe-AI Posts Generation
     const postsRes = await fetch(`${API_URL}/api/v1/posts/generate`, {
@@ -83,7 +147,7 @@ export const generateWeeklyContent = task({
         start_date: startDate.toISOString().split('T')[0],
         end_date: endDate.toISOString().split('T')[0],
         target_audience: profile.target_customers || null,
-        strategy_summary: strategyData.strategy?.overview || 'Weekly generated content strategy',
+        strategy_summary: strategyData?.overview || 'Weekly generated content strategy',
         status: 'draft',
       })
       .select()
@@ -121,13 +185,19 @@ export const generateWeeklyContent = task({
       }
     }
 
+    // 6. Trigger notification
+    await sendNotification.trigger({
+      title: "Weekly Content Generation Complete",
+      body: `Successfully generated weekly posts plan: ${planData.id}`
+    });
+
     return { success: true, contentPlanId: planData.id };
   },
 });
 
 /**
- * Task 2: Regenerate Caption (MAR-18)
- * (Left as-is until a dedicated Python endpoint is added)
+ * Task 4: Caption Generation (Regenerate Caption)
+ * Rewrites post captions with OpenAI.
  */
 export const regenerateCaption = task({
   id: "regenerate-caption",
@@ -145,8 +215,8 @@ export const regenerateCaption = task({
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: "You are an expert copywriter. Rewrite the following social media post caption." },
-        { role: "user", content: `Original Post: ${post.content}\n\nFeedback from user: ${payload.feedback || "Make it more engaging and professional."}\n\nProvide only the rewritten caption.` }
+        { role: "system", content: "You are an expert social media copywriter. Rewrite the following social media post caption based on the user's feedback." },
+        { role: "user", content: `Original Post: ${post.content}\n\nFeedback: ${payload.feedback || "Make it more engaging and professional."}\n\nProvide only the rewritten caption.` }
       ],
     });
 
@@ -163,68 +233,51 @@ export const regenerateCaption = task({
 });
 
 /**
- * Task 3: Generate Image (MAR-20 & MAR-23)
- * Uses MarketMe-AI for the prompt, then DALL-E 3 for the image.
+ * Task 5: Creative Brief
+ * Calls FastAPI creative brief generation.
  */
-export const generateImage = task({
-  id: "generate-image",
-  run: async (payload: GenerateImagePayload) => {
-    // 1. Fetch Post
-    const { data: post, error: postError } = await supabaseAdmin
-      .from('posts')
-      .select('*')
-      .eq('id', payload.postId)
-      .single();
-
-    if (postError || !post) throw new Error("Post not found");
-
-    // 2. Call MarketMe-AI for creative brief and refined prompt
-    let prompt = post.image_prompt;
-    if (!prompt) {
-      const creativeRes = await fetch(`${API_URL}/api/v1/creative/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          post_id: payload.postId,
-          style_hint: payload.style || 'High quality, professional photograph'
-        })
-      });
-
-      if (!creativeRes.ok) {
-        const errorText = await creativeRes.text();
-        throw new Error(`Failed to generate creative brief: ${creativeRes.status} ${errorText}`);
-      }
-
-      const creativeData = await creativeRes.json();
-      prompt = creativeData.refined_prompt;
-      
-      if (!prompt) throw new Error("No refined prompt returned from MarketMe-AI");
-
-      // Save the generated prompt to the post
-      await supabaseAdmin.from('posts').update({ image_prompt: prompt }).eq('id', payload.postId);
-    }
-
-    // 3. Call DALL-E 3
-    const imageResponse = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
+export const generateCreativeBrief = task({
+  id: "generate-creative-brief",
+  run: async (payload: { postId: string; style?: string }) => {
+    const creativeRes = await fetch(`${API_URL}/api/v1/creative/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        post_id: payload.postId,
+        style_hint: payload.style || 'High quality, professional photograph'
+      })
     });
 
-    const imageUrl = imageResponse.data?.[0]?.url;
+    if (!creativeRes.ok) {
+      const errorText = await creativeRes.text();
+      throw new Error(`Failed to generate creative brief: ${creativeRes.status} ${errorText}`);
+    }
 
-    if (!imageUrl) throw new Error("No image generated");
+    const creativeData = await creativeRes.json();
+    return {
+      success: true,
+      refinedPrompt: creativeData.refined_prompt || "Professional photograph matching content",
+      colorPalette: creativeData.color_palette || "Sleek, modern styling",
+      typography: creativeData.typography || "Inter",
+      layoutDescription: creativeData.layout_description || "Balanced composition"
+    };
+  }
+});
 
-    // Download the image buffer from the DALL-E URL
-    const fetchResponse = await fetch(imageUrl);
+/**
+ * Task 6: Image Upload
+ * Downloads image buffer and uploads to Supabase Storage bucket.
+ */
+export const imageUpload = task({
+  id: "image-upload",
+  run: async (payload: { postId: string; imageUrl: string }) => {
+    const fetchResponse = await fetch(payload.imageUrl);
     const arrayBuffer = await fetchResponse.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     const fileName = `Posts/post-${payload.postId}-${Date.now()}.png`;
     const bucketName = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'generated-content';
 
-    // Upload to Supabase Storage
     const { error: uploadError } = await supabaseAdmin
       .storage
       .from(bucketName)
@@ -233,9 +286,10 @@ export const generateImage = task({
         upsert: true,
       });
 
-    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}. Make sure the bucket '${bucketName}' exists and is public!`);
+    if (uploadError) {
+      throw new Error(`Storage upload failed: ${uploadError.message}. Make sure the bucket '${bucketName}' exists and is public!`);
+    }
 
-    // Get the permanent public URL
     const { data: publicUrlData } = supabaseAdmin
       .storage
       .from(bucketName)
@@ -243,12 +297,180 @@ export const generateImage = task({
 
     const permanentUrl = publicUrlData.publicUrl;
 
-    // Save the permanent URL to the database
+    // Save permanent URL
     await supabaseAdmin
       .from('posts')
       .update({ image_url: permanentUrl, status: 'draft' })
       .eq('id', payload.postId);
 
-    return { success: true, imageUrl: permanentUrl };
+    return { success: true, permanentUrl };
+  }
+});
+
+/**
+ * Task 7: Image Generation
+ * Uses creative brief and DALL-E 3, uploading results via task chaining.
+ */
+export const generateImage = task({
+  id: "generate-image",
+  run: async (payload: GenerateImagePayload) => {
+    const { data: post, error: postError } = await supabaseAdmin
+      .from('posts')
+      .select('*')
+      .eq('id', payload.postId)
+      .single();
+
+    if (postError || !post) throw new Error("Post not found");
+
+    let prompt = post.image_prompt;
+    if (!prompt) {
+      // 1. Call creativeBrief subtask
+      const briefResult = await generateCreativeBrief.triggerAndWait({
+        postId: payload.postId,
+        style: payload.style
+      });
+
+      if (!briefResult.ok || !briefResult.output.refinedPrompt) {
+        throw new Error("Failed to get creative brief refined prompt");
+      }
+
+      prompt = briefResult.output.refinedPrompt;
+      await supabaseAdmin.from('posts').update({ image_prompt: prompt }).eq('id', payload.postId);
+    }
+
+    // 2. Call DALL-E 3
+    const imageResponse = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+    });
+
+    const imageUrl = imageResponse.data?.[0]?.url;
+    if (!imageUrl) throw new Error("No image generated from DALL-E 3");
+
+    // 3. Call imageUpload subtask
+    const uploadResult = await imageUpload.triggerAndWait({
+      postId: payload.postId,
+      imageUrl
+    });
+
+    if (!uploadResult.ok || !uploadResult.output.permanentUrl) {
+      throw new Error("Failed to upload image via subtask");
+    }
+
+    return { success: true, imageUrl: uploadResult.output.permanentUrl };
   },
+});
+
+/**
+ * Task 8: Instagram Publishing
+ * Publishes final content to Instagram.
+ */
+export const instagramPublishing = task({
+  id: "instagram-publishing",
+  run: async (payload: { postId: string; businessId: string; imageUrl: string }) => {
+    const publishRes = await fetch(`${API_URL}/api/v1/publish/instagram`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        post_id: payload.postId,
+        business_id: payload.businessId,
+        image_url: payload.imageUrl
+      })
+    });
+
+    if (!publishRes.ok) {
+      const errorText = await publishRes.text();
+      throw new Error(`Instagram publishing failed: ${publishRes.status} ${errorText}`);
+    }
+
+    const data = await publishRes.json();
+    
+    // Update local post status to published
+    await supabaseAdmin
+      .from('posts')
+      .update({ status: 'published' })
+      .eq('id', payload.postId);
+
+    await sendNotification.trigger({
+      title: "Instagram Publish Success",
+      body: `Post ${payload.postId} was successfully published to Instagram!`
+    });
+
+    return { success: true, instagramPostId: data.instagram_post_id };
+  }
+});
+
+/**
+ * Task 9: Notifications
+ * Console/notification logger.
+ */
+export const sendNotification = task({
+  id: "send-notification",
+  run: async (payload: { title: string; body: string }) => {
+    console.log(`[TRIGGER NOTIFICATION] ${payload.title}: ${payload.body}`);
+    return { success: true };
+  }
+});
+
+/**
+ * Task 10: Scheduled Publishing (Cron)
+ * Scans for scheduled posts that are due and triggers publishing.
+ */
+export const scheduledPublishing = schedules.task({
+  id: "scheduled-publishing",
+  cron: "*/15 * * * *", // Run every 15 minutes
+  run: async () => {
+    const now = new Date().toISOString();
+    
+    // Fetch scheduled posts due to be published
+    const { data: posts, error } = await supabaseAdmin
+      .from('posts')
+      .select('*, content_plans(business_profile_id)')
+      .eq('status', 'scheduled')
+      .lte('scheduled_at', now);
+
+    if (error) {
+      throw new Error(`Failed to query scheduled posts: ${error.message}`);
+    }
+
+    if (!posts || posts.length === 0) {
+      console.log("No scheduled posts due at this time.");
+      return { success: true, count: 0 };
+    }
+
+    console.log(`Found ${posts.length} posts due for scheduling.`);
+
+    let count = 0;
+    for (const post of posts) {
+      try {
+        const businessId = post.content_plans?.business_profile_id;
+        if (!businessId) {
+          throw new Error(`Post ${post.id} content plan does not specify business_profile_id.`);
+        }
+        if (!post.image_url) {
+          throw new Error(`Post ${post.id} is missing an image_url.`);
+        }
+
+        // Trigger publishing
+        await instagramPublishing.trigger({
+          postId: post.id,
+          businessId,
+          imageUrl: post.image_url
+        });
+
+        count++;
+      } catch (err: any) {
+        console.error(`Scheduled publishing failed for post ${post.id}:`, err.message);
+        // Mark failed
+        await supabaseAdmin
+          .from('posts')
+          .update({ status: 'failed' })
+          .eq('id', post.id);
+      }
+    }
+
+    return { success: true, count };
+  }
 });

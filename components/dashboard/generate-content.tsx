@@ -143,7 +143,7 @@ export function GenerateContent({ profile }: { profile: any }) {
         targetAudience: profile?.target_customers || 'Target Customers',
         goal: setupData.goal,
         platform: setupData.platform,
-        numPosts: setupData.numPosts,
+        numPosts: Number(setupData.numPosts) || 3,
         tone: setupData.tone
       });
 
@@ -383,7 +383,11 @@ export function GenerateContent({ profile }: { profile: any }) {
                   </label>
                   <Input 
                     type="number" min={1} max={14}
-                    value={setupData.numPosts} onChange={e => setSetupData({...setupData, numPosts: parseInt(e.target.value)})}
+                    value={isNaN(setupData.numPosts) ? "" : setupData.numPosts} 
+                    onChange={e => {
+                      const val = parseInt(e.target.value);
+                      setSetupData({...setupData, numPosts: isNaN(val) ? "" as any : val});
+                    }}
                     className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible:border-purple-500/50 transition-all shadow-inner" 
                   />
                 </div>

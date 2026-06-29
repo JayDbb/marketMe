@@ -5,7 +5,7 @@ import { updatePostStatus } from "@/lib/services/content.service";
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<Response> {
   const { id } = await params;
 
   let session

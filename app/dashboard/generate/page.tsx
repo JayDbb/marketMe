@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { GenerateContent } from '@/components/dashboard/generate-content'
 
 export default async function GeneratePage() {
-  const { user } = await getUserAndProfile()
+  const { user, profile } = await getUserAndProfile()
 
   if (!user) {
     return redirect('/login')
@@ -11,7 +11,7 @@ export default async function GeneratePage() {
 
   return (
     <div className="relative min-h-full font-sans">
-      <GenerateContent />
+      <GenerateContent profile={profile} />
     </div>
   )
 }

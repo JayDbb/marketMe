@@ -19,7 +19,7 @@ import {
 // --- New Imports for Canvas & Actions ---
 import { CanvasData } from '@/types/canvas'
 import { CanvasEditor } from '@/components/dashboard/studio/canvas-editor'
-import { reviseCaptionAction, schedulePostAction } from '@/app/dashboard/generate/actions'
+import { reviseCaptionAction, schedulePostAction, generateWeeklyContentAction } from '@/app/dashboard/generate/actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FlowState = 'setup' | 'generating' | 'review'
@@ -108,33 +108,63 @@ const PROGRESS_STEPS = [
 ]
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export function GenerateContent() {
+export function GenerateContent({ profile }: { profile: any }) {
   const [flowState, setFlowState] = useState<FlowState>('setup')
   const [posts, setPosts] = useState<GeneratedPost[]>([])
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
 
   // Setup Form State
   const [setupData, setSetupData] = useState({
-    business: 'My Small Business',
-    goal: 'Increase Brand Awareness',
-    platform: 'Instagram',
+    business: profile?.business_name || 'My Small Business',
+    goal: profile?.primary_goal || 'Increase Brand Awareness',
+    platform: (profile?.channels && profile.channels[0]) || 'Instagram',
     numPosts: 3,
-    tone: 'Professional & Authoritative'
+    tone: profile?.tone || 'Professional & Authoritative'
   })
 
   // Generating State
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [generationComplete, setGenerationComplete] = useState(false)
+  const [realGeneratedPosts, setRealGeneratedPosts] = useState<GeneratedPost[]>([])
+  const [generationError, setGenerationError] = useState<string | null>(null)
 
-  const handleStartGeneration = () => {
+  const handleStartGeneration = async () => {
     setFlowState('generating')
     setCurrentStepIndex(0)
     setGenerationComplete(false)
+    setGenerationError(null)
+    setRealGeneratedPosts([])
+
+    try {
+      const res = await generateWeeklyContentAction({
+        businessProfileId: profile?.id || 'dummy-profile-id',
+        businessName: setupData.business,
+        industry: profile?.industry || 'General',
+        targetAudience: profile?.target_customers || 'Target Customers',
+        goal: setupData.goal,
+        platform: setupData.platform,
+        numPosts: setupData.numPosts,
+        tone: setupData.tone
+      });
+
+      if (res.error) {
+        throw new Error(res.error);
+      }
+
+      if (res.success && res.posts) {
+        setRealGeneratedPosts(res.posts);
+      } else {
+        throw new Error('Failed to generate weekly content');
+      }
+    } catch (err: any) {
+      console.error("Content generation error:", err);
+      setGenerationError(err.message || 'An error occurred during generation');
+    }
   }
 
   // Simulate Generation Progress
   useEffect(() => {
-    if (flowState === 'generating' && !generationComplete) {
+    if (flowState === 'generating' && !generationComplete && !generationError) {
       const stepDuration = 1200 
       if (currentStepIndex < PROGRESS_STEPS.length) {
         const timer = setTimeout(() => {
@@ -142,14 +172,23 @@ export function GenerateContent() {
         }, stepDuration + Math.random() * 600)
         return () => clearTimeout(timer)
       } else {
-        setGenerationComplete(true)
+        // Only set completion to true once the real backend has returned posts
+        if (realGeneratedPosts.length > 0) {
+          setGenerationComplete(true)
+        }
       }
     }
-  }, [flowState, currentStepIndex, generationComplete])
+  }, [flowState, currentStepIndex, generationComplete, generationError, realGeneratedPosts])
 
   const handleGoToReview = () => {
-    setPosts(MOCK_GENERATED_POSTS) 
-    setSelectedPostId(MOCK_GENERATED_POSTS[0].id)
+    if (realGeneratedPosts.length > 0) {
+      setPosts(realGeneratedPosts)
+      setSelectedPostId(realGeneratedPosts[0].id)
+    } else {
+      // Fallback in case of emergency
+      setPosts(MOCK_GENERATED_POSTS) 
+      setSelectedPostId(MOCK_GENERATED_POSTS[0].id)
+    }
     setFlowState('review')
   }
 
@@ -454,7 +493,34 @@ export function GenerateContent() {
               })}
             </div>
 
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
+              {generationError && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  className="mb-6 p-6 bg-red-950/40 border border-red-500/20 text-red-200 text-sm rounded-2xl flex flex-col gap-4 shadow-xl backdrop-blur-md"
+                >
+                  <div className="flex items-center gap-3 text-red-400">
+                    <X className="w-5 h-5" />
+                    <span className="font-bold text-base">Generation Failed</span>
+                  </div>
+                  <p className="text-xs text-red-300/80 font-mono bg-black/40 p-3 rounded-lg overflow-x-auto select-all max-h-36 custom-scrollbar leading-relaxed">
+                    {generationError}
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-end mt-2">
+                    <Button variant="outline" size="sm" onClick={() => setFlowState('setup')} className="h-9 rounded-xl text-xs text-white border-white/10 hover:bg-white/5">
+                      Back to Setup
+                    </Button>
+                    <Button size="sm" onClick={handleStartGeneration} className="h-9 rounded-xl text-xs bg-white text-zinc-950 hover:bg-zinc-100 font-bold">
+                      Try Again
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleGoToReview} className="h-9 rounded-xl text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10">
+                      Use Mock Backup
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
               {generationComplete && (
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }} 

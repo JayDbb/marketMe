@@ -1,18 +1,26 @@
-import { createClient } from '@/lib/supabase/server'
+import { getUserAndProfile } from '@/lib/user'
 import { redirect } from 'next/navigation'
 import { submitFeedback } from '@/app/dashboard/actions'
 import { DashboardContent } from '@/components/dashboard/dashboard-content'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, profile } = await getUserAndProfile()
 
   if (!user) {
     return redirect('/login')
   }
+
+  // Fetch counts using supabaseAdmin
+  const { count: plansCount } = await supabaseAdmin
+    .from('content_plans')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  const { count: postsCount } = await supabaseAdmin
+    .from('posts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
 
   return (
     <div className="relative min-h-full font-sans">
@@ -21,8 +29,12 @@ export default async function DashboardPage() {
       <div className="fixed top-0 right-0 -mt-20 -mr-20 w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed bottom-0 left-0 -mb-20 -ml-20 w-[600px] h-[600px] bg-indigo-700/8 blur-[150px] rounded-full pointer-events-none" />
 
-      {/* Render the interactive shell */}
-      <DashboardContent submitFeedbackAction={submitFeedback} />
+      <DashboardContent 
+        submitFeedbackAction={submitFeedback} 
+        profile={profile} 
+        plansCount={plansCount || 0}
+        postsCount={postsCount || 0}
+      />
     </div>
   )
 }

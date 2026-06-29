@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { UploadCloud, X, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ImageUploadProps {
@@ -9,7 +9,7 @@ interface ImageUploadProps {
   onChange: (file: File | null) => void;
 }
 
-export function ImageUpload({ value, onChange }: ImageUploadProps) {
+export function ImageUpload({ onChange }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -65,8 +65,9 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 group"
+            className="relative w-full aspect-video rounded-xl overflow-hidden border border-zinc-200 dark:border-white/10 group"
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
               alt="Preview"
@@ -76,7 +77,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
               <button
                 type="button"
                 onClick={handleRemove}
-                className="p-2 bg-red-500/80 hover:bg-red-500 text-white rounded-full transition-colors"
+                className="p-2 bg-red-500/80 hover:bg-red-500 text-zinc-900 dark:text-white rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -96,17 +97,17 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
               w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-200
               ${isDragging 
                 ? 'border-blue-400 bg-blue-400/5' 
-                : 'border-white/10 hover:border-white/20 bg-white/5 hover:bg-white-[0.07]'}
+                : 'border-black/10 dark:border-white/10 dark:hover:border-white/20 bg-white dark:bg-white/5 hover:bg-white/10'}
             `}
           >
-            <div className={`p-3 rounded-full ${isDragging ? 'bg-blue-400/10' : 'bg-white/5'} transition-colors`}>
-              <UploadCloud className={`w-6 h-6 ${isDragging ? 'text-blue-400' : 'text-white/40'}`} />
+            <div className={`p-3 rounded-full ${isDragging ? 'bg-blue-400/10' : 'bg-white dark:bg-white/5 border-zinc-200'} transition-colors`}>
+              <UploadCloud className={`w-6 h-6 ${isDragging ? 'text-blue-400' : 'text-zinc-500 dark:text-white/40'}`} />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-white/80">
-                Click to upload <span className="text-white/40 font-normal">or drag and drop</span>
+              <p className="text-sm font-medium text-zinc-500 dark:text-white/80">
+                Click to upload <span className="text-zinc-500 dark:text-white/40 font-normal">or drag and drop</span>
               </p>
-              <p className="text-xs text-white/30 mt-1">SVG, PNG, JPG or GIF (max. 5MB)</p>
+              <p className="text-xs text-zinc-500 dark:text-white/30 mt-1">SVG, PNG, JPG or GIF (max. 5MB)</p>
             </div>
           </motion.div>
         )}

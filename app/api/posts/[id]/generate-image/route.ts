@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { generateImage } from "@/src/trigger/content-generator";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, AuthError } from "@/lib/services/auth.service";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { id } = await params;
 
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  let session
+  try {
+    session = await requireAuth()
+  } catch (e) {
+    if (e instanceof AuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status })
+    }
+    return NextResponse.json({ error: "Authentication error" }, { status: 401 })
   }
+
+  // Suppress unused variable warning — session is used for auth enforcement above
+  void session
 
   try {
     const body = await request.json();
@@ -20,12 +28,13 @@ export async function POST(
 
     // Trigger the background task
     const handle = await tasks.trigger<typeof generateImage>("generate-image", {
-      postId: params.id,
+      postId: id,
       style,
     });
 
     return NextResponse.json({ success: true, jobId: handle.id });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

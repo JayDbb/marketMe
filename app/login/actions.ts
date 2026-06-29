@@ -2,20 +2,22 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
-  const supabase = await createClient()
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
 
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
-
-  const { error } = await supabase.auth.signInWithPassword(data)
-
-  if (error) {
-    redirect(`/login?message=${encodeURIComponent(error.message)}&type=error`)
+  try {
+    // nextCookies() plugin automatically handles cookie setting after sign-in
+    await auth.api.signInEmail({
+      body: { email, password },
+      headers: await headers(),
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Invalid email or password'
+    redirect(`/login?message=${encodeURIComponent(message)}&type=error`)
   }
 
   revalidatePath('/', 'layout')
@@ -23,58 +25,53 @@ export async function login(formData: FormData) {
 }
 
 export async function signInWithMagicLink(formData: FormData) {
-  const supabase = await createClient()
-  const email = formData.get('email') as string
-
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${origin}/auth/confirm`,
-    },
-  })
-
-  if (error) {
-    redirect(`/login?message=${encodeURIComponent(error.message)}&type=error`)
-  }
-
-  redirect('/login?message=Check your email for the magic link!&type=success')
+  // Better Auth supports magic links via the magic-link plugin.
+  // To enable: add magicLink() plugin to lib/auth.ts and configure email provider.
+  void formData
+  redirect('/login?message=Magic link sign-in is being set up. Please use email and password or Google.&type=error')
 }
 
+import { supabaseAdmin } from '@/lib/supabase/admin'
+
 export async function signup(formData: FormData) {
-  const supabase = await createClient()
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const name = formData.get('name') as string | null
 
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+  try {
+    const userResult = await auth.api.signUpEmail({
+      body: {
+        email,
+        password,
+        name: name ?? email.split('@')[0],
+      },
+      headers: await headers(),
+    })
+
+    if (userResult?.user?.id) {
+      await supabaseAdmin
+        .from('user')
+        .update({ emailVerified: true })
+        .eq('id', userResult.user.id)
+    }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Sign up failed'
+    redirect(`/signup?message=${encodeURIComponent(message)}&type=error`)
   }
 
-  // To support standard flow with email confirmation
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-
-  const { error } = await supabase.auth.signUp({
-    email: data.email,
-    password: data.password,
-    options: {
-      emailRedirectTo: `${origin}/auth/confirm`,
-    },
-  })
-
-  if (error) {
-    redirect(`/signup?message=${encodeURIComponent(error.message)}&type=error`)
-  }
-
-  // If email confirmation is disabled, user is automatically signed in. If not, they must check email.
-  // We'll redirect to a generic success message or dashboard. 
-  // Let's redirect to login with a message so they know to check their email if standard flow is active.
-  redirect('/login?message=Check email to continue sign in process')
+  revalidatePath('/', 'layout')
+  redirect('/onboarding')
 }
 
 export async function logout() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  
+  try {
+    await auth.api.signOut({
+      headers: await headers(),
+    })
+  } catch {
+    // Ignore sign-out errors — redirect regardless
+  }
+
   revalidatePath('/', 'layout')
   redirect('/login')
 }

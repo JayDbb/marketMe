@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import React from 'react';
 import { DaySchedule } from '@/types/content';
 import { PostCard } from './post-card';
 
@@ -11,7 +11,7 @@ interface CalendarBoardProps {
 
 export function CalendarBoard({ schedule, setSchedule }: CalendarBoardProps) {
 
-  const handleApprove = (postId: number) => {
+  const handleApprove = (postId: number | string) => {
     setSchedule(prev =>
       prev.map(day => ({
         ...day,
@@ -39,10 +39,10 @@ export function CalendarBoard({ schedule, setSchedule }: CalendarBoardProps) {
             >
               {/* Column Header */}
               <div className="flex items-center justify-between px-5 py-4">
-                <h3 className="font-medium text-[15px] text-white tracking-tight">
+                <h3 className="font-medium text-[15px] text-zinc-900 dark:text-white tracking-tight">
                   {dayName}
                 </h3>
-                <span className="text-[10px] font-mono text-white/30 uppercase tracking-[0.12em]">
+                <span className="text-[10px] font-mono text-zinc-500 dark:text-white/30 uppercase tracking-[0.12em]">
                   {datePart}
                 </span>
               </div>
@@ -62,8 +62,8 @@ export function CalendarBoard({ schedule, setSchedule }: CalendarBoardProps) {
                     />
                   ))
                 ) : (
-                  <div className="flex items-center justify-center border border-dashed border-white/8 rounded-xl min-h-[100px] mx-1">
-                    <p className="text-[11px] text-white/20 tracking-wide">No posts</p>
+                  <div className="flex items-center justify-center border border-dashed border-zinc-200 dark:border-white/8 rounded-xl min-h-[100px] mx-1">
+                    <p className="text-[11px] text-zinc-500 dark:text-white/20 tracking-wide">No posts</p>
                   </div>
                 )}
               </div>

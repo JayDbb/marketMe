@@ -1,6 +1,6 @@
 import { LinearClient } from '@linear/sdk'
 
-const apiKey = process.env.LINEAR_API_KEY
+const apiKey = process.env.LINEAR_PERSONAL_ACCESS_TOKEN
 
 if (!apiKey) {
   console.warn('Linear API key is not set. Linear integration will not work.')

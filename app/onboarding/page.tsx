@@ -1,15 +1,17 @@
-import { createClient } from '@/lib/supabase/server'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 
+// Must be force-dynamic: this page reads headers() for the live auth session
+export const dynamic = 'force-dynamic'
+
 export default async function OnboardingPage() {
-  const supabase = await createClient()
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session) {
     return redirect('/login')
   }
 

@@ -1,21 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/services/auth.service'
 import { redirect } from 'next/navigation'
 import { SettingsContent } from '@/components/dashboard/settings-content'
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
+  const session = await getSession()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session?.user) {
     return redirect('/login')
   }
 
   return (
     <div className="relative min-h-full font-sans">
-      <SettingsContent />
+      <SettingsContent 
+        initialEmail={session.user.email || ''} 
+        initialName={session.user.name || ''} 
+      />
     </div>
   )
 }

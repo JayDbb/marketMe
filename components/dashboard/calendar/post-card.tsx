@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Post, Platform } from '@/types/content';
-import { MessageCircle, Briefcase, Camera, Clock, CheckCircle2, Send } from 'lucide-react';
+import { MessageCircle, Briefcase, Camera, Clock, CheckCircle2, Send, AlertCircle, Clock3, CalendarClock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface PostCardProps {
@@ -18,8 +18,8 @@ function PlatformIcon({ platform }: { platform: Platform }) {
     instagram: <Camera        className="w-3.5 h-3.5" />,
   };
   return (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/8 border border-white/10 text-white/50 shrink-0">
-      {icons[platform]}
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-white/8 border border-black/5 dark:border-white/10 text-zinc-500 dark:text-white/50 shrink-0">
+      {icons[platform as keyof typeof icons]}
     </span>
   );
 }
@@ -28,17 +28,33 @@ function PlatformIcon({ platform }: { platform: Platform }) {
 function StatusBadge({ status }: { status: Post['status'] }) {
   if (status === 'published') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/12 bg-white/6 text-white/55 text-[10px] font-bold uppercase tracking-widest">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-black/5 dark:border-white/12 bg-white dark:bg-white/6 text-zinc-500 dark:text-white/55 text-[10px] font-bold uppercase tracking-widest">
         <Send className="w-3 h-3" />
         Published
+      </span>
+    );
+  }
+  if (status === 'failed') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-red-400/35 bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-widest">
+        <AlertCircle className="w-3 h-3" />
+        Failed
+      </span>
+    );
+  }
+  if (status === 'scheduled') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-orange-400/35 bg-orange-500/10 text-orange-300 text-[10px] font-bold uppercase tracking-widest">
+        <CalendarClock className="w-3 h-3" />
+        Queued
       </span>
     );
   }
   if (status === 'pending_approval') {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/35 bg-blue-500/10 text-blue-300 text-[10px] font-bold uppercase tracking-widest">
-        <Clock className="w-3 h-3" />
-        Scheduled
+        <Clock3 className="w-3 h-3" />
+        Pending
       </span>
     );
   }
@@ -56,7 +72,7 @@ function StatusBadge({ status }: { status: Post['status'] }) {
   }
   // draft
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-white/35 text-[10px] font-bold uppercase tracking-widest">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-white/5 text-zinc-500 dark:text-white/35 text-[10px] font-bold uppercase tracking-widest">
       <Clock className="w-3 h-3" />
       Draft
     </span>
@@ -92,14 +108,15 @@ export function PostCard({ post, onApprove }: PostCardProps) {
       {/* Top row: platform icon + time */}
       <div className="flex items-center gap-2.5">
         <PlatformIcon platform={post.social_account?.platform || 'twitter'} />
-        <span className="text-[11px] font-mono text-white/40 tracking-wide">
+        <span className="text-[11px] font-mono text-zinc-500 dark:text-white/40 tracking-wide">
           {timeString}
         </span>
       </div>
 
       {/* Asset Image */}
       {post.media_url && (
-        <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/5 mt-1">
+        <div className="relative w-full h-32 rounded-lg overflow-hidden border border-transparent dark:border-white/5 mt-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={post.media_url} 
             alt="Post media" 
@@ -109,7 +126,7 @@ export function PostCard({ post, onApprove }: PostCardProps) {
       )}
 
       {/* Post content */}
-      <p className="text-sm text-white/80 leading-relaxed line-clamp-4 font-light mt-1">
+      <p className="text-sm text-zinc-500 dark:text-white/80 leading-relaxed line-clamp-4 font-light mt-1">
         {post.caption}
       </p>
 
@@ -132,7 +149,7 @@ export function PostCard({ post, onApprove }: PostCardProps) {
           <button
             onClick={handleApprove}
             disabled={isApproving}
-            className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/40 bg-transparent text-blue-400 hover:bg-blue-500 hover:text-white hover:border-blue-500 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 disabled:cursor-wait"
+            className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-400/40 bg-transparent text-blue-400 hover:bg-blue-500 hover:text-zinc-900 dark:hover:text-white hover:border-blue-500 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 disabled:cursor-wait"
           >
             <CheckCircle2 className="w-3 h-3" />
             {isApproving ? '…' : 'Approve'}

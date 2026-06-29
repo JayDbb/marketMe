@@ -1,6 +1,6 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 
@@ -9,21 +9,12 @@ export function GoogleAuthButton() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true)
-    const supabase = createClient()
-    const origin = window.location.origin
-
-    const { error } = await supabase.auth.signInWithOAuth({
+    await signIn.social({
       provider: 'google',
-      options: {
-        redirectTo: `${origin}/auth/callback`,
-      },
+      callbackURL: '/onboarding',
+      errorCallbackURL: '/login?message=Google+sign-in+failed&type=error',
     })
-
-    if (error) {
-      console.error('Google OAuth error:', error.message)
-      setIsLoading(false)
-    }
-    // If successful, the browser will redirect to Google — no need to handle here
+    // Browser redirects to Google — loading state remains until redirect
   }
 
   return (

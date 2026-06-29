@@ -1,12 +1,12 @@
-export type PostStatus = 'draft' | 'pending_approval' | 'approved' | 'published';
-export type Platform = 'twitter' | 'linkedin' | 'instagram';
+export type PostStatus = 'draft' | 'pending_approval' | 'approved' | 'published' | 'scheduled' | 'failed';
+export type Platform = 'twitter' | 'linkedin' | 'instagram' | string;
 
 export interface Post {
-  post_id: number;
-  business_id: number;
-  account_id: number;
-  idea_id?: number | null;
-  schedule_id?: number | null;
+  post_id: string | number;
+  business_id?: number | string;
+  account_id?: number | string;
+  idea_id?: number | string | null;
+  schedule_id?: number | string | null;
   caption: string;
   media_url?: string | null;
   scheduled_date: string; // ISO string

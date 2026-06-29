@@ -1,6 +1,8 @@
 @import "tailwindcss";
-@plugin "tailwindcss-animate";
+@import "tw-animate-css";
 
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #f9fafb;
@@ -95,22 +97,22 @@
 
 /* Dark mode — deep dark background like the reference design */
 .dark {
-  --background: oklch(0.10 0.01 265);
-  --foreground: oklch(0.97 0 0);
-  --card: oklch(0.16 0.015 265);
-  --card-foreground: oklch(0.97 0 0);
-  --popover: oklch(0.16 0.015 265);
-  --popover-foreground: oklch(0.97 0 0);
-  --primary: oklch(0.97 0 0);
-  --primary-foreground: oklch(0.16 0 0);
-  --secondary: oklch(0.20 0.015 265);
-  --secondary-foreground: oklch(0.97 0 0);
-  --muted: oklch(0.20 0.015 265);
-  --muted-foreground: oklch(0.65 0.01 265);
-  --accent: oklch(0.20 0.015 265);
-  --accent-foreground: oklch(0.97 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 8%);
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --card: #1c2128;
+  --card-foreground: #e6edf3;
+  --popover: #1c2128;
+  --popover-foreground: #e6edf3;
+  --primary: #3fb950;
+  --primary-foreground: #ffffff;
+  --secondary: #161b22;
+  --secondary-foreground: #e6edf3;
+  --muted: #161b22;
+  --muted-foreground: #8b949e;
+  --accent: rgba(63, 185, 80, 0.15);
+  --accent-foreground: #3fb950;
+  --destructive: #f85149;
+  --border: #30363d;
   --input: oklch(1 0 0 / 10%);
   --ring: oklch(0.60 0.18 255);
   --chart-1: oklch(0.87 0 0);

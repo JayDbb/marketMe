@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, AuthError } from "@/lib/services/auth.service";
+import { updatePostStatus } from "@/lib/services/content.service";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { id } = await params;
 
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  let session
+  try {
+    session = await requireAuth()
+  } catch (e) {
+    if (e instanceof AuthError) {
+      return NextResponse.json({ error: e.message }, { status: e.status })
+    }
+    return NextResponse.json({ error: "Authentication error" }, { status: 401 })
   }
 
   try {
@@ -20,25 +26,20 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    // Update the post status
-    const { data: post, error: updateError } = await supabase
-      .from('posts')
-      .update({
-        status,
-        ...(scheduled_at && { scheduled_at })
-      })
-      .eq('id', params.id)
-      // Enforce user ownership
-      .eq('user_id', user.id)
-      .select()
-      .single();
+    const { data: post, error } = await updatePostStatus(
+      session.user.id,
+      id,
+      status,
+      scheduled_at
+    )
 
-    if (updateError) {
-      throw new Error(updateError.message);
+    if (error) {
+      throw new Error(error);
     }
 
     return NextResponse.json({ success: true, post });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error"
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

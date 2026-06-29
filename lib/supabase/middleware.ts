@@ -1,46 +1,29 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { auth } from "@/lib/auth"
+import { NextResponse, type NextRequest } from "next/server"
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  // Get the session from Better Auth
+  let session = null
+  try {
+    session = await auth.api.getSession({
+      headers: request.headers,
+    })
+  } catch {
+    // Session fetch failed — treat as unauthenticated
+  }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // refreshing the auth token
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    // no user, potentially respond by redirecting the user to the login page
+  // Protected routes: redirect to login if not authenticated
+  if (!session && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 
-  // To protect more routes, add them to the if statement or use an array/matcher
-  // e.g. ['/dashboard', '/account'].includes(request.nextUrl.pathname)
+  if (!session && request.nextUrl.pathname.startsWith("/onboarding")) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/login"
+    return NextResponse.redirect(url)
+  }
 
-  return supabaseResponse
+  return NextResponse.next()
 }

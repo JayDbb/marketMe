@@ -1,71 +1,138 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { getMockWeekSchedule } from '@/lib/mock-data/calendar';
-import { CalendarBoard } from '@/components/dashboard/calendar/calendar-board';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Post } from '@/types/content';
+import { getWeekScheduleAction } from '@/app/dashboard/calendar/actions';
+
+// Components
+import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sidebar';
+import { WeekView } from '@/components/dashboard/calendar/views/week-view';
+import { MonthView } from '@/components/dashboard/calendar/views/month-view';
+import { DayView } from '@/components/dashboard/calendar/views/day-view';
 import { CreatePostModal } from '@/components/dashboard/calendar/create-post-modal';
-import { Post, DaySchedule } from '@/types/content';
+
+type ViewMode = 'Month' | 'Week' | 'Day';
 
 export default function CalendarPage() {
-  const [weeklySchedule, setWeeklySchedule] = useState<DaySchedule[]>(getMockWeekSchedule());
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<ViewMode>('Week');
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleAddPost = (newPostData: Omit<Post, 'post_id' | 'status'>) => {
-    const newPost: Post = {
-      ...newPostData,
-      post_id: Math.floor(Math.random() * 1000000), // Mock numerical ID
-      status: 'draft',
-    };
+  useEffect(() => {
+    // For MVP, we fetch the schedule which brings in DB posts
+    getWeekScheduleAction().then((schedule) => {
+      // Flatten the days into a single array of posts
+      const allPosts = schedule.flatMap(day => day.posts);
+      setPosts(allPosts);
+      setIsLoading(false);
+    });
+  }, []);
 
-    // Add to the first day for mock purposes, or try to match the scheduled date
-    const scheduledDate = new Date(newPost.scheduled_date);
-    const dayIndex = scheduledDate.getDay(); // 0 is Sunday
-    // For simplicity, just add it to the first column in the mock data, or try to match by date string.
-    // Our mock data date strings are like "Monday, Jun 8". We will just prepend to the first day for now.
-    setWeeklySchedule(prev => {
-      const newSchedule = [...prev];
-      if (newSchedule.length > 0) {
-        newSchedule[0] = {
-          ...newSchedule[0],
-          posts: [newPost, ...newSchedule[0].posts],
-        };
-      }
-      return newSchedule;
+  const handlePrev = () => {
+    setCurrentDate(prev => {
+      const d = new Date(prev);
+      if (viewMode === 'Month') d.setMonth(d.getMonth() - 1);
+      if (viewMode === 'Week') d.setDate(d.getDate() - 7);
+      if (viewMode === 'Day') d.setDate(d.getDate() - 1);
+      return d;
     });
   };
 
+  const handleNext = () => {
+    setCurrentDate(prev => {
+      const d = new Date(prev);
+      if (viewMode === 'Month') d.setMonth(d.getMonth() + 1);
+      if (viewMode === 'Week') d.setDate(d.getDate() + 7);
+      if (viewMode === 'Day') d.setDate(d.getDate() + 1);
+      return d;
+    });
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
   return (
-    <div className="flex flex-col h-full relative min-h-screen">
-      {/* Header — sits flush on the dark page, no border box */}
-      <div className="flex-none px-8 pt-8 pb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-serif font-light tracking-tighter text-white mb-1.5">
-            Content Calendar
-          </h1>
-          <p className="text-white/40 text-sm font-light">
-            Overview of scheduled campaigns and posts for the current week.
-          </p>
+    <div className="w-full h-[calc(100vh-2rem)] flex gap-6 p-6 overflow-hidden">
+      {/* Dark Sidebar Component */}
+      <CalendarSidebar currentDate={currentDate} onDateChange={setCurrentDate} />
+
+      {/* Main Calendar Area - Adapted to Dark Theme */}
+      <div className="flex-1 flex flex-col bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-2xl border border-zinc-200 dark:border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative">
+        {/* Header */}
+        <div className="px-8 py-6 flex flex-col xl:flex-row xl:items-center justify-between border-b border-zinc-200 dark:border-white/5 gap-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-zinc-900 dark:text-white tracking-tight">
+            {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          </h2>
+
+          <div className="flex items-center gap-4 lg:gap-6 overflow-x-auto pb-2 xl:pb-0 hide-scrollbar">
+            {/* View Toggles */}
+            <div className="flex bg-white dark:bg-white/5 border-zinc-200 p-1 rounded-xl border dark:border-white/10 shrink-0">
+              {(['Month', 'Week', 'Day'] as ViewMode[]).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-5 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                    viewMode === mode 
+                      ? 'bg-white text-black shadow-lg' 
+                      : 'text-zinc-500 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/5 border-transparent'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+
+            {/* Navigation */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={handlePrev} className="w-9 h-9 rounded-xl bg-white dark:bg-white/5 border-transparent flex items-center justify-center text-zinc-500 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button onClick={handleToday} className="px-4 py-1.5 rounded-xl bg-white dark:bg-white/5 border-transparent text-sm font-bold text-zinc-500 dark:text-white/90 hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
+                Today
+              </button>
+              <button onClick={handleNext} className="w-9 h-9 rounded-xl bg-white dark:bg-white/5 border-transparent flex items-center justify-center text-zinc-500 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10 transition-colors border dark:border-white/5">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="w-px h-8 bg-white dark:bg-white/10 border-zinc-200 shrink-0 hidden md:block" />
+
+            {/* Add Event Action */}
+            <Button 
+              onClick={() => setIsModalOpen(true)} 
+              className="h-10 px-6 rounded-xl bg-purple-600 hover:bg-purple-500 flex items-center shadow-[0_0_20px_rgba(168,85,247,0.4)] text-zinc-900 dark:text-white font-bold gap-2 shrink-0 border-0"
+            >
+               <Plus className="w-4 h-4" /> Create Post
+            </Button>
+          </div>
         </div>
-        
-        <Button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-white text-zinc-950 hover:bg-white/90 gap-2 font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          Create Post
-        </Button>
+
+        {/* Calendar Grid Container */}
+        <div className="flex-1 overflow-hidden p-6 relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="w-full h-full flex flex-col"
+            >
+              {viewMode === 'Week' && <WeekView posts={posts} currentDate={currentDate} />}
+              {viewMode === 'Month' && <MonthView posts={posts} currentDate={currentDate} />}
+              {viewMode === 'Day' && <DayView posts={posts} currentDate={currentDate} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
-
-      {/* Kanban Board */}
-      <CalendarBoard schedule={weeklySchedule} setSchedule={setWeeklySchedule} />
-
-      <CreatePostModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddPost}
-      />
+      
+      <CreatePostModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={() => setIsModalOpen(false)} />
     </div>
-  );
+  )
 }

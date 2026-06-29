@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { ArrowLeft, Activity, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton'
 
@@ -32,6 +32,7 @@ function SubmitButton() {
 function LoginContent() {
   const searchParams = useSearchParams()
   const message = searchParams.get('message')
+  const type = searchParams.get('type')
   const [showPassword, setShowPassword] = useState(false)
 
   return (
@@ -123,8 +124,20 @@ function LoginContent() {
               </div>
             </div>
 
-            {message && (
+            {message && type === 'error' && (
               <div role="alert" aria-live="polite" className="text-sm font-medium text-red-400 bg-red-500/10 p-3 border border-red-500/20 text-center rounded-xl">
+                {message}
+              </div>
+            )}
+
+            {message && type === 'success' && (
+              <div role="alert" aria-live="polite" className="text-sm font-medium text-blue-400 bg-blue-500/10 p-3 border border-blue-500/20 text-center rounded-xl">
+                {message}
+              </div>
+            )}
+
+            {message && type !== 'success' && type !== 'error' && (
+              <div role="alert" aria-live="polite" className="text-sm font-medium text-white/70 bg-white/5 p-3 border border-white/10 text-center rounded-xl">
                 {message}
               </div>
             )}

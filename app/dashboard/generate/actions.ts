@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { generateStrategy, generatePosts } from '@/lib/services/marketing-ai.service'
 
 /**
  * AI Revision API Contract
@@ -58,8 +59,8 @@ export async function schedulePostAction(payload: {
       const { data: newPlan, error: planError } = await supabaseAdmin.from('content_plans').insert({
         user_id: user.id,
         business_profile_id: profiles[0].id,
-        start_date: new Date().toISOString(),
-        end_date: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(),
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0],
         strategy_summary: 'Auto-generated weekly plan',
         status: 'active'
       }).select('id').single();
@@ -84,8 +85,102 @@ export async function schedulePostAction(payload: {
     revalidatePath('/dashboard/calendar');
     revalidatePath('/dashboard/posts');
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Scheduling Error:", error);
-    return { success: false, error: error.message };
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    return { success: false, error: message };
   }
 }
+
+/**
+ * Real Weekly AI Content Generation
+ * Calls the FastAPI backend to generate strategy and posts.
+ */
+export async function generateWeeklyContentAction(input: {
+  businessProfileId: string;
+  businessName: string;
+  industry: string;
+  targetAudience: string;
+  goal: string;
+  platform: string;
+  numPosts: number;
+  tone?: string;
+}) {
+  let session
+  try {
+    session = await auth.api.getSession({ headers: await headers() })
+  } catch {
+    return { error: 'Not authenticated' }
+  }
+  if (!session) return { error: 'Not authenticated' }
+
+  try {
+    // 1. Generate Strategy
+    const strategyData = await generateStrategy({
+      business_id: input.businessProfileId,
+      business_name: input.businessName,
+      industry: input.industry,
+      target_audience: input.targetAudience,
+      goals: input.goal,
+      platforms: [input.platform.toLowerCase()],
+    });
+
+    if (!strategyData.strategy_id) {
+      return { error: 'Failed to generate strategy ID from AI service' }
+    }
+
+    // 2. Generate Posts from strategy
+    const postsData = await generatePosts({
+      strategy_id: strategyData.strategy_id,
+      platform: input.platform.toLowerCase(),
+      num_posts: input.numPosts,
+    });
+
+    // 3. Map to GeneratedPost structure
+    const mappedPosts = postsData.posts.map((post, index) => {
+      const scheduledDate = new Date();
+      scheduledDate.setDate(scheduledDate.getDate() + index + 1);
+      scheduledDate.setHours(10, 0, 0, 0);
+
+      // Create a specific canvas template for each post
+      const canvasTemplate: CanvasData = {
+        version: "1.0",
+        canvas: { width: 1080, height: 1080, backgroundColor: "#0f0f1b", aspectRatioName: "square" },
+        layers: [
+          {
+            id: "bg-image", type: "image", x: 0, y: 0, width: 1080, height: 1080, zIndex: 0,
+            src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1080&q=80"
+          },
+          {
+            id: "overlay", type: "rect", x: 0, y: 0, width: 1080, height: 1080, fill: "rgba(0,0,0,0.5)", zIndex: 1
+          },
+          {
+            id: "main-text", type: "text", x: 100, y: 400, width: 880, zIndex: 2,
+            content: post.title.toUpperCase(), fontSize: 72, fontFamily: "Inter", fill: "#ffffff", align: "center"
+          }
+        ]
+      };
+
+      const hashtagsStr = Array.isArray(post.hashtags)
+        ? post.hashtags.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ')
+        : '';
+
+      return {
+        id: `gen-${Math.random().toString(36).substr(2, 9)}`,
+        title: post.title,
+        caption: post.caption,
+        hashtags: hashtagsStr,
+        canvasData: canvasTemplate,
+        scheduledDate: scheduledDate.toISOString().substring(0, 16),
+        status: 'needs_review' as const
+      };
+    });
+
+    return { success: true, posts: mappedPosts };
+  } catch (error: unknown) {
+    console.error("AI Generation Action Error:", error);
+    const message = error instanceof Error ? error.message : 'Failed to generate weekly content';
+    return { error: message };
+  }
+}
+

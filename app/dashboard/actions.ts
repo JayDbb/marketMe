@@ -44,8 +44,8 @@ export async function generateContentAction(businessProfileId: string) {
   const user = session.user
 
   // Create a dummy content plan
-  const startDate = new Date().toISOString()
-  const endDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const startDate = new Date().toISOString().split('T')[0]
+  const endDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   const { data: plan, error: planError } = await supabaseAdmin
     .from('content_plans')

@@ -31,13 +31,15 @@ export async function signInWithMagicLink(formData: FormData) {
   redirect('/login?message=Magic link sign-in is being set up. Please use email and password or Google.&type=error')
 }
 
+import { supabaseAdmin } from '@/lib/supabase/admin'
+
 export async function signup(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const name = formData.get('name') as string | null
 
   try {
-    await auth.api.signUpEmail({
+    const userResult = await auth.api.signUpEmail({
       body: {
         email,
         password,
@@ -45,6 +47,13 @@ export async function signup(formData: FormData) {
       },
       headers: await headers(),
     })
+
+    if (userResult?.user?.id) {
+      await supabaseAdmin
+        .from('user')
+        .update({ emailVerified: true })
+        .eq('id', userResult.user.id)
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Sign up failed'
     redirect(`/signup?message=${encodeURIComponent(message)}&type=error`)

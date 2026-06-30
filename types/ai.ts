@@ -1,6 +1,7 @@
 export interface GenerateWeeklyContentPayload {
   businessProfileId: string
   startDate: string // ISO date string
+  userId: string
 }
 
 export interface RegenerateCaptionPayload {

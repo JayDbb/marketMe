@@ -1,16 +1,16 @@
 import { PostsContent } from '@/components/dashboard/posts-content'
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export default async function PostsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
+  const user = await getAuthenticatedUser()
+
   if (!user) {
     return redirect('/login')
   }
 
-  const { data: posts, error } = await supabase
+  const { data: posts, error } = await supabaseAdmin
     .from('posts')
     .select('*')
     .eq('user_id', user.id)
@@ -21,8 +21,9 @@ export default async function PostsPage() {
   }
 
   return (
-    <div className="relative min-h-full font-sans">
-      <PostsContent initialPosts={posts || []} />
-    </div>
+    <PostsContent
+      initialPosts={posts ?? []}
+      loadError={error ? 'Could not load posts. Please refresh the page.' : null}
+    />
   )
 }

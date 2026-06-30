@@ -1,7 +1,3 @@
-'use client';
-
-import { motion } from 'framer-motion';
-
 const logos = [
   "Acme Corp", "Quantum", "Echo Valley", "Celestial", "PULSE", "APEX",
   "Acme Corp", "Quantum", "Echo Valley", "Celestial", "PULSE", "APEX"
@@ -15,21 +11,16 @@ export function LogoBar() {
           Trusted by 4,200+ marketing teams
         </p>
       </div>
-      
-      {/* Marquee Container with Borders */}
+
       <div className="border-t border-b border-white/8 py-8">
         <div className="relative flex w-full max-w-[1200px] mx-auto overflow-hidden mask-[linear-gradient(to_right,transparent_0,black_128px,black_calc(100%-128px),transparent_100%)]">
-          <motion.div
-            className="flex whitespace-nowrap items-center gap-16 pr-16"
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ repeat: Infinity, ease: "linear", duration: 30 }}
-          >
+          <div className="flex whitespace-nowrap items-center gap-16 pr-16 motion-safe:animate-marquee">
             {logos.map((logo, idx) => (
-              <span key={idx} className="text-xl font-bold tracking-tight text-white/40 hover:text-white/60 transition-colors">
+              <span key={idx} className="text-xl font-bold tracking-tight text-white/40">
                 {logo}
               </span>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

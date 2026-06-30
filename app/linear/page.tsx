@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   MOCK_USER,
   MOCK_TEAMS,
@@ -31,17 +31,47 @@ import ListView from "./components/ListView";
 import AnalyticsView from "./components/AnalyticsView";
 import CreateIssueModal from "./components/CreateIssueModal";
 
+type GqlState = { id: string; name: string; type: LinearState["type"]; color?: string };
+type GqlMember = LinearUser;
+type GqlTeam = {
+  id: string;
+  name: string;
+  key: string;
+  states: { nodes: GqlState[] };
+  members: { nodes: GqlMember[] };
+};
+type GqlIssue = Omit<LinearIssue, "state" | "team" | "assignee"> & {
+  state: LinearState;
+  assignee?: LinearUser;
+  team: { id: string; name: string; key: string };
+};
+type GqlWorkspace = {
+  viewer: LinearUser;
+  teams: { nodes: GqlTeam[] };
+  issues: { nodes: GqlIssue[] };
+};
+
+const readDemoMode = () =>
+  typeof window !== "undefined" &&
+  localStorage.getItem("marketme_linear_demo") === "true";
+
+const readSavedToken = () =>
+  typeof window !== "undefined"
+    ? localStorage.getItem("marketme_linear_token")
+    : null;
+
 export default function LinearPage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const bootedDemo = readDemoMode();
+  const [token, setToken] = useState<string | null>(readSavedToken);
+  const [isDemoMode, setIsDemoMode] = useState(bootedDemo);
   const [activeTab, setActiveTab] = useState<"board" | "list" | "analytics" | "activity">("board");
   
   // Data States
-  const [viewer, setViewer] = useState<LinearUser | null>(null);
-  const [teams, setTeams] = useState<LinearTeam[]>([]);
-  const [issues, setIssues] = useState<LinearIssue[]>([]);
-  const [activities, setActivities] = useState<LinearActivity[]>([]);
-  const [members, setMembers] = useState<LinearUser[]>([]);
+  const [viewer, setViewer] = useState<LinearUser | null>(bootedDemo ? MOCK_USER : null);
+  const [teams, setTeams] = useState<LinearTeam[]>(bootedDemo ? MOCK_TEAMS : []);
+  const [issues, setIssues] = useState<LinearIssue[]>(bootedDemo ? MOCK_ISSUES : []);
+  const [activities, setActivities] = useState<LinearActivity[]>(bootedDemo ? MOCK_ACTIVITIES : []);
+  const [members, setMembers] = useState<LinearUser[]>(bootedDemo ? MOCK_MEMBERS : []);
   
   // UI States
   const [isLoading, setIsLoading] = useState(false);
@@ -50,40 +80,11 @@ export default function LinearPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [serverHasToken, setServerHasToken] = useState(false);
 
-  // Check for saved token on load
-  useEffect(() => {
-    const savedToken = localStorage.getItem("marketme_linear_token");
-    const savedDemo = localStorage.getItem("marketme_linear_demo") === "true";
-    
-    // Check if server environment has preconfigured key
-    fetch("/api/linear")
-      .then((res) => res.json())
-      .then((data) => {
-        setServerHasToken(data.hasToken);
-        // If a server key is available, auto-connect unless demo mode or custom token was saved
-        if (data.hasToken && !savedToken && !savedDemo) {
-          localStorage.setItem("marketme_linear_token", "default");
-          setToken("default");
-          fetchLiveData("default");
-        }
-      })
-      .catch((err) => console.error("Error checking server token status:", err));
-
-    if (savedToken) {
-      setToken(savedToken);
-      fetchLiveData(savedToken);
-    } else if (savedDemo) {
-      activateDemoMode();
-    }
-  }, []);
-
-  // Activate Demo Mode
-  const activateDemoMode = () => {
+  const activateDemoMode = useCallback(() => {
     setIsLoading(true);
     setIsDemoMode(true);
     localStorage.setItem("marketme_linear_demo", "true");
-    
-    // Simulate slight network delay for natural feel
+
     setTimeout(() => {
       setViewer(MOCK_USER);
       setTeams(MOCK_TEAMS);
@@ -93,40 +94,13 @@ export default function LinearPage() {
       setIsLoading(false);
       setError(null);
     }, 450);
-  };
+  }, []);
 
-  // Deactivate and clear
-  const handleDisconnect = () => {
-    localStorage.removeItem("marketme_linear_token");
-    localStorage.removeItem("marketme_linear_demo");
-    setToken(null);
-    setIsDemoMode(false);
-    setViewer(null);
-    setTeams([]);
-    setIssues([]);
-    setActivities([]);
-    setMembers([]);
-    setError(null);
-  };
-
-  // Connect Token
-  const handleConnectToken = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputToken.trim()) return;
-    
-    const formattedToken = inputToken.trim();
-    localStorage.setItem("marketme_linear_token", formattedToken);
-    localStorage.removeItem("marketme_linear_demo");
-    setToken(formattedToken);
-    setInputToken("");
-    fetchLiveData(formattedToken);
-  };
-
-  // Fetch from Linear API proxy
-  const fetchLiveData = async (authToken: string) => {
+  const fetchLiveData = useCallback(async (authToken: string) => {
+    setToken(authToken);
     setIsLoading(true);
     setError(null);
-    
+
     const query = `
       query GetLinearWorkspace {
         viewer {
@@ -209,16 +183,15 @@ export default function LinearPage() {
         throw new Error(result.errors[0].message);
       }
 
-      const { data } = result;
+      const { data } = result as { data?: GqlWorkspace };
 
       if (!data) {
         throw new Error("No data returned from Linear workspace query.");
       }
 
-      // Map GQL response to structures
       setViewer(data.viewer);
-      
-      const mappedTeams: LinearTeam[] = data.teams.nodes.map((t: any) => ({
+
+      const mappedTeams: LinearTeam[] = data.teams.nodes.map((t) => ({
         id: t.id,
         name: t.name,
         key: t.key,
@@ -226,7 +199,7 @@ export default function LinearPage() {
       }));
       setTeams(mappedTeams);
 
-      const mappedIssues: LinearIssue[] = data.issues.nodes.map((iss: any) => ({
+      const mappedIssues: LinearIssue[] = data.issues.nodes.map((iss) => ({
         id: iss.id,
         title: iss.title,
         identifier: iss.identifier,
@@ -240,19 +213,17 @@ export default function LinearPage() {
       }));
       setIssues(mappedIssues);
 
-      // Consolidate members list from teams
       const allMembersMap = new Map<string, LinearUser>();
       if (data.viewer) {
         allMembersMap.set(data.viewer.id, data.viewer);
       }
-      data.teams.nodes.forEach((t: any) => {
-        t.members.nodes.forEach((m: any) => {
+      data.teams.nodes.forEach((t) => {
+        t.members.nodes.forEach((m) => {
           allMembersMap.set(m.id, m);
         });
       });
       setMembers(Array.from(allMembersMap.values()));
 
-      // Set simple activity logs
       const initialLogs: LinearActivity[] = mappedIssues
         .slice(0, 5)
         .map((iss, index) => ({
@@ -264,16 +235,75 @@ export default function LinearPage() {
           user: iss.assignee || { id: "system", name: "System", email: "system@linear" },
         }));
       setActivities(initialLogs);
-
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "An error occurred while connecting to Linear API.");
-      // Fallback clean token
+      const message =
+        err instanceof Error ? err.message : "An error occurred while connecting to Linear API.";
+      setError(message);
       localStorage.removeItem("marketme_linear_token");
       setToken(null);
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/linear")
+      .then((res) => res.json())
+      .then((data: { hasToken?: boolean }) => {
+        if (cancelled) return;
+        setServerHasToken(Boolean(data.hasToken));
+        if (data.hasToken && !readSavedToken() && !readDemoMode()) {
+          localStorage.setItem("marketme_linear_token", "default");
+          window.setTimeout(() => {
+            if (!cancelled) void fetchLiveData("default");
+          }, 0);
+        }
+      })
+      .catch((err) => console.error("Error checking server token status:", err));
+
+    let savedTimer: number | undefined;
+    if (!bootedDemo) {
+      const saved = readSavedToken();
+      if (saved) {
+        savedTimer = window.setTimeout(() => {
+          if (!cancelled) void fetchLiveData(saved);
+        }, 0);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      if (savedTimer !== undefined) window.clearTimeout(savedTimer);
+    };
+  }, [bootedDemo, fetchLiveData]);
+
+  const handleDisconnect = () => {
+    localStorage.removeItem("marketme_linear_token");
+    localStorage.removeItem("marketme_linear_demo");
+    setToken(null);
+    setIsDemoMode(false);
+    setViewer(null);
+    setTeams([]);
+    setIssues([]);
+    setActivities([]);
+    setMembers([]);
+    setError(null);
+  };
+
+  // Connect Token
+  const handleConnectToken = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputToken.trim()) return;
+    
+    const formattedToken = inputToken.trim();
+    localStorage.setItem("marketme_linear_token", formattedToken);
+    localStorage.removeItem("marketme_linear_demo");
+    setToken(formattedToken);
+    setInputToken("");
+    fetchLiveData(formattedToken);
   };
 
   // Mutate: Create Issue
@@ -486,9 +516,10 @@ export default function LinearPage() {
 
       const result = await response.json();
       if (result.error) throw new Error(result.error);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(`Failed to update issue status: ${err.message}`);
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(`Failed to update issue status: ${message}`);
       // Refresh to sync local state
       fetchLiveData(token);
     }
@@ -556,9 +587,10 @@ export default function LinearPage() {
 
       const result = await response.json();
       if (result.error) throw new Error(result.error);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(`Failed to update issue priority: ${err.message}`);
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(`Failed to update issue priority: ${message}`);
       fetchLiveData(token);
     }
   };

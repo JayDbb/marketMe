@@ -57,7 +57,7 @@ export function SocialProof() {
               <div className="space-y-4">
                 <h3 className="text-xl font-serif font-medium text-white">{item.metric}</h3>
                 <p className="text-sm text-white/50 leading-relaxed">
-                  "{item.description}"
+                  &ldquo;{item.description}&rdquo;
                 </p>
               </div>
               <div className="mt-8 pt-6 border-t border-white/8 flex items-center gap-3">

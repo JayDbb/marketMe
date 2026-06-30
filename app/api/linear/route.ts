@@ -51,9 +51,9 @@ export async function POST(req: NextRequest) {
 
     const data = await linearResponse.json();
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || "Internal server error occurred." },
+      { error: error instanceof Error ? error.message : "Internal server error occurred." },
       { status: 500 }
     );
   }

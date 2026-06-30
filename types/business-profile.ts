@@ -15,6 +15,16 @@ export interface BusinessProfile {
   channels: string[]
   created_at: string
   updated_at: string
+  /**
+   * @deprecated Legacy alias for `target_customers`.
+   * Referenced by dashboard UI components — use `target_customers` in new code.
+   */
+  target_audience?: string | null
+  /**
+   * @deprecated Legacy alias for `tone`.
+   * Referenced by dashboard UI components — use `tone` in new code.
+   */
+  brand_voice?: string | null
 }
 
 /** The fields the frontend sends when creating or updating a profile. */

@@ -1,35 +1,44 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Outfit, Cormorant_Garamond } from "next/font/google";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/theme-provider";
-import { NoiseOverlay } from "@/components/noise-overlay";
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
+import { createPageMetadata } from "@/lib/metadata";
+import { OrganizationJsonLd } from "@/components/marketing/organization-json-ld";
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  adjustFontFallback: true,
 });
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500"],
   style: ["normal", "italic"],
+  display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
-export const metadata: Metadata = {
-  title: "Marketme | Your AI Marketing Manager",
-  description: "Automate campaigns, generate leads, and analyze performance effortlessly with Marketme.",
+export const metadata: Metadata = createPageMetadata();
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e0dde8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1117" },
+  ],
 };
 
 export default function RootLayout({
@@ -40,17 +49,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans relative transition-colors duration-500 ease-in-out">
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-blue-500 focus:text-white focus:font-bold focus:text-sm focus:tracking-wide">Skip to content</a>
-        <NoiseOverlay />
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <main id="main-content" className="flex-1 relative z-10 w-full">
-            <TooltipProvider>{children}</TooltipProvider>
-          </main>
-        </ThemeProvider>
+      <body className="min-h-full flex flex-col font-sans relative bg-background text-foreground">
+        <OrganizationJsonLd />
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-blue-500 focus:text-white focus:font-bold focus:text-sm focus:tracking-wide focus:rounded-md"
+        >
+          Skip to content
+        </a>
+        {children}
       </body>
     </html>
   );

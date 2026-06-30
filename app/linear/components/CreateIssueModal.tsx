@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { LinearTeam, LinearState, LinearUser } from "../utils/mockData";
-import { PriorityIcon } from "./Icons";
+import React, { useState } from "react";
+import { LinearTeam, LinearUser } from "../utils/mockData";
 
 interface CreateIssueModalProps {
   isOpen: boolean;
@@ -28,38 +27,21 @@ export default function CreateIssueModal({
 }: CreateIssueModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  
-  // Default to the first team
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedStateId, setSelectedStateId] = useState("");
   const [selectedPriority, setSelectedPriority] = useState<number>(0);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState("");
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize selected values when modal opens or teams load
-  useEffect(() => {
-    if (teams.length > 0) {
-      const defaultTeam = teams[0];
-      setSelectedTeamId(defaultTeam.id);
-      
-      // Default to Todo state if available, otherwise first state
-      const todoState = defaultTeam.states.find(s => s.type === "unstarted") || defaultTeam.states[0];
-      setSelectedStateId(todoState.id);
-    }
-  }, [teams, isOpen]);
-
-  // Update states list when team selection changes
-  const activeTeam = teams.find((t) => t.id === selectedTeamId);
+  const resolvedTeamId = selectedTeamId || teams[0]?.id || "";
+  const activeTeam = teams.find((t) => t.id === resolvedTeamId);
   const availableStates = activeTeam ? activeTeam.states : [];
-
-  useEffect(() => {
-    if (availableStates.length > 0) {
-      const todoState = availableStates.find(s => s.type === "unstarted") || availableStates[0];
-      setSelectedStateId(todoState.id);
-    }
-  }, [selectedTeamId, availableStates]);
+  const resolvedStateId =
+    selectedStateId ||
+    availableStates.find((s) => s.type === "unstarted")?.id ||
+    availableStates[0]?.id ||
+    "";
 
   if (!isOpen) return null;
 
@@ -69,27 +51,33 @@ export default function CreateIssueModal({
       setError("Issue title is required.");
       return;
     }
+    if (!resolvedTeamId || !resolvedStateId) {
+      setError("Select a team and status.");
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
-    
+
     try {
       await onSubmit({
         title: title.trim(),
         description: description.trim(),
-        teamId: selectedTeamId,
-        stateId: selectedStateId,
+        teamId: resolvedTeamId,
+        stateId: resolvedStateId,
         priority: selectedPriority,
         assigneeId: selectedAssigneeId || undefined,
       });
-      
-      // Reset form
+
       setTitle("");
       setDescription("");
       setSelectedPriority(0);
       setSelectedAssigneeId("");
+      setSelectedTeamId("");
+      setSelectedStateId("");
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Failed to create issue. Please check fields.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create issue. Please check fields.";
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -97,16 +85,12 @@ export default function CreateIssueModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Dark overlay backdrop */}
       <div
         className="fixed inset-0 bg-zinc-950/40 dark:bg-zinc-950/70 backdrop-blur-[4px] transition-opacity duration-300 animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal Container */}
       <div className="relative w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-[2.5rem] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.08)] dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] p-8 md:p-10 z-10 transform-origin-center animate-slide-up flex flex-col gap-6">
-        
-        {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
           <h3 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
             Create new issue
@@ -133,9 +117,7 @@ export default function CreateIssueModal({
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Title */}
           <div className="flex flex-col gap-2">
             <label
               htmlFor="issue-title"
@@ -155,7 +137,6 @@ export default function CreateIssueModal({
             />
           </div>
 
-          {/* Description */}
           <div className="flex flex-col gap-2">
             <label
               htmlFor="issue-description"
@@ -174,9 +155,7 @@ export default function CreateIssueModal({
             />
           </div>
 
-          {/* Metadata dropdown fields (Grid layout) */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Team */}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="issue-team"
@@ -186,8 +165,11 @@ export default function CreateIssueModal({
               </label>
               <select
                 id="issue-team"
-                value={selectedTeamId}
-                onChange={(e) => setSelectedTeamId(e.target.value)}
+                value={resolvedTeamId}
+                onChange={(e) => {
+                  setSelectedTeamId(e.target.value);
+                  setSelectedStateId("");
+                }}
                 disabled={isSubmitting}
                 className="w-full px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium"
               >
@@ -199,7 +181,6 @@ export default function CreateIssueModal({
               </select>
             </div>
 
-            {/* Status */}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="issue-status"
@@ -209,7 +190,7 @@ export default function CreateIssueModal({
               </label>
               <select
                 id="issue-status"
-                value={selectedStateId}
+                value={resolvedStateId}
                 onChange={(e) => setSelectedStateId(e.target.value)}
                 disabled={isSubmitting}
                 className="w-full px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium"
@@ -222,7 +203,6 @@ export default function CreateIssueModal({
               </select>
             </div>
 
-            {/* Priority */}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="issue-priority"
@@ -245,7 +225,6 @@ export default function CreateIssueModal({
               </select>
             </div>
 
-            {/* Assignee */}
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="issue-assignee"
@@ -270,7 +249,6 @@ export default function CreateIssueModal({
             </div>
           </div>
 
-          {/* Form Actions */}
           <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
             {error && (
               <span className="text-[11px] text-red-500 font-medium mr-auto">

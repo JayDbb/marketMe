@@ -1,10 +1,11 @@
 'use client'
 
+import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { signInWithMagicLink } from '@/app/login/actions'
+import { signInWithMagicLink, type AuthActionState } from '@/app/login/actions'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -30,8 +31,12 @@ export function MagicLinkForm({
 }: {
   searchParams?: { message?: string, type?: string }
 }) {
+  const [state, formAction] = useActionState(signInWithMagicLink, {} as AuthActionState)
+  const errorMessage = state.error ?? (searchParams?.type !== 'success' ? searchParams?.message : undefined)
+  const successMessage = state.success ?? (searchParams?.type === 'success' ? searchParams?.message : undefined)
+
   return (
-    <form action={signInWithMagicLink} className="space-y-5">
+    <form action={formAction} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="magic-email" className="text-zinc-300 font-medium">Email Address</Label>
         <Input
@@ -44,15 +49,15 @@ export function MagicLinkForm({
         />
       </div>
       
-      {searchParams?.message && searchParams?.type === 'success' && (
+      {successMessage && (
         <p className="text-sm font-medium text-emerald-500 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20 text-center">
-          {searchParams.message}
+          {successMessage}
         </p>
       )}
 
-      {searchParams?.message && searchParams?.type !== 'success' && (
+      {errorMessage && (
         <p className="text-sm font-medium text-red-500 bg-red-500/10 p-3 rounded-xl border border-red-500/20 text-center">
-          {searchParams.message}
+          {errorMessage}
         </p>
       )}
 

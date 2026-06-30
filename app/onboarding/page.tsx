@@ -1,21 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
+import { MarketingPageShell } from '@/components/marketing/marketing-page-shell'
+import { getBusinessProfile } from '@/app/api/business-profile/_actions'
+import { isProfileReadyForAI } from '@/lib/marketing-profile-prompt'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 
 export default async function OnboardingPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getAuthenticatedUser(await createClient())
 
   if (!user) {
     return redirect('/login')
   }
 
+  const { data: profile } = await getBusinessProfile()
+
+  if (isProfileReadyForAI(profile)) {
+    redirect('/dashboard')
+  }
+
   return (
-    <div className="min-h-dvh bg-zinc-950 font-sans flex text-zinc-50">
-      <OnboardingWizard />
-    </div>
+    <MarketingPageShell showNavbar={false} showFooter={false} mainClassName="min-h-dvh">
+      <OnboardingWizard initialProfile={profile} />
+    </MarketingPageShell>
   )
 }

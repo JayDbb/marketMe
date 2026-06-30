@@ -2,7 +2,8 @@
 
 import { linearClient } from '@/lib/linear/client'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function submitFeedback(formData: FormData) {
   const title = formData.get('title') as string
@@ -32,16 +33,13 @@ export async function submitFeedback(formData: FormData) {
 }
 
 export async function generateContentAction(businessProfileId: string) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthenticatedUser()
   if (!user) return { error: 'Not authenticated' }
 
-  // Create a dummy content plan
   const startDate = new Date().toISOString()
   const endDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const { data: plan, error: planError } = await supabase
+  const { data: plan, error: planError } = await supabaseAdmin
     .from('content_plans')
     .insert({
       user_id: user.id,
@@ -91,7 +89,7 @@ export async function generateContentAction(businessProfileId: string) {
     }
   ]
 
-  const { error: postsError } = await supabase
+  const { error: postsError } = await supabaseAdmin
     .from('posts')
     .insert(postsToInsert)
 

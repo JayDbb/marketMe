@@ -1,23 +1,26 @@
-import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
-
-// Must be force-dynamic: this page reads headers() for the live auth session
-export const dynamic = 'force-dynamic'
+import { MarketingPageShell } from '@/components/marketing/marketing-page-shell'
+import { getBusinessProfile } from '@/app/api/business-profile/_actions'
+import { isProfileReadyForAI } from '@/lib/marketing-profile-prompt'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 
 export default async function OnboardingPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const user = await getAuthenticatedUser()
 
-  if (!session) {
+  if (!user) {
     return redirect('/login')
   }
 
+  const { data: profile } = await getBusinessProfile()
+
+  if (isProfileReadyForAI(profile)) {
+    redirect('/dashboard')
+  }
+
   return (
-    <div className="min-h-dvh bg-zinc-950 font-sans flex text-zinc-50">
-      <OnboardingWizard />
-    </div>
+    <MarketingPageShell showNavbar={false} showFooter={false} mainClassName="min-h-dvh">
+      <OnboardingWizard initialProfile={profile} />
+    </MarketingPageShell>
   )
 }

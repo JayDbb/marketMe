@@ -1,6 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { useState, useEffect, startTransition, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,28 +14,36 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
-import { 
-  Sparkles, CheckCircle2, Loader2, Wand2, X, Check,
-  CalendarDays, AlignLeft, Hash, Image as ImageIcon, Briefcase, Tag, Flag, ChevronRight, Send, Clock
+import {
+  Sparkles, CheckCircle2, Loader2, Wand2, Check,
+  AlignLeft, Hash, Image as ImageIcon, Briefcase, Tag, Flag,
+  ChevronRight, Send, Clock, Bot, FolderOpen, LayoutTemplate, Info, Coins,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
-// --- New Imports for Canvas & Actions ---
 import { CanvasData } from '@/types/canvas'
 import { CanvasEditor } from '@/components/dashboard/studio/canvas-editor'
-import { reviseCaptionAction, schedulePostAction, generateWeeklyContentAction } from '@/app/dashboard/generate/actions'
+import { reviseCaptionAction, schedulePostsBatchAction, generatePostsAction } from '@/app/dashboard/generate/actions'
+import type { GenerateContext, GeneratedPostDraft } from '@/lib/generate-utils'
+import { generateCanvasFromTemplate, matchTemplateToGoal } from '@/lib/generate-utils'
+import { formatScheduledPreview, getMinScheduleDatetime } from '@/lib/post-schedule-utils'
+import { imageToCanvas } from '@/lib/studio-utils'
+import type { StudioTemplate } from '@/app/dashboard/studio/actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FlowState = 'setup' | 'generating' | 'review'
 type PostStatus = 'draft' | 'needs_review' | 'approved' | 'rejected' | 'scheduled' | 'published'
+type TemplateSource = 'ai' | 'user'
 
 interface GeneratedPost {
   id: string
   title: string
   caption: string
   hashtags: string
-  canvasData: CanvasData // Replaced `image: string` with CanvasData
+  canvasData: CanvasData
   scheduledDate: string
   status: PostStatus
+  templateId?: string | null
 }
 
 // ─── Mock Canvas Data ─────────────────────────────────────────────────────────
@@ -54,146 +65,337 @@ const DUMMY_CANVAS_TEMPLATE: CanvasData = {
   ]
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const MOCK_GENERATED_POSTS: GeneratedPost[] = [
-  {
-    id: 'post-1',
-    title: 'Product Launch Teaser',
-    caption: 'Big things are coming. We have been working hard behind the scenes to bring you something that will change the way you market forever. Stay tuned! 🚀',
-    hashtags: '#Marketing #Innovation #ProductLaunch #ComingSoon',
-    canvasData: JSON.parse(JSON.stringify(DUMMY_CANVAS_TEMPLATE)),
-    scheduledDate: '2026-06-25T10:00',
-    status: 'needs_review'
-  },
-  {
-    id: 'post-2',
-    title: 'Customer Success Story',
-    caption: 'How did Company X increase their ROI by 300%? It was all about automating the boring stuff. Read our latest case study at the link in bio.',
-    hashtags: '#CaseStudy #Growth #Automation #ROI',
-    canvasData: JSON.parse(JSON.stringify({
-      ...DUMMY_CANVAS_TEMPLATE,
-      layers: [
-        { ...DUMMY_CANVAS_TEMPLATE.layers[0], src: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1080&q=80" },
-        DUMMY_CANVAS_TEMPLATE.layers[1],
-        { ...DUMMY_CANVAS_TEMPLATE.layers[2], content: "300% ROI GROWTH" }
-      ]
-    })),
-    scheduledDate: '2026-06-27T14:30',
-    status: 'needs_review'
-  },
-  {
-    id: 'post-3',
-    title: 'Weekend Motivation',
-    caption: 'Take a break, disconnect, and recharge. The best ideas come when you are not forcing them. Have a great weekend!',
-    hashtags: '#WeekendVibes #Mindfulness #Hustle #Rest',
-    canvasData: JSON.parse(JSON.stringify({
-      ...DUMMY_CANVAS_TEMPLATE,
-      layers: [
-        { ...DUMMY_CANVAS_TEMPLATE.layers[0], src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&q=80" },
-        DUMMY_CANVAS_TEMPLATE.layers[1],
-        { ...DUMMY_CANVAS_TEMPLATE.layers[2], content: "RECHARGE & RESET." }
-      ]
-    })),
-    scheduledDate: '2026-06-29T09:00',
-    status: 'needs_review'
-  }
-]
+const DEFAULT_CONTEXT: GenerateContext = {
+  businessName: 'My Business',
+  industry: '',
+  services: '',
+  defaultTone: 'Professional',
+  defaultGoal: 'Increase Brand Awareness',
+  defaultPlatform: 'Instagram',
+  hasOpenAI: false,
+  templateCount: 0,
+  creditsBalance: 50,
+  creditsLimit: 50,
+  creditCostPerGeneration: 2,
+}
 
 const PROGRESS_STEPS = [
   'Analyzing Strategy Goal',
   'Brainstorming Content Angles',
   'Drafting Captions & Copy',
   'Injecting text into Studio Canvas',
-  'Finalizing Review Package'
+  'Finalizing Review Package',
 ]
 
+// ─── Template Source Toggle ───────────────────────────────────────────────────
+function TemplateSourcePicker({
+  value,
+  onChange,
+  templates,
+  selectedTemplateId,
+  onSelectTemplate,
+}: {
+  value: TemplateSource
+  onChange: (v: TemplateSource) => void
+  templates: StudioTemplate[]
+  selectedTemplateId: string | null
+  onSelectTemplate: (id: string) => void
+}) {
+  return (
+    <div className="col-span-1 md:col-span-2 space-y-4">
+      <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
+        <LayoutTemplate className="w-3.5 h-3.5" /> Template Source
+      </label>
+
+      {/* Toggle cards */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* AI Selects */}
+        <button
+          type="button"
+          onClick={() => onChange('ai')}
+          className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all duration-200 text-left ${
+            value === 'ai'
+              ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
+              : 'bg-zinc-50 dark:bg-black/30 border-black/5 dark:border-white/10 hover:border-blue-500/30'
+          }`}
+        >
+          {value === 'ai' && (
+            <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+              <Check className="w-2.5 h-2.5 text-white" />
+            </div>
+          )}
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+            value === 'ai' ? 'bg-blue-500/20' : 'bg-zinc-100 dark:bg-white/5'
+          }`}>
+            <Bot className={`w-4.5 h-4.5 ${value === 'ai' ? 'text-blue-400' : 'text-zinc-400 dark:text-white/40'}`} />
+          </div>
+          <div>
+            <p className={`text-sm font-semibold ${value === 'ai' ? 'text-blue-300' : 'text-zinc-900 dark:text-white/80'}`}>
+              AI Selects Best
+            </p>
+            <p className="text-[11px] text-zinc-500 dark:text-white/30 leading-tight mt-0.5">
+              Matches your goal to the best template automatically
+            </p>
+          </div>
+        </button>
+
+        {/* User Picks */}
+        <button
+          type="button"
+          onClick={() => onChange('user')}
+          className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all duration-200 text-left ${
+            value === 'user'
+              ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
+              : 'bg-zinc-50 dark:bg-black/30 border-black/5 dark:border-white/10 hover:border-blue-500/30'
+          }`}
+        >
+          {value === 'user' && (
+            <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+              <Check className="w-2.5 h-2.5 text-white" />
+            </div>
+          )}
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+            value === 'user' ? 'bg-blue-500/20' : 'bg-zinc-100 dark:bg-white/5'
+          }`}>
+            <FolderOpen className={`w-4.5 h-4.5 ${value === 'user' ? 'text-blue-400' : 'text-zinc-400 dark:text-white/40'}`} />
+          </div>
+          <div>
+            <p className={`text-sm font-semibold ${value === 'user' ? 'text-blue-300' : 'text-zinc-900 dark:text-white/80'}`}>
+              I&apos;ll Choose
+            </p>
+            <p className="text-[11px] text-zinc-500 dark:text-white/30 leading-tight mt-0.5">
+              Pick from your Studio library
+            </p>
+          </div>
+        </button>
+      </div>
+
+      {/* AI mode indicator */}
+      {value === 'ai' && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/8 border border-blue-500/20"
+        >
+          <div className="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+            <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+          </div>
+          <p className="text-xs text-blue-300 leading-relaxed">
+            The AI will analyze your goal and select the best matching template from your Studio library. If you have no templates, a built-in design will be used.
+          </p>
+        </motion.div>
+      )}
+
+      {/* User pick grid */}
+      {value === 'user' && (
+        <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+          {templates.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 rounded-xl border border-dashed border-black/10 dark:border-white/10 text-center">
+              <FolderOpen className="w-8 h-8 text-zinc-400 dark:text-white/20" />
+              <p className="text-sm text-zinc-500 dark:text-white/40">No templates yet.</p>
+              <p className="text-xs text-zinc-400 dark:text-white/25">Upload or save templates in the Studio first.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+              {templates.map((tmpl) => {
+                const isSelected = selectedTemplateId === tmpl.id
+                return (
+                  <button
+                    key={tmpl.id}
+                    type="button"
+                    onClick={() => onSelectTemplate(tmpl.id)}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      isSelected
+                        ? 'border-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]'
+                        : 'border-transparent hover:border-white/20'
+                    }`}
+                  >
+                    <Image
+                      src={tmpl.file_url}
+                      alt={tmpl.name}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-lg">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-3 opacity-0 hover:opacity-100 transition-opacity">
+                      <p className="text-[9px] text-white font-medium truncate">{tmpl.name}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {selectedTemplateId && (
+            <p className="text-[11px] text-blue-400 mt-2 flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Template selected — AI will inject your copy into this design
+            </p>
+          )}
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
-export function GenerateContent({ profile }: { profile: any }) {
+export function GenerateContent({
+  initialTemplates = [],
+  initialContext = null,
+}: {
+  initialTemplates?: StudioTemplate[]
+  initialContext?: GenerateContext | null
+}) {
+  const ctx = initialContext ?? DEFAULT_CONTEXT
+  const searchParams = useSearchParams()
   const [flowState, setFlowState] = useState<FlowState>('setup')
   const [posts, setPosts] = useState<GeneratedPost[]>([])
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [serverDrafts, setServerDrafts] = useState<GeneratedPostDraft[] | null>(null)
+  const [generationFailed, setGenerationFailed] = useState(false)
 
-  // Setup Form State
+  // Template selection state
+  const [templateSource, setTemplateSource] = useState<TemplateSource>('ai')
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+
+  // Setup Form State — seeded from business profile
   const [setupData, setSetupData] = useState({
-    business: profile?.business_name || 'My Small Business',
-    goal: profile?.primary_goal || 'Increase Brand Awareness',
-    platform: (profile?.channels && profile.channels[0]) || 'Instagram',
+    business: ctx.businessName,
+    goal: ctx.defaultGoal,
+    platform: ctx.defaultPlatform,
     numPosts: 3,
-    tone: profile?.tone || 'Professional & Authoritative'
+    tone: ctx.defaultTone,
   })
+
+  useEffect(() => {
+    startTransition(() => {
+      const prompt = searchParams.get('prompt')?.trim()
+      const templateId = searchParams.get('templateId')
+      if (prompt) {
+        setSetupData((prev) => ({ ...prev, tone: prompt }))
+      }
+      if (templateId && initialTemplates.some((t) => t.id === templateId)) {
+        setTemplateSource('user')
+        setSelectedTemplateId(templateId)
+      }
+    })
+  }, [searchParams, initialTemplates])
 
   // Generating State
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
-  const [generationComplete, setGenerationComplete] = useState(false)
-  const [realGeneratedPosts, setRealGeneratedPosts] = useState<GeneratedPost[]>([])
-  const [generationError, setGenerationError] = useState<string | null>(null)
+  const generationComplete =
+    flowState === 'generating' && currentStepIndex >= PROGRESS_STEPS.length
 
   const handleStartGeneration = async () => {
+    if (templateSource === 'user' && !selectedTemplateId) {
+      toast.error('Select a Studio template or switch to AI template matching.')
+      return
+    }
+    if (setupData.numPosts < 1 || setupData.numPosts > 14) {
+      toast.error('Number of posts must be between 1 and 14.')
+      return
+    }
+
     setFlowState('generating')
     setCurrentStepIndex(0)
-    setGenerationComplete(false)
-    setGenerationError(null)
-    setRealGeneratedPosts([])
+    setGenerationFailed(false)
+    setServerDrafts(null)
 
-    try {
-      const res = await generateWeeklyContentAction({
-        businessProfileId: profile?.id || 'dummy-profile-id',
-        businessName: setupData.business,
-        industry: profile?.industry || 'General',
-        targetAudience: profile?.target_customers || 'Target Customers',
-        goal: setupData.goal,
-        platform: setupData.platform,
-        numPosts: Number(setupData.numPosts) || 3,
-        tone: setupData.tone
-      });
+    const result = await generatePostsAction({
+      businessName: setupData.business,
+      goal: setupData.goal,
+      platform: setupData.platform,
+      numPosts: setupData.numPosts,
+      tone: setupData.tone,
+    })
 
-      if (res.error) {
-        throw new Error(res.error);
-      }
-
-      if (res.success && res.posts) {
-        setRealGeneratedPosts(res.posts);
+    if (!result.success || !result.posts?.length) {
+      setGenerationFailed(true)
+      const message = result.error ?? 'Failed to generate posts'
+      if (message.toLowerCase().includes('insufficient credits')) {
+        toast.error(message, {
+          description: 'Upgrade your plan or wait for your monthly credit reset.',
+        })
       } else {
-        throw new Error('Failed to generate weekly content');
+        toast.error(message)
       }
-    } catch (err: any) {
-      console.error("Content generation error:", err);
-      setGenerationError(err.message || 'An error occurred during generation');
+      setFlowState('setup')
+      return
     }
+
+    setServerDrafts(result.posts)
   }
 
   // Simulate Generation Progress
   useEffect(() => {
-    if (flowState === 'generating' && !generationComplete && !generationError) {
-      const stepDuration = 1200 
-      if (currentStepIndex < PROGRESS_STEPS.length) {
-        const timer = setTimeout(() => {
-          setCurrentStepIndex(prev => prev + 1)
-        }, stepDuration + Math.random() * 600)
-        return () => clearTimeout(timer)
-      } else {
-        // Only set completion to true once the real backend has returned posts
-        if (realGeneratedPosts.length > 0) {
-          setGenerationComplete(true)
-        }
-      }
+    if (flowState !== 'generating' || currentStepIndex >= PROGRESS_STEPS.length) {
+      return
     }
-  }, [flowState, currentStepIndex, generationComplete, generationError, realGeneratedPosts])
+
+    const stepDuration = 1200
+    const timer = setTimeout(() => {
+      setCurrentStepIndex((prev) => prev + 1)
+    }, stepDuration + Math.random() * 600)
+    return () => clearTimeout(timer)
+  }, [flowState, currentStepIndex])
 
   const handleGoToReview = () => {
-    if (realGeneratedPosts.length > 0) {
-      setPosts(realGeneratedPosts)
-      setSelectedPostId(realGeneratedPosts[0].id)
-    } else {
-      // Fallback in case of emergency
-      setPosts(MOCK_GENERATED_POSTS) 
-      setSelectedPostId(MOCK_GENERATED_POSTS[0].id)
+    if (!serverDrafts?.length) {
+      toast.error('Generation is still in progress. Please wait.')
+      return
     }
+
+    let resolvedTemplate: StudioTemplate | null = null
+
+    if (templateSource === 'user' && selectedTemplateId) {
+      resolvedTemplate = initialTemplates.find((t) => t.id === selectedTemplateId) ?? null
+    } else if (templateSource === 'ai') {
+      const canvasTemplates = initialTemplates.filter((t) => t.canvas_data !== null)
+      resolvedTemplate = matchTemplateToGoal(
+        canvasTemplates.length ? canvasTemplates : initialTemplates,
+        setupData.goal
+      )
+    }
+
+    const generated: GeneratedPost[] = serverDrafts.map((p) => {
+      let canvasData: CanvasData
+      if (resolvedTemplate?.canvas_data) {
+        canvasData = generateCanvasFromTemplate(resolvedTemplate.canvas_data, p.title, p.caption)
+      } else if (resolvedTemplate) {
+        canvasData = generateCanvasFromTemplate(
+          imageToCanvas(resolvedTemplate.file_url, p.title),
+          p.title,
+          p.caption
+        )
+      } else {
+        canvasData = generateCanvasFromTemplate(DUMMY_CANVAS_TEMPLATE, p.title, p.caption)
+      }
+      return {
+        ...p,
+        canvasData,
+        templateId: resolvedTemplate?.id ?? null,
+        status: 'needs_review' as PostStatus,
+      }
+    })
+
+    setPosts(generated)
+    setSelectedPostId(generated[0].id)
     setFlowState('review')
   }
 
   // Edit State
   const selectedPost = posts.find(p => p.id === selectedPostId)
+  const approvedPosts = useMemo(
+    () => posts.filter((p) => p.status === 'approved'),
+    [posts]
+  )
+  const approvedCount = approvedPosts.length
   const [editCaption, setEditCaption] = useState('')
   const [editHashtags, setEditHashtags] = useState('')
   const [aiPrompt, setAiPrompt] = useState('')
@@ -201,22 +403,16 @@ export function GenerateContent({ profile }: { profile: any }) {
   const [isScheduling, setIsScheduling] = useState(false)
 
   useEffect(() => {
-    if (selectedPost) {
+    if (!selectedPost) return
+    startTransition(() => {
       setEditCaption(selectedPost.caption)
       setEditHashtags(selectedPost.hashtags)
       setAiPrompt('')
-    }
+    })
   }, [selectedPost])
 
   const updatePostStatus = (id: string, status: PostStatus) => {
     setPosts(prev => prev.map(p => p.id === id ? { ...p, status } : p))
-  }
-
-  const handleSaveManual = () => {
-    if (!selectedPost) return
-    setPosts(prev => prev.map(p => 
-      p.id === selectedPost.id ? { ...p, caption: editCaption, hashtags: editHashtags } : p
-    ))
   }
 
   const handleApplyAiEdit = async () => {
@@ -228,8 +424,10 @@ export function GenerateContent({ profile }: { profile: any }) {
       const newCaption = await reviseCaptionAction(editCaption, aiPrompt, setupData.platform)
       setEditCaption(newCaption)
       setAiPrompt('')
+      toast.success("Caption revised successfully")
     } catch (error) {
       console.error("Failed to revise caption", error)
+      toast.error("Failed to generate revision. Please try again.")
     } finally {
       setIsApplyingAi(false)
     }
@@ -237,28 +435,64 @@ export function GenerateContent({ profile }: { profile: any }) {
 
   const handleSchedulePost = async () => {
     if (!selectedPost) return
+
+    const postsWithEdits = posts.map((p) =>
+      p.id === selectedPost.id
+        ? { ...p, caption: editCaption, hashtags: editHashtags }
+        : p
+    )
+    setPosts(postsWithEdits)
+
+    const toSchedule = postsWithEdits.filter((p) => p.status === 'approved')
+    if (toSchedule.length === 0) {
+      toast.error('Approve at least one post before scheduling.')
+      return
+    }
+
     setIsScheduling(true)
 
     try {
-      // Call the Scheduling API Contract Stub
-      const res = await schedulePostAction({
-        postId: selectedPost.id,
-        caption: editCaption,
-        hashtags: editHashtags,
-        canvasData: selectedPost.canvasData,
-        scheduledDate: selectedPost.scheduledDate
-      });
+      const res = await schedulePostsBatchAction({
+        platform: setupData.platform,
+        posts: toSchedule.map((p) => ({
+          caption: p.caption,
+          hashtags: p.hashtags,
+          canvasData: p.canvasData,
+          scheduledDate: p.scheduledDate,
+          templateId: p.templateId ?? null,
+        })),
+      })
 
-      if (res.success) {
-        updatePostStatus(selectedPost.id, 'scheduled');
+      if (res.success && res.scheduledCount > 0) {
+        const scheduledIds = new Set(toSchedule.map((p) => p.id))
+        setPosts((prev) =>
+          prev.map((p) =>
+            scheduledIds.has(p.id) ? { ...p, status: 'scheduled' as PostStatus } : p
+          )
+        )
+        toast.success(
+          res.scheduledCount === 1
+            ? 'Post scheduled — view it on Calendar or Posts'
+            : `${res.scheduledCount} posts scheduled — view them on Calendar or Posts`
+        )
+        if (res.error) {
+          toast.warning(res.error)
+        }
       } else {
-        alert("Failed to schedule post: " + res.error);
+        toast.error(res.error ?? 'Failed to schedule posts')
       }
     } catch (error) {
-      console.error("Failed to schedule post", error)
+      console.error('Failed to schedule posts', error)
+      toast.error(
+        error instanceof Error ? error.message : 'An unexpected error occurred while scheduling'
+      )
     } finally {
       setIsScheduling(false)
     }
+  }
+
+  const updatePostSchedule = (id: string, scheduledDate: string) => {
+    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, scheduledDate } : p)))
   }
 
   return (
@@ -267,7 +501,7 @@ export function GenerateContent({ profile }: { profile: any }) {
       {/* Ambient Backgrounds for Setup/Generating */}
       {flowState !== 'review' && (
         <>
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay" />
         </>
@@ -288,19 +522,44 @@ export function GenerateContent({ profile }: { profile: any }) {
             className="w-full max-w-3xl px-6 relative z-10"
           >
             <div className="mb-12 text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 shadow-[0_0_40px_rgba(168,85,247,0.2)] mb-6">
-                <Sparkles className="w-6 h-6 text-purple-300" />
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-blue-500/20 to-blue-500/20 border border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.2)] mb-6">
+                <Sparkles className="w-6 h-6 text-blue-300" />
               </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-zinc-900 dark:text-white mb-4">
-                Generate <span className="text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-blue-400">Weekly Content</span>
+                Generate <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-sky-300">Weekly Content</span>
               </h1>
               <p className="text-lg text-zinc-500 dark:text-white/50 max-w-lg mx-auto leading-relaxed">
-                Configure your AI engine to craft a week's worth of high-converting social posts in seconds.
+                Configure your AI engine to craft a week&apos;s worth of high-converting social posts in seconds.
               </p>
             </div>
 
+            <div className="mb-8 flex flex-col gap-3">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/8 px-4 py-2.5 text-sm text-zinc-700 dark:text-white/80">
+                <Coins className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>
+                  <strong className="text-zinc-900 dark:text-white">{ctx.creditsBalance}</strong>
+                  {ctx.creditsLimit != null ? ` / ${ctx.creditsLimit}` : ''} credits remaining
+                  <span className="text-zinc-500 dark:text-white/40">
+                    {' '}· {ctx.creditCostPerGeneration} per generation run
+                  </span>
+                </span>
+              </div>
+              {!ctx.hasOpenAI && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-900 dark:text-amber-100/90">
+                  <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p>
+                    AI providers are not connected yet — generation uses sample templates from your
+                    business profile. Add <code className="text-xs">OPENAI_API_KEY</code> for live AI copy.
+                    {ctx.templateCount > 0
+                      ? ` ${ctx.templateCount} Studio template${ctx.templateCount === 1 ? '' : 's'} available.`
+                      : ''}
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white dark:bg-[#0a0a14]/60 backdrop-blur-2xl border border-black/5 dark:border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-purple-500/30 to-transparent" />
+              <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-blue-500/30 to-transparent" />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Form Group */}
@@ -310,7 +569,7 @@ export function GenerateContent({ profile }: { profile: any }) {
                   </label>
                   <Input 
                     value={setupData.business} onChange={e => setSetupData({...setupData, business: e.target.value})}
-                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 transition-all shadow-inner" 
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 transition-all shadow-inner" 
                   />
                 </div>
 
@@ -321,23 +580,23 @@ export function GenerateContent({ profile }: { profile: any }) {
                   </label>
                   <div className="relative">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
+                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner group">
                         <span className="truncate">{setupData.goal}</span>
                         <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-white/30 rotate-90 group-data-[state=open]:-rotate-90 transition-transform shrink-0 ml-2" />
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[--anchor-width] bg-[#0c0c18] border border-zinc-200 dark:border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-xl p-1.5 z-50">
+                      <DropdownMenuContent className="w-[--anchor-width] bg-popover text-popover-foreground border border-border shadow-lg rounded-xl p-1.5 z-50">
                         {['Increase Brand Awareness', 'Lead Generation', 'Community Engagement', 'Product Launch'].map((goal) => (
                           <DropdownMenuItem
                             key={goal}
                             onClick={() => setSetupData({...setupData, goal})}
                             className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${
                               setupData.goal === goal 
-                                ? 'bg-purple-500/10 text-purple-300' 
-                                : 'text-zinc-500 dark:hover:text-white/70 hover:text- dark:hover:text-$3$3 hover:bg-white dark:bg-white/5 border-zinc-200 focus:bg-white '
+                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300' 
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }`}
                           >
                             {goal}
-                            {setupData.goal === goal && <Check className="w-4 h-4 text-purple-400" />}
+                            {setupData.goal === goal && <Check className="w-4 h-4 text-blue-400" />}
                           </DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
@@ -352,23 +611,23 @@ export function GenerateContent({ profile }: { profile: any }) {
                   </label>
                   <div className="relative">
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-purple-500/50 shadow-inner group">
+                      <DropdownMenuTrigger className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white text-sm outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner group">
                         <span className="truncate">{setupData.platform}</span>
                         <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-white/30 rotate-90 group-data-[state=open]:-rotate-90 transition-transform shrink-0 ml-2" />
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[--anchor-width] bg-[#0c0c18] border border-zinc-200 dark:border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-xl p-1.5 z-50">
+                      <DropdownMenuContent className="w-[--anchor-width] bg-popover text-popover-foreground border border-border shadow-lg rounded-xl p-1.5 z-50">
                         {['Instagram', 'LinkedIn', 'Twitter', 'Facebook'].map((platform) => (
                           <DropdownMenuItem
                             key={platform}
                             onClick={() => setSetupData({...setupData, platform})}
                             className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${
                               setupData.platform === platform 
-                                ? 'bg-purple-500/10 text-purple-300' 
-                                : 'text-zinc-500 dark:hover:text-white/70 hover:text- dark:hover:text-$3$3 hover:bg-white dark:bg-white/5 border-zinc-200 focus:bg-white '
+                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300' 
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }`}
                           >
                             {platform}
-                            {setupData.platform === platform && <Check className="w-4 h-4 text-purple-400" />}
+                            {setupData.platform === platform && <Check className="w-4 h-4 text-blue-400" />}
                           </DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
@@ -383,14 +642,22 @@ export function GenerateContent({ profile }: { profile: any }) {
                   </label>
                   <Input 
                     type="number" min={1} max={14}
-                    value={isNaN(setupData.numPosts) ? "" : setupData.numPosts} 
-                    onChange={e => {
-                      const val = parseInt(e.target.value);
-                      setSetupData({...setupData, numPosts: isNaN(val) ? "" as any : val});
-                    }}
-                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 focus-visible:border-purple-500/50 transition-all shadow-inner" 
+                    value={setupData.numPosts} onChange={e => setSetupData({...setupData, numPosts: parseInt(e.target.value)})}
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 transition-all shadow-inner" 
                   />
                 </div>
+
+                {/* Template Source Picker */}
+                <TemplateSourcePicker
+                  value={templateSource}
+                  onChange={(v) => {
+                    setTemplateSource(v)
+                    if (v === 'ai') setSelectedTemplateId(null)
+                  }}
+                  templates={initialTemplates}
+                  selectedTemplateId={selectedTemplateId}
+                  onSelectTemplate={setSelectedTemplateId}
+                />
 
                 {/* Form Group (Full Width) */}
                 <div className="col-span-1 md:col-span-2 space-y-2">
@@ -400,7 +667,7 @@ export function GenerateContent({ profile }: { profile: any }) {
                   <Input 
                     placeholder="e.g. Professional, Witty, Casual, Urgent..."
                     value={setupData.tone} onChange={e => setSetupData({...setupData, tone: e.target.value})}
-                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-purple-500/50 transition-all shadow-inner" 
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 transition-all shadow-inner" 
                   />
                 </div>
               </div>
@@ -410,7 +677,7 @@ export function GenerateContent({ profile }: { profile: any }) {
                   onClick={handleStartGeneration}
                   className="w-full h-14 bg-white text-black hover:bg-zinc-100 dark:hover:bg-white/90 font-bold rounded-xl text-base transition-all gap-2 group shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)]"
                 >
-                  <Sparkles className="w-5 h-5 text-purple-600 group-hover:scale-110 transition-transform" /> 
+                  <Sparkles className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" /> 
                   Generate {setupData.numPosts} Posts
                 </Button>
               </div>
@@ -432,10 +699,10 @@ export function GenerateContent({ profile }: { profile: any }) {
           >
             <div className="text-center mb-16">
               <div className="relative w-28 h-28 mx-auto mb-8 flex items-center justify-center">
-                <div className={`absolute inset-0 bg-purple-500/20 blur-2xl rounded-full transition-opacity duration-1000 ${generationComplete ? 'opacity-0' : 'opacity-100'}`} />
+                <div className={`absolute inset-0 bg-blue-500/20 blur-2xl rounded-full transition-opacity duration-1000 ${generationComplete ? 'opacity-0' : 'opacity-100'}`} />
                 <motion.div 
                   animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                  className={`absolute inset-0 border-[3px] border-dashed border-purple-500/30 rounded-full ${generationComplete ? 'opacity-0' : 'opacity-100'}`} 
+                  className={`absolute inset-0 border-[3px] border-dashed border-blue-500/30 rounded-full ${generationComplete ? 'opacity-0' : 'opacity-100'}`} 
                 />
                 <motion.div 
                   animate={{ rotate: -360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
@@ -448,7 +715,7 @@ export function GenerateContent({ profile }: { profile: any }) {
                       <CheckCircle2 className="w-8 h-8 text-green-400" />
                     </motion.div>
                   ) : (
-                    <Sparkles className="w-7 h-7 text-purple-600 dark:text-white animate-pulse" />
+                    <Sparkles className="w-7 h-7 text-blue-600 dark:text-white animate-pulse" />
                   )}
                 </div>
               </div>
@@ -472,7 +739,7 @@ export function GenerateContent({ profile }: { profile: any }) {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
                     className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-500 ${
-                      isCurrent ? 'bg-white dark:bg-white/10   shadow-[inset_0_0_20px_rgba(168,85,247,0.1)]' : 
+                      isCurrent ? 'bg-white dark:bg-white/10   shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]' : 
                       isPast ? 'dark:bg-white/5   dark:border-white/10' : 'bg-transparent border-transparent'
                     }`}
                   >
@@ -485,7 +752,7 @@ export function GenerateContent({ profile }: { profile: any }) {
                           <Check className="w-3.5 h-3.5" /> Done
                         </motion.span>
                       ) : isCurrent ? (
-                        <span className="text-purple-400 flex items-center gap-1.5 text-[11px] font-mono tracking-widest uppercase">
+                        <span className="text-blue-400 flex items-center gap-1.5 text-[11px] font-mono tracking-widest uppercase">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" /> In progress
                         </span>
                       ) : (
@@ -497,35 +764,8 @@ export function GenerateContent({ profile }: { profile: any }) {
               })}
             </div>
 
-            <AnimatePresence mode="wait">
-              {generationError && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  className="mb-6 p-6 bg-red-950/40 border border-red-500/20 text-red-200 text-sm rounded-2xl flex flex-col gap-4 shadow-xl backdrop-blur-md"
-                >
-                  <div className="flex items-center gap-3 text-red-400">
-                    <X className="w-5 h-5" />
-                    <span className="font-bold text-base">Generation Failed</span>
-                  </div>
-                  <p className="text-xs text-red-300/80 font-mono bg-black/40 p-3 rounded-lg overflow-x-auto select-all max-h-36 custom-scrollbar leading-relaxed">
-                    {generationError}
-                  </p>
-                  <div className="flex flex-wrap gap-2 justify-end mt-2">
-                    <Button variant="outline" size="sm" onClick={() => setFlowState('setup')} className="h-9 rounded-xl text-xs text-white border-white/10 hover:bg-white/5">
-                      Back to Setup
-                    </Button>
-                    <Button size="sm" onClick={handleStartGeneration} className="h-9 rounded-xl text-xs bg-white text-zinc-950 hover:bg-zinc-100 font-bold">
-                      Try Again
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={handleGoToReview} className="h-9 rounded-xl text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10">
-                      Use Mock Backup
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-
-              {generationComplete && (
+            <AnimatePresence>
+              {generationComplete && serverDrafts && (
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }} 
                   animate={{ opacity: 1, y: 0 }} 
@@ -538,6 +778,11 @@ export function GenerateContent({ profile }: { profile: any }) {
                     Review & Publish Content <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 </motion.div>
+              )}
+              {generationComplete && !serverDrafts && !generationFailed && (
+                <p className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Finalizing content…
+                </p>
               )}
             </AnimatePresence>
           </motion.div>
@@ -556,7 +801,7 @@ export function GenerateContent({ profile }: { profile: any }) {
             className="w-full flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)] px-6"
           >
             {/* Left Sidebar: Post List */}
-            <div className="w-full lg:w-80 xl:w-96 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-3xl overflow-hidden">
+            <div className="w-full lg:w-80 xl:w-96 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-3xl overflow-hidden">
               <div className="p-6 border-b border-zinc-200 dark:border-white/10 bg-white/2">
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1 tracking-tight">Review Content</h2>
                 <p className="text-zinc-500 dark:text-white/40 text-sm leading-relaxed">Approve or edit the AI-generated posts below before scheduling.</p>
@@ -592,7 +837,11 @@ export function GenerateContent({ profile }: { profile: any }) {
                         </span>
                       </div>
                       <h4 className="text-base font-semibold text-zinc-900 dark:text-white mb-1.5 truncate group-hover:text-blue-300 transition-colors">{post.title}</h4>
-                      <p className="text-xs text-zinc-500 dark:text-white/40 line-clamp-2 leading-relaxed">{post.caption}</p>
+                      <p className="text-xs text-zinc-500 dark:text-white/40 line-clamp-2 leading-relaxed mb-2">{post.caption}</p>
+                      <p className="text-[10px] text-zinc-400 dark:text-white/30 flex items-center gap-1">
+                        <Clock className="w-3 h-3 shrink-0" />
+                        {formatScheduledPreview(post.scheduledDate)}
+                      </p>
                     </div>
                   )
                 })}
@@ -601,13 +850,23 @@ export function GenerateContent({ profile }: { profile: any }) {
 
             {/* Main Area: Selected Post Editor */}
             {selectedPost ? (
-              <div className="flex-1 bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-3xl flex flex-col overflow-hidden relative">
+              <div className="flex-1 bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-3xl flex flex-col overflow-hidden relative">
                 {/* Header */}
                 <div className="p-6 md:px-8 border-b border-zinc-200 dark:border-white/10 bg-white/2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h3 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">{selectedPost.title}</h3>
-                    <div className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-500 dark:text-white/40 bg-white dark:bg-white/5 border-zinc-200 w-fit px-3 py-1 rounded-lg">
-                      <Clock className="w-3.5 h-3.5" /> Scheduled: {new Date(selectedPost.scheduledDate).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-zinc-500 dark:text-white/40 bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 w-fit px-3 py-1 rounded-lg">
+                        <Clock className="w-3.5 h-3.5" />
+                        {formatScheduledPreview(selectedPost.scheduledDate)}
+                      </div>
+                      <Input
+                        type="datetime-local"
+                        value={selectedPost.scheduledDate}
+                        min={getMinScheduleDatetime()}
+                        onChange={(e) => updatePostSchedule(selectedPost.id, e.target.value)}
+                        className="h-9 w-full sm:w-auto text-sm bg-muted/40 border-border"
+                      />
                     </div>
                   </div>
                   
@@ -652,12 +911,12 @@ export function GenerateContent({ profile }: { profile: any }) {
                     </div>
 
                     {/* AI Revisions Box */}
-                    <div className="mt-10 p-1 rounded-2xl bg-linear-to-r from-purple-500/30 via-blue-500/30 to-purple-500/30 relative">
-                      <div className="absolute inset-0 bg-linear-to-r from-purple-500/20 via-blue-500/20 to-purple-500/20 rounded-2xl blur-md" />
+                    <div className="mt-10 p-1 rounded-2xl bg-linear-to-r from-blue-500/30 via-blue-500/30 to-blue-500/30 relative">
+                      <div className="absolute inset-0 bg-linear-to-r from-blue-500/20 via-blue-500/20 to-blue-500/20 rounded-2xl blur-md" />
                       
-                      <div className="relative bg-white dark:bg-[#0c0c18] p-6 rounded-xl overflow-hidden">
+                      <div className="relative bg-white dark:bg-[#161b22] p-6 rounded-xl overflow-hidden">
                         <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none"><Wand2 className="w-32 h-32" /></div>
-                        <label className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                        <label className="text-[11px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                           <Sparkles className="w-3.5 h-3.5" /> AI Revision Engine
                         </label>
                         <p className="text-sm text-zinc-500 dark:text-white/40 mb-4 leading-relaxed">Describe how you want to tweak the caption above. The AI will instantly rewrite it.</p>
@@ -665,11 +924,11 @@ export function GenerateContent({ profile }: { profile: any }) {
                           <Input 
                             placeholder='e.g. "Make it punchier and add a call to action at the end"'
                             value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
-                            className="h-12 bg-zinc-50 dark:bg-black/60 border border-purple-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/40 focus-visible:ring-1 focus-visible:ring-purple-500 rounded-xl"
+                            className="h-12 bg-zinc-50 dark:bg-black/60 border border-blue-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/40 focus-visible:ring-1 focus-visible:ring-blue-500 rounded-xl"
                           />
                           <Button 
                             onClick={handleApplyAiEdit} disabled={!aiPrompt.trim() || isApplyingAi}
-                            className="h-12 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] disabled:shadow-none"
+                            className="h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] disabled:shadow-none"
                           >
                             {isApplyingAi ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                           </Button>
@@ -679,36 +938,50 @@ export function GenerateContent({ profile }: { profile: any }) {
                   </div>
 
                   {/* Right Column: Visuals / Post Actions */}
-                  <div className="w-full xl:w-96 shrink-0 flex flex-col gap-6">
-                    <div className="bg-white/2 border border-zinc-200 dark:border-white/10 rounded-2xl p-5 flex flex-col items-center">
-                      <label className="text-[11px] w-full font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                  <div className="w-full xl:w-[420px] shrink-0 flex flex-col gap-6">
+                    <div className="bg-white dark:bg-card border border-zinc-200 dark:border-white/10 rounded-2xl p-5 flex flex-col">
+                      <label className="text-[11px] w-full font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                         <ImageIcon className="w-3.5 h-3.5" /> Generated Graphic
                       </label>
-                      <div className="w-full max-w-[320px] relative flex flex-col items-center">
-                        {/* 
-                          Canvas-first integration: Rendering the JSON data via React-Konva instead of a flat image.
-                        */}
-                        <CanvasEditor canvasData={selectedPost.canvasData} maxWidth={320} />
-                        
-                        <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px] rounded-2xl pointer-events-none">
-                          <span className="text-white font-bold tracking-wider uppercase text-sm drop-shadow-md">Editable in Studio</span>
-                        </div>
+                      <div className="w-full flex flex-col items-center">
+                        <CanvasEditor
+                          canvasData={selectedPost.canvasData}
+                          maxWidth={380}
+                          variant="preview"
+                        />
                       </div>
-                      <p className="text-[10px] text-zinc-500 dark:text-white/30 text-center mt-4 tracking-wider uppercase">
-                        Rendered via Canvas Template
-                      </p>
+                      {selectedPost.templateId && (
+                        <Link
+                          href="/dashboard/studio"
+                          className="mt-4 w-full text-center text-xs font-medium text-blue-500 hover:text-blue-400 transition-colors"
+                        >
+                          Edit in Studio →
+                        </Link>
+                      )}
                     </div>
 
                     <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-6">
                       <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-1">Ready to queue?</h4>
-                      <p className="text-xs text-zinc-500 dark:text-white/50 mb-5">Approve the post to unlock publishing actions.</p>
+                      <p className="text-xs text-zinc-500 dark:text-white/50 mb-5">
+                        {approvedCount === 0
+                          ? 'Approve posts to unlock scheduling. Each post keeps its own date and time.'
+                          : approvedCount === 1
+                            ? '1 approved post will be added to Calendar and Posts.'
+                            : `${approvedCount} approved posts will be scheduled with their individual dates.`}
+                      </p>
                       <div className="space-y-3">
                         <Button 
                           onClick={handleSchedulePost}
-                          disabled={selectedPost.status !== 'approved' || isScheduling} 
+                          disabled={approvedCount === 0 || isScheduling} 
                           className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-zinc-900 dark:text-white font-bold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] disabled:opacity-50 disabled:shadow-none"
                         >
-                          {isScheduling ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Schedule to Queue'}
+                          {isScheduling ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : approvedCount <= 1 ? (
+                            'Schedule to Queue'
+                          ) : (
+                            `Schedule ${approvedCount} posts to Queue`
+                          )}
                         </Button>
                       </div>
                     </div>

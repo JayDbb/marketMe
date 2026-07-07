@@ -144,8 +144,8 @@ export function PostCard({ post, onApprove }: PostCardProps) {
           </motion.div>
         </AnimatePresence>
 
-        {/* Approve action — only on draft posts, fades in on hover */}
-        {onApprove && (
+        {/* Approve action — only on draft posts */}
+        {onApprove && post.status === 'draft' && (
           <button
             onClick={handleApprove}
             disabled={isApproving}

@@ -1,11 +1,11 @@
-import { getSession } from '@/lib/services/auth.service'
 import { redirect } from 'next/navigation'
 import { InboxContent } from '@/components/dashboard/inbox-content'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 
 export default async function InboxPage() {
-  const session = await getSession()
+  const user = await getAuthenticatedUser()
 
-  if (!session) {
+  if (!user) {
     return redirect('/login')
   }
 

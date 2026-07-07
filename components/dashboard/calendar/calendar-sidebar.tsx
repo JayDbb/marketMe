@@ -11,6 +11,8 @@ import {
   isToday,
 } from '@/lib/calendar-utils'
 import { getPlatformEventStyle } from '@/components/dashboard/calendar/calendar-post-event'
+import { CalendarPostDetail } from '@/components/dashboard/calendar/calendar-post-detail'
+import { PostStatusBadge } from '@/components/dashboard/post-status-badge'
 import { cn } from '@/lib/utils'
 
 import type { WeekStartsOn } from '@/types/settings'
@@ -22,6 +24,10 @@ interface CalendarSidebarProps {
   selectedPostId?: string | number | null
   onPostSelect: (post: Post) => void
   onCreatePost: () => void
+  onApprovePost: (postId: string) => Promise<{ success: boolean; error?: string }>
+  onSchedulePost: (postId: string) => Promise<{ success: boolean; error?: string }>
+  onClearSelection?: () => void
+  onPostsUpdated?: () => void
   viewMode: 'Month' | 'Week' | 'Day'
   weekStartsOn?: WeekStartsOn
 }
@@ -56,14 +62,17 @@ function CalendarPostListItem({
             DEFAULT_POST_DURATION_MIN
           )}
         </span>
-        <span
-          className={cn(
-            'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md text-white shrink-0',
-            styles.bg
-          )}
-        >
-          {platform}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <PostStatusBadge status={post.status} compact />
+          <span
+            className={cn(
+              'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md text-white',
+              styles.bg
+            )}
+          >
+            {platform.slice(0, 3)}
+          </span>
+        </div>
       </div>
       <p className="text-xs text-zinc-700 dark:text-white/70 line-clamp-2 leading-relaxed">
         {post.caption || 'Scheduled post'}
@@ -79,6 +88,10 @@ export function CalendarSidebar({
   selectedPostId,
   onPostSelect,
   onCreatePost,
+  onApprovePost,
+  onSchedulePost,
+  onClearSelection,
+  onPostsUpdated,
   viewMode,
   weekStartsOn = 'monday',
 }: CalendarSidebarProps) {
@@ -129,6 +142,10 @@ export function CalendarSidebar({
   }
 
   const dayPosts = getPostsForDay(posts, selectedDate)
+  const selectedPost =
+    selectedPostId != null
+      ? posts.find((p) => p.post_id === selectedPostId) ?? null
+      : null
 
   const dayLabel = isToday(selectedDate)
     ? 'Today'
@@ -278,6 +295,18 @@ export function CalendarSidebar({
             </p>
           </div>
         )}
+
+        {selectedPost ? (
+          <div className="mb-4">
+            <CalendarPostDetail
+              post={selectedPost}
+              onClose={() => onClearSelection?.()}
+              onApprove={onApprovePost}
+              onSchedule={onSchedulePost}
+              onUpdated={onPostsUpdated}
+            />
+          </div>
+        ) : null}
 
         <button
           type="button"

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { UploadCloud, X, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
+import { UploadCloud, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ImageUploadProps {
@@ -11,14 +12,21 @@ interface ImageUploadProps {
 
 export function ImageUpload({ value, onChange }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const previewUrl = useMemo(() => {
+    if (!value) return null;
+    return URL.createObjectURL(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (!previewUrl) return;
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith('image/')) return;
     onChange(file);
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
   };
 
   const onDragOver = (e: React.DragEvent) => {
@@ -41,7 +49,6 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
 
   const handleRemove = () => {
     onChange(null);
-    setPreviewUrl(null);
   };
 
   return (
@@ -67,10 +74,12 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
             exit={{ opacity: 0, scale: 0.95 }}
             className="relative w-full aspect-video rounded-xl overflow-hidden border border-zinc-200 dark:border-white/10 group"
           >
-            <img
+            <Image
               src={previewUrl}
               alt="Preview"
-              className="w-full h-full object-cover"
+              fill
+              unoptimized
+              className="object-cover"
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
               <button

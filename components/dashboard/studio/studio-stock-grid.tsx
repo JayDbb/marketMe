@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useMemo, startTransition } from 'react'
+import Image from 'next/image'
 import { Search, Bookmark, CheckCircle2, Loader2, Key, ExternalLink, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -147,12 +148,12 @@ export function StudioStockGrid({
                   }}
                   className="group relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-white/8 cursor-pointer"
                 >
-                  <img
+                  <Image
                     src={photo.urls.preview}
                     alt={photo.alt_description ?? ''}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                    decoding="async"
+                    fill
+                    unoptimized
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">

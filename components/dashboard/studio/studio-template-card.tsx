@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   Trash2,
@@ -97,10 +98,12 @@ export function StudioTemplateCard({ template, onDelete, onEdit }: StudioTemplat
         layout
         className="group relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/3 aspect-square"
       >
-        <img
+        <Image
           src={preview}
           alt={template.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fill
+          unoptimized
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 

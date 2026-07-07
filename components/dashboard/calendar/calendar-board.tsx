@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react';
 import { DaySchedule } from '@/types/content';
 import { PostCard } from './post-card';
 

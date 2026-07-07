@@ -3,11 +3,19 @@
 import { revalidatePath } from 'next/cache'
 import type { CanvasData } from '@/types/canvas'
 import { getBusinessProfile } from '@/app/api/business-profile/_actions'
-import { resolveDisplayName } from '@/lib/billing-utils'
+import { resolveDisplayName, PLANS } from '@/lib/billing-utils'
 import { getUserTemplatesResult } from '@/app/dashboard/studio/actions'
 import { ensureContentPlanForUser } from '@/lib/ensure-content-plan'
 import { insertScheduledPost } from '@/lib/insert-scheduled-post'
+import { rateLimitOrThrow } from '@/lib/rate-limit'
 import { getAuthenticatedUser, isValidUuid } from '@/lib/supabase/server-auth'
+import {
+  assertCreditsAvailable,
+  InsufficientCreditsError,
+  spendCredits,
+} from '@/lib/services/credits.service'
+import { completeGeneration, startGeneration } from '@/lib/services/generation.service'
+import { approveAndSchedulePost } from '@/lib/services/post-lifecycle.service'
 import {
   buildMarketingSystemPrompt,
   mapProfileGoalToGenerateGoal,
@@ -23,18 +31,30 @@ import {
   type GeneratedPostDraft,
 } from '@/lib/generate-utils'
 import { openai } from '@/lib/openai'
+import { getCreditsBalance } from '@/lib/services/credits.service'
+import { PIPELINE_CREDIT_COSTS } from '@/types/pipeline'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import type { PlanId } from '@/types/billing'
 
 export async function getGenerateContextAction(): Promise<GenerateContext | null> {
   const user = await getAuthenticatedUser()
 
   if (!user) return null
 
-  const [{ data: profile }, { templates }] = await Promise.all([
+  const [{ data: profile }, { templates }, creditsBalance, subRes] = await Promise.all([
     getBusinessProfile(),
     getUserTemplatesResult(),
+    getCreditsBalance(user.id),
+    supabaseAdmin
+      .from('user_subscriptions')
+      .select('plan')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   const businessName = resolveDisplayName(user, profile)
+  const plan = ((subRes.data?.plan as PlanId) ?? 'free') as PlanId
+  const creditsLimit = PLANS[plan]?.limits.aiCredits ?? null
 
   return {
     businessName,
@@ -45,12 +65,26 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
     defaultPlatform: primaryChannelFromProfile(profile?.channels),
     hasOpenAI: Boolean(process.env.OPENAI_API_KEY?.trim()),
     templateCount: templates.length,
+    creditsBalance,
+    creditsLimit,
+    creditCostPerGeneration: PIPELINE_CREDIT_COSTS.post_generation,
   }
 }
 
 export async function generatePostsAction(
   input: GenerateSetupInput
 ): Promise<{ success: boolean; posts?: GeneratedPostDraft[]; error?: string }> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+
+  try {
+    rateLimitOrThrow(`generate:${user.id}`, 10, 60_000)
+    await assertCreditsAvailable(user.id, 'post_generation')
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Request blocked'
+    return { success: false, error: message }
+  }
+
   const numPosts = Math.max(1, Math.min(14, input.numPosts || 3))
 
   const setup: GenerateSetupInput = {
@@ -70,6 +104,7 @@ export async function generatePostsAction(
         services: profile?.services?.trim(),
       })
       if (aiPosts.length > 0) {
+        await recordPostGeneration(user.id, profile?.id, setup, 'openai')
         return { success: true, posts: aiPosts }
       }
     } catch (error) {
@@ -77,7 +112,57 @@ export async function generatePostsAction(
     }
   }
 
-  return { success: true, posts: buildFallbackPosts(setup) }
+  const fallbackPosts = buildFallbackPosts(setup)
+  try {
+    const { data: profile } = await getBusinessProfile()
+    await recordPostGeneration(user.id, profile?.id, setup, 'fallback')
+    return { success: true, posts: fallbackPosts }
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      return { success: false, error: err.message }
+    }
+    throw err
+  }
+}
+
+async function recordPostGeneration(
+  userId: string,
+  businessProfileId: string | undefined,
+  setup: GenerateSetupInput,
+  source: 'openai' | 'fallback'
+): Promise<void> {
+  const generation = await startGeneration({
+    userId,
+    stage: 'post_generation',
+    businessProfileId,
+    modelUsed: source === 'openai' ? 'openai' : 'template-fallback',
+    inputRef: {
+      businessName: setup.businessName,
+      platform: setup.platform,
+      goal: setup.goal,
+      numPosts: setup.numPosts,
+    },
+  })
+
+  try {
+    await spendCredits(userId, 'post_generation', {
+      businessProfileId,
+      generationId: generation.id,
+      metadata: { source, numPosts: setup.numPosts },
+    })
+    await completeGeneration(generation.id, 'completed', {
+      source,
+      postCount: setup.numPosts,
+    })
+  } catch (err) {
+    await completeGeneration(
+      generation.id,
+      'failed',
+      undefined,
+      err instanceof Error ? err.message : 'Credit deduction failed'
+    )
+    throw err
+  }
 }
 
 async function generateWithOpenAI(
@@ -294,10 +379,22 @@ export async function schedulePostsBatchAction(payload: {
         scheduledAt,
         canvasData: post.canvasData,
         templateId,
+        status: 'draft',
       })
 
       if (!insertResult.ok) {
         errors.push(insertResult.error)
+        continue
+      }
+
+      const scheduleResult = await approveAndSchedulePost(
+        user.id,
+        insertResult.postId,
+        scheduledAt
+      )
+
+      if (scheduleResult.error || !scheduleResult.data) {
+        errors.push(scheduleResult.error ?? 'Failed to approve and queue post')
         continue
       }
 

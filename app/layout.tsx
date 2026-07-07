@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import { createPageMetadata } from "@/lib/metadata";
 import { OrganizationJsonLd } from "@/components/marketing/organization-json-ld";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -53,14 +54,21 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans relative bg-background text-foreground">
-        <OrganizationJsonLd />
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-blue-500 focus:text-white focus:font-bold focus:text-sm focus:tracking-wide focus:rounded-md"
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
         >
-          Skip to content
-        </a>
-        {children}
+          <OrganizationJsonLd />
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-blue-500 focus:text-white focus:font-bold focus:text-sm focus:tracking-wide focus:rounded-md"
+          >
+            Skip to content
+          </a>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

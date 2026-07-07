@@ -10,6 +10,7 @@ import {
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import { getSession } from '@/lib/services/auth.service'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { PLAN_CREDIT_ALLOWANCES } from '@/types/pipeline'
 import type {
   AccountContext,
   PlanId,
@@ -30,7 +31,13 @@ async function ensureUserSubscription(userId: string): Promise<UserSubscriptionR
 
   const { data: created, error } = await supabaseAdmin
     .from('user_subscriptions')
-    .insert({ user_id: userId, plan: 'free', status: 'active' })
+    .insert({
+      user_id: userId,
+      plan: 'free',
+      status: 'active',
+      credits_balance: PLAN_CREDIT_ALLOWANCES.free,
+      credits_reset_at: nextMonthStart().toISOString(),
+    })
     .select('*')
     .single()
 
@@ -42,10 +49,19 @@ async function ensureUserSubscription(userId: string): Promise<UserSubscriptionR
       stripe_customer_id: null,
       stripe_subscription_id: null,
       current_period_end: null,
+      credits_balance: PLAN_CREDIT_ALLOWANCES.free,
+      credits_reset_at: nextMonthStart().toISOString(),
     }
   }
 
   return created as UserSubscriptionRow
+}
+
+function nextMonthStart(): Date {
+  const d = new Date()
+  d.setMonth(d.getMonth() + 1, 1)
+  d.setHours(0, 0, 0, 0)
+  return d
 }
 
 async function getUsageCounts(userId: string) {
@@ -132,9 +148,12 @@ export async function getAccountContext(): Promise<AccountContext | null> {
         'Posts this month'
       ),
       aiCredits: buildUsageMetric(
-        usage.contentPlans,
+        Math.max(
+          0,
+          (planConfig.limits.aiCredits ?? 0) - (subscription.credits_balance ?? 0)
+        ),
         planConfig.limits.aiCredits,
-        'AI content plans'
+        'AI credits used'
       ),
     },
   }

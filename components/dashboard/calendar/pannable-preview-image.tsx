@@ -93,6 +93,8 @@ export function PannablePreviewImage({
       role="img"
       aria-label={alt}
     >
+      {/* Native img: pan/zoom transform is applied directly on the element */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt={alt}

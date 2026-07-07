@@ -1,8 +1,5 @@
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
-import type { createClient } from '@/lib/supabase/server'
-
-type ServerClient = Awaited<ReturnType<typeof createClient>>
 
 export const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -21,13 +18,8 @@ export interface AuthUser {
   }
 }
 
-/**
- * Resolve the authenticated user via Better Auth.
- * Supabase client is kept in the signature for call-site compatibility.
- */
-export async function getAuthenticatedUser(
-  _supabase?: ServerClient
-): Promise<(AuthUser & { id: string }) | null> {
+/** Resolve the authenticated user via Better Auth. */
+export async function getAuthenticatedUser(): Promise<(AuthUser & { id: string }) | null> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),

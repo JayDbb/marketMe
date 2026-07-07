@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 import { MarketingPageShell } from '@/components/marketing/marketing-page-shell'
@@ -7,7 +6,7 @@ import { isProfileReadyForAI } from '@/lib/marketing-profile-prompt'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 
 export default async function OnboardingPage() {
-  const user = await getAuthenticatedUser(await createClient())
+  const user = await getAuthenticatedUser()
 
   if (!user) {
     return redirect('/login')

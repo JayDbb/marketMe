@@ -127,8 +127,16 @@ export function photoToEditableCanvas(imageUrl: string): CanvasData {
 }
 
 /** @deprecated Use photoToEditableCanvas — kept for callers that pass a headline arg */
-export function imageToCanvas(imageUrl: string, _headline = 'Your Headline'): CanvasData {
-  return photoToEditableCanvas(imageUrl)
+export function imageToCanvas(imageUrl: string, headline = 'Your Headline'): CanvasData {
+  const canvas = photoToEditableCanvas(imageUrl)
+  return {
+    ...canvas,
+    layers: canvas.layers.map((layer) =>
+      layer.id === 'headline' && layer.type === 'text'
+        ? { ...layer, content: headline }
+        : layer
+    ),
+  }
 }
 
 export function templateToCanvas(template: StudioTemplate): CanvasData {

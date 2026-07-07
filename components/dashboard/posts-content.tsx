@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   Clock,
   CalendarDays,
+  CheckCircle2,
   FileText,
   MoreHorizontal,
   Pencil,
@@ -24,7 +25,7 @@ import {
   type CreatePostPayload,
   type EditPostInitial,
 } from '@/components/dashboard/calendar/create-post-modal'
-import { createPostAction, deletePostAction, updatePostAction } from '@/app/dashboard/posts/actions'
+import { approvePostAction, createPostAction, deletePostAction, schedulePostAction, updatePostAction } from '@/app/dashboard/posts/actions'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,9 +66,10 @@ const itemVariants: Variants = {
 
 const TABS: { id: PostFilterTab; label: string }[] = [
   { id: 'all', label: 'All' },
+  { id: 'draft', label: 'Draft' },
+  { id: 'approved', label: 'Approved' },
   { id: 'scheduled', label: 'Scheduled' },
   { id: 'published', label: 'Published' },
-  { id: 'draft', label: 'Draft' },
   { id: 'failed', label: 'Failed' },
 ]
 
@@ -120,12 +122,14 @@ export function PostsContent({ initialPosts = [], loadError = null }: PostsConte
       scheduled: 0,
       published: 0,
       draft: 0,
+      approved: 0,
       failed: 0,
     }
     for (const post of posts) {
       if (post.status === 'scheduled') counts.scheduled++
       else if (post.status === 'published') counts.published++
       else if (post.status === 'draft') counts.draft++
+      else if (post.status === 'approved') counts.approved++
       else if (post.status === 'failed') counts.failed++
     }
     return counts
@@ -191,6 +195,37 @@ export function PostsContent({ initialPosts = [], loadError = null }: PostsConte
       }
 
       toast.success('Post deleted')
+      router.refresh()
+    },
+    [router]
+  )
+
+  const handleApprovePost = useCallback(
+    async (post: ListPost) => {
+      const result = await approvePostAction(String(post.post_id))
+      if (!result.success) {
+        const msg = result.error ?? 'Approval failed'
+        toast.error(msg, {
+          description: msg.toLowerCase().includes('claim') || msg.toLowerCase().includes('moderation')
+            ? 'Edit the caption to remove restricted claims, then try again.'
+            : undefined,
+        })
+        return
+      }
+      toast.success('Post approved')
+      router.refresh()
+    },
+    [router]
+  )
+
+  const handleSchedulePost = useCallback(
+    async (post: ListPost) => {
+      const result = await schedulePostAction(String(post.post_id))
+      if (!result.success) {
+        toast.error(result.error ?? 'Failed to queue post')
+        return
+      }
+      toast.success('Post queued for publishing')
       router.refresh()
     },
     [router]
@@ -414,6 +449,18 @@ export function PostsContent({ initialPosts = [], loadError = null }: PostsConte
                             <ExternalLink className="w-4 h-4" />
                             Open in planner
                           </DropdownMenuItem>
+                          {post.status === 'draft' && (
+                            <DropdownMenuItem onClick={() => void handleApprovePost(post)}>
+                              <CheckCircle2 className="w-4 h-4" />
+                              Approve
+                            </DropdownMenuItem>
+                          )}
+                          {post.status === 'approved' && (
+                            <DropdownMenuItem onClick={() => void handleSchedulePost(post)}>
+                              <Clock className="w-4 h-4" />
+                              Queue for publish
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             variant="destructive"

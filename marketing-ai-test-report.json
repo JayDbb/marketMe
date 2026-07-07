@@ -1,0 +1,140 @@
+{
+  "timestamp": "2026-06-23T14:30:13.982Z",
+  "apiUrl": "http://localhost:8000",
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "avgResponseTimeMs": 1190
+  },
+  "results": [
+    {
+      "name": "Health Check",
+      "endpoint": "/api/v1/health",
+      "method": "GET",
+      "passed": true,
+      "statusCode": 200,
+      "responseTime": 800,
+      "responseBody": {
+        "status": "ok"
+      }
+    },
+    {
+      "name": "Generate Strategy",
+      "endpoint": "/api/v1/strategy/generate",
+      "method": "POST",
+      "passed": true,
+      "statusCode": 200,
+      "responseTime": 3577,
+      "responseBody": {
+        "strategy_id": "82c0b7ce-6f50-4904-bc7a-1785154e7dbf",
+        "strategy": {
+          "overview": "A comprehensive 30-day marketing strategy to grow our local brand.",
+          "content_pillars": [
+            {
+              "name": "Artisan Baking",
+              "description": "Behind the scenes of our sourdough process."
+            },
+            {
+              "name": "Family & Community",
+              "description": "Featuring local families enjoying our bakery."
+            }
+          ],
+          "event_content_opportunities": [],
+          "weekly_plan": [
+            {
+              "week_number": 1,
+              "theme": "Introduction & Storytelling",
+              "post_ideas": [
+                "Meet the bakers behind the scenes",
+                "Why we use organic flour"
+              ]
+            },
+            {
+              "week_number": 2,
+              "theme": "Product Spotlight",
+              "post_ideas": [
+                "The crispy crust sourdough reel",
+                "Fresh pastries of the day"
+              ]
+            }
+          ],
+          "hashtag_strategy": [
+            "bakery",
+            "sourdough",
+            "artisanbread",
+            "localbusiness"
+          ],
+          "posting_schedule": [
+            "Monday 9:00 AM",
+            "Wednesday 2:00 PM",
+            "Friday 10:00 AM"
+          ]
+        },
+        "raw_ai_output": "{\"overview\": \"A comprehensive 30-day marketing strategy to grow our local brand.\", \"content_pillars\": [{\"name\": \"Artisan Baking\", \"description\": \"Behind the scenes of our sourdough process.\"}, {\"name\": \"Family & Community\", \"description\": \"Featuring local families enjoying our bakery.\"}], \"event_content_opportunities\": [], \"weekly_plan\": [{\"week_number\": 1, \"theme\": \"Introduction & Storytelling\", \"post_ideas\": [\"Meet the bakers behind the scenes\", \"Why we use organic flour\"]}, {\"week_number\": 2, \"theme\": \"Product Spotlight\", \"post_ideas\": [\"The crispy crust sourdough reel\", \"Fresh pastries of the day\"]}], \"hashtag_strategy\": [\"bakery\", \"sourdough\", \"artisanbread\", \"localbusiness\"], \"posting_schedule\": [\"Monday 9:00 AM\", \"Wednesday 2:00 PM\", \"Friday 10:00 AM\"]}"
+      }
+    },
+    {
+      "name": "List Posts",
+      "endpoint": "/api/v1/posts?business_id=test-business-id",
+      "method": "GET",
+      "passed": true,
+      "statusCode": 200,
+      "responseTime": 123,
+      "responseBody": [
+        {
+          "post_id": "test-post-id",
+          "business_id": "test-business-id",
+          "account_id": null,
+          "idea_id": null,
+          "schedule_id": null,
+          "caption": "This is a test post caption!",
+          "hashtags": null,
+          "image_prompt": "A beautiful test illustration",
+          "media_url": null,
+          "scheduled_date": null,
+          "status": "draft",
+          "ai_model": null,
+          "created_at": "2026-06-23T04:59:35.560659+00:00"
+        }
+      ]
+    },
+    {
+      "name": "Generate Creative Brief",
+      "endpoint": "/api/v1/creative/generate",
+      "method": "POST",
+      "passed": true,
+      "statusCode": 200,
+      "responseTime": 2628,
+      "responseBody": {
+        "brief_id": null,
+        "layout_description": "",
+        "color_palette": "",
+        "typography": "",
+        "asset_requirements": "",
+        "refined_prompt": "",
+        "status": "brief_ready"
+      }
+    },
+    {
+      "name": "Get Instagram Auth URL",
+      "endpoint": "/api/v1/publish/auth-url?business_id=test-business-id",
+      "method": "GET",
+      "passed": true,
+      "statusCode": 200,
+      "responseTime": 6,
+      "responseBody": {
+        "auth_url": "https://www.facebook.com/v21.0/dialog/oauth?client_id=dummy_app_id&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fapi%2Fv1%2Fpublish%2Fcallback&scope=pages_show_list%2Cpages_read_engagement%2Cinstagram_basic%2Cinstagram_content_publish%2Cinstagram_manage_insights&response_type=code&state=test-business-id"
+      }
+    },
+    {
+      "name": "OpenAPI Docs Available",
+      "endpoint": "/docs",
+      "method": "GET",
+      "passed": true,
+      "statusCode": 200,
+      "responseTime": 8,
+      "responseBody": null
+    }
+  ]
+}

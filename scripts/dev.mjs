@@ -7,8 +7,10 @@
 import { spawn } from 'child_process'
 import { join } from 'path'
 import { ensureDevCacheHealthy } from './dev-utils.mjs'
+import { checkEnv } from './check-env.mjs'
 
 await ensureDevCacheHealthy()
+checkEnv()
 
 const nextBin = join(process.cwd(), 'node_modules', 'next', 'dist', 'bin', 'next')
 const args = ['dev', ...process.argv.slice(2)]

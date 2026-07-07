@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -198,7 +198,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
     router.replace('/dashboard/studio')
   }
 
-  const handleEditorSaved = (template: StudioTemplate, _canvasData: CanvasData) => {
+  const handleEditorSaved = (template: StudioTemplate) => {
     recordStudioRecent(template.id)
     refreshRecents()
     setTemplates((prev) => {
@@ -236,7 +236,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
         initialSelectedLayerId={editorState.initialSelectedLayerId}
         brandKit={brandKit}
         onBack={handleEditorBack}
-        onSaved={handleEditorSaved}
+        onSaved={(template) => handleEditorSaved(template)}
       />
     )
   }

@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  approveCalendarPostAction,
   createCalendarPostAction,
   getPostsAction,
+  scheduleCalendarPostAction,
 } from "@/app/dashboard/calendar/actions";
 import { Button } from "@/components/ui/button";
 import { getHeaderTitle, toDatetimeLocalValue } from "@/lib/calendar-utils";
@@ -11,6 +13,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { startTransition, useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { getUserPreferencesAction } from "@/app/dashboard/settings/actions";
 import { CalendarSidebar } from "@/components/dashboard/calendar/calendar-sidebar";
@@ -149,9 +152,29 @@ export default function CalendarPage() {
       throw new Error(result.error ?? "Failed to schedule post");
     }
 
+    toast.success("Draft post created — approve it before queuing for publish");
+
     const scheduledDay = new Date(post.scheduled_date);
     setSelectedDate(scheduledDay);
     await loadPosts();
+  };
+
+  const handleApprovePost = async (postId: string) => {
+    const result = await approveCalendarPostAction(postId);
+    if (result.success) {
+      toast.success("Post approved");
+      await loadPosts();
+    }
+    return result;
+  };
+
+  const handleSchedulePost = async (postId: string) => {
+    const result = await scheduleCalendarPostAction(postId);
+    if (result.success) {
+      toast.success("Post queued for publishing");
+      await loadPosts();
+    }
+    return result;
   };
 
   return (
@@ -163,6 +186,10 @@ export default function CalendarPage() {
         selectedPostId={selectedPostId}
         onPostSelect={handlePostSelect}
         onCreatePost={() => openCreateModal()}
+        onApprovePost={handleApprovePost}
+        onSchedulePost={handleSchedulePost}
+        onClearSelection={() => setSelectedPostId(null)}
+        onPostsUpdated={() => void loadPosts()}
         viewMode={viewMode}
         weekStartsOn={weekStartsOn}
       />

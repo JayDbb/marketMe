@@ -1,127 +1,114 @@
-System Architecture
-Architecture Overview
-The platform follows a modern web application architecture.
-Components:
-Frontend Client
-Backend Services
-AI Processing Layer
-Database Layer
-Storage Layer
-Social Media Integrations
+# System Architecture
 
-Component Diagram / Data Flow
-●       User Interaction: The user interacts with the Frontend Client (Next.js & Tailwind CSS).
-●       Client to Backend: The Frontend sends requests to the Backend APIs (FastAPI hosted on Render).
-●       Database Operations: The Backend APIs read and write structured data to the Database Layer (Supabase PostgreSQL).
-●       AI Trigger: The Backend triggers background workflows for the AI Processing Layer (OpenRouter & Trigger.dev) to generate content.
-●       Social Publishing: The AI Processing Layer pushes the finalized content outward, publishing directly to Social Media (Instagram Graph API).
+Marketme is a **Next.js 16 monolith** (App Router) with optional external services. Most business logic runs in this repo; AI generation can call a separate FastAPI service when configured.
 
-Technology Stack
-Frontend
-Technology:
-●       Next.js
-●       Tailwind CSS
-●       shadcn/ui
-Rationale:
-●       Rapid development
-●       Modern user experience
-●       Large ecosystem support
+## High-level flow
 
-Backend
-Technology:
-●       Supabase
-●       Fast API
-●       Edge Functions
-●       Render
-Rationale:
-●       Minimal infrastructure management
-●       Better Auth for authentication
-●       Built-in database
-●       Run long standing jobs
+```
+User
+  ↓
+Next.js (marketing + dashboard + API routes)
+  ↓
+├── Better Auth (sessions, OAuth, magic link) → PostgreSQL (DATABASE_URL)
+├── Supabase (app data, storage, RPCs)        → PostgreSQL (same or linked project)
+├── Resend (magic-link emails)
+├── OpenRouter / OpenAI (content generation, optional)
+├── Trigger.dev (background jobs, optional)
+└── External FastAPI (MARKETME_AI_API_URL, optional)
+```
 
-Authentication
-Technology:
-●       Better Auth
-Rationale:
-●       Greater flexibility and control over auth layer
-●       Supports OAuth providers, session management, and password reset
-●       Independent from Supabase, decoupled auth concerns
+## Repository layout
 
-Database
-Technology:
-●       PostgreSQL (Supabase)
-Rationale:
-●       Reliable relational storage
-●       Easy scalability
-●       Supports structured business data
+```
+app/
+├── page.tsx, features/, pricing/, blog/ …   # Marketing (mostly static)
+├── login/, signup/, onboarding/            # Auth flows
+├── dashboard/                              # Authenticated app
+│   ├── */page.tsx                          # Route shells (server components)
+│   ├── */actions.ts                        # Server actions per feature
+│   └── layout.tsx                          # Auth gate + shell
+├── api/                                    # Route handlers (REST)
+│   ├── auth/[...all]/                      # Better Auth handler
+│   ├── pexels/, unsplash/                  # Stock media proxies
+│   └── …
+components/
+├── marketing/                              # Public site UI
+├── dashboard/                              # App UI (calendar, studio, generate, …)
+├── auth/                                   # Login/signup UI
+└── ui/                                     # shadcn primitives
+lib/
+├── auth.ts                                 # Better Auth server config
+├── auth-client.ts                          # Client auth (dashboard: sign-in/out)
+├── auth-session.ts                         # Client auth (marketing navbar)
+├── supabase/                               # DB clients + route protection helper
+├── services/                               # External API clients
+└── *.ts                                    # Domain utilities
+types/                                      # Shared TypeScript types
+hooks/                                      # Shared React hooks
+supabase/migrations/                        # SQL schema migrations
+src/trigger/                                # Trigger.dev background jobs
+scripts/                                    # Dev tooling (clean cache, env check)
+proxy.ts                                    # Next.js 16 request proxy (auth gates)
+```
 
-AI Layer
-Technology:
-●      OpenRouter
-Purpose:
-●       Business analysis
-●       Content generation
-●       Reply generation
-●       Strategy recommendations
+## Technology stack
 
-Vector Storage
-Technology:
-●       pgvector
-Purpose:
-●       Business memory
-●       Website knowledge
-●       FAQ retrieval
+| Layer | Technology | Notes |
+|-------|------------|--------|
+| Frontend | Next.js 16, React 19, Tailwind 4, shadcn/ui | App Router, Server Actions |
+| Auth | Better Auth | Sessions in Postgres; not Supabase Auth |
+| Database | PostgreSQL via Supabase | Business data, RLS-bypassed server client for app writes |
+| Storage | Supabase Storage | Uploads, studio assets, generated images |
+| Email | Resend | Magic-link sign-in |
+| AI | OpenAI / OpenRouter | In-app generation; optional FastAPI backend |
+| Jobs | Trigger.dev | Scheduled content / notifications |
+| Hosting | Vercel (typical) | Frontend + API routes |
+| CI | GitHub Actions | `typecheck`, `lint`, `build` on push/PR |
 
-Storage
-Technology:
-●       Supabase Storage
-Purpose:
-●       Generated images
-●       User uploads
-●       Brand assets
+## Authentication
 
-Scheduling
-Technology:
-●       Trigger.dev
-Purpose:
-●       Content generation jobs
-●       Publishing jobs
-●       Notifications
+- **Server:** `lib/auth.ts` — Better Auth with email/password, Google OAuth, magic link (Resend).
+- **API:** `app/api/auth/[...all]/route.ts` — catch-all handler.
+- **Route protection:** `proxy.ts` redirects unauthenticated users away from `/dashboard` and `/onboarding`.
+- **Session reads:** `lib/supabase/server-auth.ts` → `getAuthenticatedUser()` wraps Better Auth for server code.
 
-State Management & Data Fetching
-Technology:
-●       Next.js Server Actions
-●       React Context
-Rationale:
-●       Native to Next.js App Router paradigm
-●       Minimizes client-side JavaScript
+See [docs/auth-and-data.md](docs/auth-and-data.md) for client usage and data boundaries.
 
-Animation & UI Libraries
-Technology:
-●       Framer Motion
-●       Lucide React
-Rationale:
-●       Fluid micro-interactions and layout transitions
-●       Consistent iconography for premium feel
+## Data access patterns
 
-Hosting & Deployment
-Technology:
-●       Vercel (Frontend)
-●       Render (Backend APIs)
-Rationale:
-●       Optimized hosting for Next.js (Vercel)
-●       Ideal for FastAPI microservices (Render)
+| Pattern | When to use |
+|---------|-------------|
+| Server Action in `app/dashboard/*/actions.ts` | Mutations from dashboard UI |
+| `getSupabaseAdmin()` in `lib/supabase/admin.ts` | Server-only reads/writes (bypasses RLS) |
+| `createClient()` in `lib/supabase/server.ts` | Cookie-aware server client (rare; most data uses admin + user id filter) |
+| `createClient()` in `lib/supabase/client.ts` | Browser-only Supabase (limited use) |
 
-Observability & Analytics
-Technology:
-●       Linear SDK (Feedback)
-●       TBD (Analytics & Error Tracking)
-Purpose:
-●       Direct user feedback pipeline
-●       Future integration for system monitoring and error logging
+Always scope queries by `user_id` from `getAuthenticatedUser()`.
 
-CI/CD Pipeline
-Technology:
-●       TBD
-Rationale:
-●       Automated testing and deployment strategy to be determined
+## External services (optional)
+
+| Env var | Service |
+|---------|---------|
+| `MARKETME_AI_API_URL` | FastAPI AI backend (strategy, briefs) |
+| `OPENAI_API_KEY` | Direct OpenAI / OpenRouter generation |
+| `LINEAR_PERSONAL_ACCESS_TOKEN` | `/linear` internal tool |
+| `STRIPE_SECRET_KEY` | Billing |
+| `PEXELS_API_KEY`, `UNSPLASH_ACCESS_KEY` | Stock images in studio |
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to `main`/`master`:
+
+1. `npm ci`
+2. `npm run typecheck`
+3. `npm run lint`
+4. `npm run build` (with placeholder env vars)
+
+Locally, run `npm run validate` before opening a PR.
+
+## Next.js 16 conventions
+
+- Use `"use client"` for `next/dynamic` with `{ ssr: false }`.
+- Prefer `better-auth/client` over `better-auth/react` for client modules (avoids Turbopack hook issues).
+- Do not list the same package in both `transpilePackages` and `serverExternalPackages` (`better-auth` is external on the server).
+- Request proxy lives in `proxy.ts` (not `middleware.ts`).

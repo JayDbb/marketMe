@@ -4,7 +4,7 @@ import { formatTimeRange, DEFAULT_POST_DURATION_MIN } from '@/lib/calendar-utils
 type CanvasLayer = { type?: string; src?: string }
 type CanvasData = { layers?: CanvasLayer[] }
 
-export type PostFilterTab = 'all' | 'scheduled' | 'published' | 'draft' | 'failed'
+export type PostFilterTab = 'all' | 'scheduled' | 'published' | 'draft' | 'approved' | 'failed'
 
 const STATUS_LABELS: Record<PostStatus, string> = {
   draft: 'Draft',
@@ -13,6 +13,7 @@ const STATUS_LABELS: Record<PostStatus, string> = {
   published: 'Published',
   scheduled: 'Scheduled',
   failed: 'Failed',
+  rejected: 'Rejected',
 }
 
 const STATUS_STYLES: Record<PostStatus, string> = {
@@ -22,6 +23,7 @@ const STATUS_STYLES: Record<PostStatus, string> = {
   published: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/25',
   scheduled: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/25',
   failed: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/25',
+  rejected: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/25',
 }
 
 export function getStatusLabel(status: PostStatus | string): string {
@@ -70,7 +72,6 @@ export function formatPostDate(iso: string | null | undefined): string {
   if (!iso) return 'Not scheduled'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return 'Not scheduled'
-  const end = new Date(d.getTime() + DEFAULT_POST_DURATION_MIN * 60_000)
   return formatTimeRange(d, DEFAULT_POST_DURATION_MIN)
 }
 
@@ -89,6 +90,7 @@ export function filterPostsByTab(posts: Post[], tab: PostFilterTab): Post[] {
   if (tab === 'scheduled') return posts.filter((p) => p.status === 'scheduled')
   if (tab === 'published') return posts.filter((p) => p.status === 'published')
   if (tab === 'draft') return posts.filter((p) => p.status === 'draft')
+  if (tab === 'approved') return posts.filter((p) => p.status === 'approved')
   if (tab === 'failed') return posts.filter((p) => p.status === 'failed')
   return posts
 }

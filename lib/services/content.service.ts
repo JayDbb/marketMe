@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { transitionPostStatus } from "@/lib/services/post-lifecycle.service"
 import type {
   ContentPlan,
   Post,
@@ -87,24 +88,7 @@ export async function updatePostStatus(
   status: PostStatus,
   scheduledAt?: string
 ): Promise<{ data: Post | null; error: string | null }> {
-  const updateData: Record<string, unknown> = { status }
-  if (scheduledAt) {
-    updateData.scheduled_at = scheduledAt
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from("posts")
-    .update(updateData)
-    .eq("id", postId)
-    .eq("user_id", userId)
-    .select()
-    .single()
-
-  if (error) {
-    return { data: null, error: error.message }
-  }
-
-  return { data: data as Post, error: null }
+  return transitionPostStatus(userId, postId, status, { scheduledAt })
 }
 
 /**

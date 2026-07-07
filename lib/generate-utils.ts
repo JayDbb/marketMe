@@ -27,6 +27,9 @@ export interface GenerateContext {
   defaultPlatform: string
   hasOpenAI: boolean
   templateCount: number
+  creditsBalance: number
+  creditsLimit: number | null
+  creditCostPerGeneration: number
 }
 
 export function normalizePlatform(platform: string): string {

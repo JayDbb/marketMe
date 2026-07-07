@@ -37,11 +37,35 @@ export async function signInWithMagicLink(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  void formData
-  return {
-    error:
-      'Magic link sign-in is being set up. Please use email and password or Google.',
+  const email = (formData.get('email') as string | null)?.trim()
+  if (!email) {
+    return { error: 'Email is required' }
   }
+
+  if (!process.env.RESEND_API_KEY?.trim()) {
+    return {
+      error:
+        'Magic link email is not configured. Use email and password or Google.',
+    }
+  }
+
+  try {
+    await auth.api.signInMagicLink({
+      body: {
+        email,
+        callbackURL: '/dashboard',
+        newUserCallbackURL: '/onboarding',
+        errorCallbackURL: '/login?message=Magic+link+expired+or+invalid&type=error',
+      },
+      headers: await headers(),
+    })
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : 'Failed to send magic link'
+    return { error: message }
+  }
+
+  return { success: 'Check your email for a sign-in link.' }
 }
 
 export async function signup(

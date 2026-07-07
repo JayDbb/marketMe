@@ -1,5 +1,5 @@
 export type ContentPlanStatus = 'draft' | 'approved' | 'active';
-export type PostStatus = 'draft' | 'approved' | 'scheduled' | 'published' | 'failed';
+export type PostStatus = 'draft' | 'approved' | 'scheduled' | 'published' | 'failed' | 'rejected';
 
 export interface ContentPlan {
   id: string

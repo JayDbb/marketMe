@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Undo2, Redo2 } from 'lucide-react'
 import { CanvasData, CanvasNode, ImageNode } from '@/types/canvas'
@@ -59,28 +59,44 @@ export function StudioEditor({
   const layers = getActiveLayers(canvasData)
   const selectedLayer = layers.find((l) => l.id === selectedId)
 
-  const patchLayers = (nextLayers: CanvasNode[]) => {
-    onChange(withActiveLayers(canvasData, nextLayers))
-  }
+  const patchLayers = useCallback(
+    (nextLayers: CanvasNode[]) => {
+      onChange(withActiveLayers(canvasData, nextLayers))
+    },
+    [canvasData, onChange]
+  )
 
   const updateLayer = (updatedLayer: CanvasNode) => {
     patchLayers(layers.map((l) => (l.id === updatedLayer.id ? updatedLayer : l)))
   }
 
-  const deleteLayer = (id: string) => {
-    patchLayers(layers.filter((l) => l.id !== id))
-    if (selectedId === id) setSelectedId(null)
-  }
+  const addLayer = useCallback(
+    (layer: CanvasNode) => {
+      patchLayers([...layers, layer])
+      setSelectedId(layer.id)
+    },
+    [layers, patchLayers]
+  )
 
-  const addLayer = (layer: CanvasNode) => {
-    patchLayers([...layers, layer])
-    setSelectedId(layer.id)
-  }
+  const deleteLayer = useCallback(
+    (id: string) => {
+      patchLayers(layers.filter((l) => l.id !== id))
+      if (selectedId === id) setSelectedId(null)
+    },
+    [layers, patchLayers, selectedId]
+  )
 
-  const handleDuplicate = (layer: CanvasNode) => {
-    const copy = { ...layer, id: `${layer.type}-${Date.now()}`, zIndex: nextZIndex(layers) }
-    addLayer(copy)
-  }
+  const handleDuplicate = useCallback(
+    (layer: CanvasNode) => {
+      const copy = {
+        ...layer,
+        id: `${layer.type}-${Date.now()}`,
+        zIndex: nextZIndex(layers),
+      }
+      addLayer(copy)
+    },
+    [addLayer, layers]
+  )
 
   const handleFormatChange = (formatId: InstagramFormatId) => {
     onChange(resizeCanvasData(canvasData, getInstagramFormat(formatId)))
@@ -154,7 +170,7 @@ export function StudioEditor({
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedId, selectedLayer, onUndo, onRedo, layers])
+  }, [selectedId, selectedLayer, onUndo, onRedo, deleteLayer, handleDuplicate])
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col gap-2">

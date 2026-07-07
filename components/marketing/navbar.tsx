@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Activity } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useSession } from '@/lib/auth-session'
+import { sessionClient } from '@/lib/auth-session'
 
 const navLinks = [
   { label: 'Features', href: '/features' },
@@ -13,9 +13,26 @@ const navLinks = [
 ] as const
 
 export function Navbar() {
-  const { data: session } = useSession()
-  const user = session?.user ?? null
+  const [user, setUser] = useState<{ id: string } | null>(null)
   const [isCondensed, setIsCondensed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    void sessionClient
+      .getSession()
+      .then((result) => {
+        if (cancelled) return
+        setUser(result.data?.user ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let ticking = false

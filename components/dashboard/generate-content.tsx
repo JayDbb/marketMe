@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, useEffect, startTransition, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -14,9 +15,9 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
 import {
-  Sparkles, CheckCircle2, Loader2, Wand2, X, Check,
-  CalendarDays, AlignLeft, Hash, Image as ImageIcon, Briefcase, Tag, Flag,
-  ChevronRight, Send, Clock, Bot, FolderOpen, LayoutTemplate,
+  Sparkles, CheckCircle2, Loader2, Wand2, Check,
+  AlignLeft, Hash, Image as ImageIcon, Briefcase, Tag, Flag,
+  ChevronRight, Send, Clock, Bot, FolderOpen, LayoutTemplate, Info, Coins,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -73,6 +74,9 @@ const DEFAULT_CONTEXT: GenerateContext = {
   defaultPlatform: 'Instagram',
   hasOpenAI: false,
   templateCount: 0,
+  creditsBalance: 50,
+  creditsLimit: 50,
+  creditCostPerGeneration: 2,
 }
 
 const PROGRESS_STEPS = [
@@ -206,10 +210,12 @@ function TemplateSourcePicker({
                         : 'border-transparent hover:border-white/20'
                     }`}
                   >
-                    <img
+                    <Image
                       src={tmpl.file_url}
                       alt={tmpl.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      unoptimized
+                      className="object-cover"
                     />
                     {isSelected && (
                       <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
@@ -311,7 +317,14 @@ export function GenerateContent({
 
     if (!result.success || !result.posts?.length) {
       setGenerationFailed(true)
-      toast.error(result.error ?? 'Failed to generate posts')
+      const message = result.error ?? 'Failed to generate posts'
+      if (message.toLowerCase().includes('insufficient credits')) {
+        toast.error(message, {
+          description: 'Upgrade your plan or wait for your monthly credit reset.',
+        })
+      } else {
+        toast.error(message)
+      }
       setFlowState('setup')
       return
     }
@@ -400,13 +413,6 @@ export function GenerateContent({
 
   const updatePostStatus = (id: string, status: PostStatus) => {
     setPosts(prev => prev.map(p => p.id === id ? { ...p, status } : p))
-  }
-
-  const handleSaveManual = () => {
-    if (!selectedPost) return
-    setPosts(prev => prev.map(p => 
-      p.id === selectedPost.id ? { ...p, caption: editCaption, hashtags: editHashtags } : p
-    ))
   }
 
   const handleApplyAiEdit = async () => {
@@ -525,10 +531,31 @@ export function GenerateContent({
               <p className="text-lg text-zinc-500 dark:text-white/50 max-w-lg mx-auto leading-relaxed">
                 Configure your AI engine to craft a week&apos;s worth of high-converting social posts in seconds.
               </p>
-              <p className="text-xs text-muted-foreground mt-3">
-                {ctx.hasOpenAI ? 'AI copy enabled' : 'Using smart templates (add OPENAI_API_KEY for live AI)'}
-                {ctx.templateCount > 0 ? ` · ${ctx.templateCount} Studio template${ctx.templateCount === 1 ? '' : 's'}` : ' · No Studio templates yet'}
-              </p>
+            </div>
+
+            <div className="mb-8 flex flex-col gap-3">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/8 px-4 py-2.5 text-sm text-zinc-700 dark:text-white/80">
+                <Coins className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>
+                  <strong className="text-zinc-900 dark:text-white">{ctx.creditsBalance}</strong>
+                  {ctx.creditsLimit != null ? ` / ${ctx.creditsLimit}` : ''} credits remaining
+                  <span className="text-zinc-500 dark:text-white/40">
+                    {' '}· {ctx.creditCostPerGeneration} per generation run
+                  </span>
+                </span>
+              </div>
+              {!ctx.hasOpenAI && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-900 dark:text-amber-100/90">
+                  <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p>
+                    AI providers are not connected yet — generation uses sample templates from your
+                    business profile. Add <code className="text-xs">OPENAI_API_KEY</code> for live AI copy.
+                    {ctx.templateCount > 0
+                      ? ` ${ctx.templateCount} Studio template${ctx.templateCount === 1 ? '' : 's'} available.`
+                      : ''}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="bg-white dark:bg-[#0a0a14]/60 backdrop-blur-2xl border border-black/5 dark:border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">

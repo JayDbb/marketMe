@@ -1,10 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { InboxContent } from '@/components/dashboard/inbox-content'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 
 export default async function InboxPage() {
-  const user = await getAuthenticatedUser(await createClient())
+  const user = await getAuthenticatedUser()
 
   if (!user) {
     return redirect('/login')

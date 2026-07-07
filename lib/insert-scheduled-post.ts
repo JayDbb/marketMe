@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { isValidUuid } from '@/lib/supabase/server-auth'
+import type { PostStatus } from '@/types/content-plan'
 
 export type InsertScheduledPostParams = {
   contentPlanId: string
@@ -9,6 +10,8 @@ export type InsertScheduledPostParams = {
   imageUrl?: string | null
   canvasData?: unknown
   templateId?: string | null
+  /** Defaults to draft — posts must be approved before queuing for publish. */
+  status?: PostStatus
 }
 
 export type InsertScheduledPostResult =
@@ -42,7 +45,7 @@ export async function insertScheduledPost(
       platform: params.platform,
       content: params.content,
       scheduled_at: params.scheduledAt,
-      status: 'scheduled',
+      status: params.status ?? 'draft',
       image_url: params.imageUrl ?? null,
       canvas_data: params.canvasData ?? null,
       template_id:

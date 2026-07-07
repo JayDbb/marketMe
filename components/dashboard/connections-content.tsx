@@ -3,7 +3,7 @@
 import { motion, type Variants } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Link2, Loader2, Unplug } from 'lucide-react'
+import { CheckCircle2, Link2, Loader2, Unplug, Info } from 'lucide-react'
 import { useSocialConnections } from '@/components/dashboard/social-connections-provider'
 import { SOCIAL_PLATFORMS } from '@/lib/social/platforms'
 import { formatDistanceToNow } from '@/lib/social/format-relative'
@@ -46,6 +46,19 @@ export function ConnectionsContent() {
       animate="show"
       className="max-w-7xl mx-auto px-6 py-10 relative z-10"
     >
+      <div className="mb-6 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 flex gap-3">
+        <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium text-zinc-900 dark:text-white">
+            Instagram publishing coming soon
+          </p>
+          <p className="text-xs text-zinc-500 dark:text-white/45 mt-0.5 leading-relaxed">
+            You can draft, approve, and queue posts now. Real OAuth and auto-publish will activate once
+            Instagram Graph API is connected. Demo connections below are stored locally only.
+          </p>
+        </div>
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         <motion.div
           variants={itemVariants}

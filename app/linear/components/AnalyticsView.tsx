@@ -206,8 +206,22 @@ export default function AnalyticsView({
           {/* Team and Assignee Load */}
           <div className="p-6 md:p-8 bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-[2.5rem] shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
             <span className="text-[10px] font-bold tracking-wider text-zinc-400 dark:text-zinc-500 uppercase block mb-4">
-              Assignee Workload
+              Team & Assignee Workload
             </span>
+            {teamWorkload.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {teamWorkload.map((team) => (
+                  <span
+                    key={team.key}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-300"
+                  >
+                    <span className="font-mono text-zinc-400">{team.key}</span>
+                    {team.name}
+                    <span className="font-mono text-zinc-500">{team.count}</span>
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {assigneeWorkload.map((item) => (
                 <div

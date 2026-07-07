@@ -45,4 +45,6 @@ export interface UserSubscriptionRow {
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
   current_period_end: string | null
+  credits_balance: number
+  credits_reset_at: string
 }

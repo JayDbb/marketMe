@@ -428,13 +428,21 @@ export const scheduledPublishing = schedules.task({
   id: "scheduled-publishing",
   cron: "*/15 * * * *", // Run every 15 minutes
   run: async () => {
+    if (process.env.ENABLE_AUTO_PUBLISH !== 'true') {
+      console.log(
+        "[scheduled-publishing] Skipped — ENABLE_AUTO_PUBLISH is not true (Instagram not connected)."
+      );
+      return { success: true, count: 0, skipped: true };
+    }
+
     const now = new Date().toISOString();
     
-    // Fetch scheduled posts due to be published
+    // Only publish posts that were human-approved and explicitly queued
     const { data: posts, error } = await supabaseAdmin
       .from('posts')
       .select('*, content_plans(business_profile_id)')
       .eq('status', 'scheduled')
+      .not('approved_at', 'is', null)
       .lte('scheduled_at', now);
 
     if (error) {

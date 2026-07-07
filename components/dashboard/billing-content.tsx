@@ -40,7 +40,7 @@ export function BillingContent({ account }: { account: AccountContext }) {
     { key: 'teamMembers' as const, description: 'Team members with access to this workspace.' },
     { key: 'socialProfiles' as const, description: 'Connected social accounts across workspaces.' },
     { key: 'posts' as const, description: 'Posts created or scheduled this month.' },
-    { key: 'aiCredits' as const, description: 'AI content plans generated on your account.' },
+    { key: 'aiCredits' as const, description: 'AI credits used this billing period (generation, images, etc.).' },
   ]
 
   return (

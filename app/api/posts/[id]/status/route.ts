@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, AuthError } from "@/lib/services/auth.service";
-import { updatePostStatus } from "@/lib/services/content.service";
+import { rateLimitOrThrow } from "@/lib/rate-limit";
+import { transitionPostStatus } from "@/lib/services/post-lifecycle.service";
+import type { PostStatus } from "@/types/content-plan";
+
+const ALLOWED_STATUSES: PostStatus[] = [
+  'draft',
+  'approved',
+  'scheduled',
+  'rejected',
+  'published',
+  'failed',
+];
 
 export async function PATCH(
   request: NextRequest,
@@ -19,18 +30,20 @@ export async function PATCH(
   }
 
   try {
+    rateLimitOrThrow(`post-status:${session.user.id}`, 30, 60_000)
+
     const body = await request.json();
     const { status, scheduled_at } = body;
 
-    if (!['draft', 'approved', 'scheduled', 'rejected'].includes(status)) {
+    if (!ALLOWED_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    const { data: post, error } = await updatePostStatus(
+    const { data: post, error } = await transitionPostStatus(
       session.user.id,
       id,
       status,
-      scheduled_at
+      scheduled_at ? { scheduledAt: scheduled_at } : undefined
     )
 
     if (error) {

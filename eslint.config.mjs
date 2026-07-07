@@ -11,8 +11,6 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     ".trigger/**",
-    "scratch-*.js",
-    "eslint-source-errors.txt",
   ]),
 ]);
 

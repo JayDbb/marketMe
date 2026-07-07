@@ -84,7 +84,7 @@ export function stopDevServers(ports = DEV_PORTS) {
   }
 }
 
-export async function removePath(target, label = target) {
+export async function removePath(target) {
   if (!existsSync(target)) return false
 
   const maxAttempts = 6
@@ -108,12 +108,12 @@ export async function repairTurbopackCache(nextDir) {
   if (!existsSync(turbopackRoot)) return false
 
   try {
-    await removePath(turbopackRoot, 'Turbopack cache')
+    await removePath(turbopackRoot)
     return true
   } catch {
     stopDevServers()
     await sleep(400)
-    await removePath(nextDir, '.next')
+    await removePath(nextDir)
     return true
   }
 }

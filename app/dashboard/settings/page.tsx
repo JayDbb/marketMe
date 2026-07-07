@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { SettingsContent } from '@/components/dashboard/settings-content'
@@ -16,7 +15,7 @@ function SettingsLoading() {
 }
 
 export default async function SettingsPage() {
-  const user = await getAuthenticatedUser(await createClient())
+  const user = await getAuthenticatedUser()
 
   if (!user) redirect('/login')
 

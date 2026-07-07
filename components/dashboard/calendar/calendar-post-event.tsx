@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import type { Post } from '@/types/content'
 import { formatTime } from '@/lib/calendar-utils'
+import { getPostStatusEventModifiers, PostStatusBadge } from '@/components/dashboard/post-status-badge'
 import { cn } from '@/lib/utils'
 
 const PLATFORM_EVENT_STYLES: Record<
@@ -63,6 +64,7 @@ export function CalendarPostEvent({
   const start = new Date(post.scheduled_date)
   const platform = post.social_account?.platform ?? 'Social'
   const styles = getPlatformEventStyle(platform)
+  const statusModifiers = getPostStatusEventModifiers(post.status)
   const captionPreview =
     post.caption?.trim().split('\n')[0]?.slice(0, 60) || 'Scheduled post'
 
@@ -85,6 +87,8 @@ export function CalendarPostEvent({
           : 'left-1 right-1 rounded-lg border px-2 py-1.5',
         styles.bg,
         styles.border,
+        statusModifiers.opacity,
+        statusModifiers.ring,
         selected && 'z-30 ring-2 ring-inset ring-white/90 shadow-md brightness-110'
       )}
       style={{ top, height }}
@@ -118,9 +122,14 @@ export function CalendarPostEvent({
             >
               {platform}
             </span>
-            <span className="text-[10px] font-semibold tabular-nums shrink-0">
-              {formatTime(start)}
-            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              {!compact && height >= 48 && (
+                <PostStatusBadge status={post.status} compact className="scale-90 origin-right border-white/20 bg-black/20 text-white" />
+              )}
+              <span className="text-[10px] font-semibold tabular-nums">
+                {formatTime(start)}
+              </span>
+            </div>
           </div>
           {height >= 40 && (
             <p className="text-[10px] font-medium leading-tight line-clamp-2 mt-0.5 text-white/95 min-w-0 break-words">

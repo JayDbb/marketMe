@@ -2,8 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import {
+  approveCalendarPostAction,
   createCalendarPostAction,
   deleteCalendarPostAction,
+  scheduleCalendarPostAction,
   updateCalendarPostAction,
 } from '@/app/dashboard/calendar/actions'
 
@@ -39,6 +41,24 @@ export async function updatePostAction(payload: {
 
 export async function deletePostAction(postId: string) {
   const result = await deleteCalendarPostAction(postId)
+  if (result.success) {
+    revalidatePath('/dashboard/posts')
+    revalidatePath('/dashboard/calendar')
+  }
+  return result
+}
+
+export async function approvePostAction(postId: string) {
+  const result = await approveCalendarPostAction(postId)
+  if (result.success) {
+    revalidatePath('/dashboard/posts')
+    revalidatePath('/dashboard/calendar')
+  }
+  return result
+}
+
+export async function schedulePostAction(postId: string) {
+  const result = await scheduleCalendarPostAction(postId)
   if (result.success) {
     revalidatePath('/dashboard/posts')
     revalidatePath('/dashboard/calendar')

@@ -195,7 +195,12 @@ export default function LinearPage() {
         id: t.id,
         name: t.name,
         key: t.key,
-        states: t.states.nodes,
+        states: t.states.nodes.map((s) => ({
+          id: s.id,
+          name: s.name,
+          type: s.type,
+          color: s.color ?? '#888888',
+        })),
       }));
       setTeams(mappedTeams);
 

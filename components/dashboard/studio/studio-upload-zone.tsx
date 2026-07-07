@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Upload, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -127,12 +128,12 @@ export function StudioUploadZone({
       <div className="flex gap-0 flex-col sm:flex-row">
         {preview && (
           <div className="relative shrink-0 w-full sm:w-40 h-40">
-            <img
+            <Image
               src={preview}
               alt="Upload preview"
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
+              fill
+              unoptimized
+              className="object-cover"
             />
             <button
               onClick={clearPending}

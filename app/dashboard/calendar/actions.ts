@@ -12,6 +12,10 @@ import { insertScheduledPost } from '@/lib/insert-scheduled-post'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { deletePost, updatePost } from '@/lib/services/content.service'
+import {
+  approveAndSchedulePost,
+  transitionPostStatus,
+} from '@/lib/services/post-lifecycle.service'
 
 export type PostModalContext = {
   displayName: string
@@ -92,6 +96,38 @@ export async function getWeekScheduleAction() {
       posts: dayPosts,
     }
   })
+}
+
+export async function approveCalendarPostAction(
+  postId: string
+): Promise<{ success: boolean; error?: string }> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+
+  const { data, error } = await transitionPostStatus(user.id, postId, 'approved')
+  if (error || !data) {
+    return { success: false, error: error ?? 'Approval failed' }
+  }
+
+  revalidatePath('/dashboard/calendar')
+  revalidatePath('/dashboard/posts')
+  return { success: true }
+}
+
+export async function scheduleCalendarPostAction(
+  postId: string
+): Promise<{ success: boolean; error?: string }> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+
+  const { data, error } = await approveAndSchedulePost(user.id, postId)
+  if (error || !data) {
+    return { success: false, error: error ?? 'Failed to queue post' }
+  }
+
+  revalidatePath('/dashboard/calendar')
+  revalidatePath('/dashboard/posts')
+  return { success: true }
 }
 
 export async function createCalendarPostAction(payload: {

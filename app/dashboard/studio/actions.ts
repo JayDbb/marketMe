@@ -161,45 +161,6 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
   return { success: true, template }
 }
 
-export async function saveUnsplashTemplateAction(data: {
-  name: string
-  category?: string
-  file_url: string
-  unsplash_id: string
-  author_name: string
-  author_url: string
-}): Promise<{ success: boolean; error?: string; template?: StudioTemplate }> {
-  const user = await getAuthenticatedUser()
-  if (!user) return { success: false, error: 'Not authenticated' }
-
-  const { data: existing } = await supabaseAdmin
-    .from('studio_templates')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('unsplash_id', data.unsplash_id)
-    .maybeSingle()
-
-  if (existing) return { success: false, error: 'Already saved to your templates.' }
-
-  const { template, error } = await insertStudioTemplateForUser(user.id, {
-    name: data.name,
-    file_path: `unsplash/${data.unsplash_id}`,
-    file_url: data.file_url,
-    source: 'unsplash',
-    category: data.category ?? null,
-    unsplash_id: data.unsplash_id,
-    author_name: data.author_name,
-    author_url: data.author_url,
-  })
-
-  if (error) {
-    return { success: false, error }
-  }
-
-  revalidatePath('/dashboard/studio')
-  return { success: true, template }
-}
-
 export async function savePexelsTemplateAction(data: {
   name: string
   category?: string

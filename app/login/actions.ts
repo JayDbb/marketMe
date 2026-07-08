@@ -6,6 +6,8 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getPostAuthRedirectPath } from '@/lib/post-auth-redirect'
+import { getClientIp } from '@/lib/client-ip'
+import { rateLimitOrThrow } from '@/lib/rate-limit'
 
 export type AuthActionState = {
   error?: string
@@ -16,6 +18,13 @@ export async function login(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
+  const ip = await getClientIp()
+  try {
+    rateLimitOrThrow(`auth:login:${ip}`, 10, 15 * 60_000)
+  } catch {
+    return { error: 'Too many login attempts. Please wait and try again.' }
+  }
+
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
@@ -37,6 +46,13 @@ export async function signInWithMagicLink(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
+  const ip = await getClientIp()
+  try {
+    rateLimitOrThrow(`auth:magic:${ip}`, 5, 15 * 60_000)
+  } catch {
+    return { error: 'Too many magic link requests. Please wait and try again.' }
+  }
+
   const email = (formData.get('email') as string | null)?.trim()
   if (!email) {
     return { error: 'Email is required' }
@@ -72,6 +88,13 @@ export async function signup(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
+  const ip = await getClientIp()
+  try {
+    rateLimitOrThrow(`auth:signup:${ip}`, 5, 60 * 60_000)
+  } catch {
+    return { error: 'Too many sign-up attempts. Please wait and try again.' }
+  }
+
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const name = formData.get('name') as string | null

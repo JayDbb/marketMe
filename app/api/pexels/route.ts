@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { StockPhoto } from '@/lib/stock-media'
-
-export const runtime = 'edge'
+import { requireAuth, AuthError } from '@/lib/services/auth.service'
+import { rateLimitOrThrow } from '@/lib/rate-limit'
 
 interface PexelsPhoto {
   id: number
@@ -37,6 +37,22 @@ function normalizePhoto(photo: PexelsPhoto): StockPhoto {
 }
 
 export async function GET(request: NextRequest) {
+  let session
+  try {
+    session = await requireAuth()
+  } catch (e) {
+    if (e instanceof AuthError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: e.status })
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    rateLimitOrThrow(`pexels:${session.user.id}`, 60, 60_000)
+  } catch {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+  }
+
   const { searchParams } = new URL(request.url)
   const query = searchParams.get('query') || 'business marketing'
   const page = searchParams.get('page') || '1'

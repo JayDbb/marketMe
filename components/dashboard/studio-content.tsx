@@ -110,7 +110,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
     () =>
       new Set(
         templates
-          .flatMap((t) => [t.pexels_id, t.unsplash_id])
+          .map((t) => t.pexels_id)
           .filter((id): id is string => Boolean(id))
       ),
     [templates]

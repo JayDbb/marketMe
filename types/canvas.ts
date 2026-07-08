@@ -31,7 +31,7 @@ export interface TextNode extends BaseNode {
 
 export interface ImageNode extends BaseNode {
   type: 'image';
-  src: string; // URL to the image (from Supabase Storage or Unsplash)
+  src: string; // URL to the image (from Supabase Storage or stock provider)
   width: number;
   height: number;
   cornerRadius?: number | number[];

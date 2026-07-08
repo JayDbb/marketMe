@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { generateImage } from "@/src/trigger/content-generator";
 import { requireAuth, AuthError } from "@/lib/services/auth.service";
+import {
+  PostLifecycleError,
+  verifyPostOwnership,
+} from "@/lib/services/post-lifecycle.service";
+import { rateLimitOrThrow } from "@/lib/rate-limit";
 
 export async function POST(
   request: NextRequest,
@@ -19,14 +24,23 @@ export async function POST(
     return NextResponse.json({ error: "Authentication error" }, { status: 401 })
   }
 
-  // Suppress unused variable warning — session is used for auth enforcement above
-  void session
+  try {
+    rateLimitOrThrow(`generate-image:${session.user.id}`, 20, 60_000)
+    await verifyPostOwnership(session.user.id, id)
+  } catch (e) {
+    if (e instanceof PostLifecycleError) {
+      return NextResponse.json({ error: e.message }, { status: e.status })
+    }
+    if (e instanceof Error && e.message.includes('Rate limit')) {
+      return NextResponse.json({ error: e.message }, { status: 429 })
+    }
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   try {
     const body = await request.json();
     const { style } = body;
 
-    // Trigger the background task
     const handle = await tasks.trigger<typeof generateImage>("generate-image", {
       postId: id,
       style,

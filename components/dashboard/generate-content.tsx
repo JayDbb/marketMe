@@ -53,7 +53,7 @@ const DUMMY_CANVAS_TEMPLATE: CanvasData = {
   layers: [
     {
       id: "bg-image", type: "image", x: 0, y: 0, width: 1080, height: 1080, zIndex: 0,
-      src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1080&q=80"
+      src: "https://picsum.photos/seed/marketme-demo/1080/1080"
     },
     {
       id: "overlay", type: "rect", x: 0, y: 0, width: 1080, height: 1080, fill: "rgba(0,0,0,0.4)", zIndex: 1

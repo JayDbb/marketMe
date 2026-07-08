@@ -29,7 +29,7 @@ app/
 │   └── layout.tsx                          # Auth gate + shell
 ├── api/                                    # Route handlers (REST)
 │   ├── auth/[...all]/                      # Better Auth handler
-│   ├── pexels/, unsplash/                  # Stock media proxies
+│   ├── pexels/                             # Stock media proxy
 │   └── …
 components/
 ├── marketing/                              # Public site UI
@@ -93,7 +93,7 @@ Always scope queries by `user_id` from `getAuthenticatedUser()`.
 | `OPENAI_API_KEY` | Direct OpenAI / OpenRouter generation |
 | `LINEAR_PERSONAL_ACCESS_TOKEN` | `/linear` internal tool |
 | `STRIPE_SECRET_KEY` | Billing |
-| `PEXELS_API_KEY`, `UNSPLASH_ACCESS_KEY` | Stock images in studio |
+| `PEXELS_API_KEY` | Stock images in studio |
 
 ## CI/CD
 

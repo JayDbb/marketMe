@@ -1,11 +1,13 @@
 'use server'
 
-import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { persistCanvasImageLayers, uploadCanvasPreview } from '@/lib/canvas-persist-images'
 
 import { CanvasData } from '@/types/canvas'
+import { isWithinImageUploadLimit, MAX_IMAGE_UPLOAD_LABEL } from '@/lib/upload-limits'
+import { previewUrlFromCanvas, photoToEditableCanvas } from '@/lib/studio-utils'
 
 export interface StudioTemplate {
   id: string
@@ -17,24 +19,65 @@ export interface StudioTemplate {
   template_type: 'image' | 'canvas'
   canvas_data: CanvasData | null
   unsplash_id: string | null
+  pexels_id: string | null
   author_name: string | null
   author_url: string | null
   created_at: string
 }
 
-async function getAuthUser() {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() })
-    return session?.user ?? null
-  } catch {
-    return null
-  }
+export type StudioTemplatesResult = {
+  templates: StudioTemplate[]
+  error: string | null
 }
 
-// ─── Fetch all templates for the current user ─────────────────────────────────
-export async function getUserTemplatesAction(): Promise<StudioTemplate[]> {
-  const user = await getAuthUser()
-  if (!user) return []
+type InsertStudioTemplateInput = {
+  name: string
+  file_path: string
+  file_url: string
+  source: 'upload' | 'unsplash' | 'pexels'
+  category?: string | null
+  template_type?: 'image' | 'canvas'
+  canvas_data?: CanvasData | null
+  pexels_id?: string | null
+  unsplash_id?: string | null
+  author_name?: string | null
+  author_url?: string | null
+}
+
+async function insertStudioTemplateForUser(
+  userId: string,
+  input: InsertStudioTemplateInput
+): Promise<{ template?: StudioTemplate; error?: string }> {
+  const { data, error } = await supabaseAdmin
+    .from('studio_templates')
+    .insert({
+      user_id: userId,
+      name: input.name,
+      category: input.category ?? null,
+      file_path: input.file_path,
+      file_url: input.file_url,
+      source: input.source,
+      template_type: input.template_type ?? 'image',
+      canvas_data: input.canvas_data ?? null,
+      pexels_id: input.pexels_id ?? null,
+      unsplash_id: input.unsplash_id ?? null,
+      author_name: input.author_name ?? null,
+      author_url: input.author_url ?? null,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('insert studio template:', error.message)
+    return { error: 'Failed to save template.' }
+  }
+
+  return { template: data as StudioTemplate }
+}
+
+export async function getUserTemplatesResult(): Promise<StudioTemplatesResult> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { templates: [], error: 'Not authenticated' }
 
   const { data, error } = await supabaseAdmin
     .from('studio_templates')
@@ -43,20 +86,25 @@ export async function getUserTemplatesAction(): Promise<StudioTemplate[]> {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching studio templates:', error)
-    return []
+    console.error('Error fetching studio templates:', error.message)
+    return { templates: [], error: 'Could not load your templates. Please try again.' }
   }
 
-  return (data ?? []) as StudioTemplate[]
+  return { templates: (data ?? []) as StudioTemplate[], error: null }
 }
 
-// ─── Upload a file to Supabase Storage + insert metadata row ─────────────────
+/** @deprecated Prefer getUserTemplatesResult when you need error surfacing */
+export async function getUserTemplatesAction(): Promise<StudioTemplate[]> {
+  const { templates } = await getUserTemplatesResult()
+  return templates
+}
+
 export async function uploadTemplateAction(formData: FormData): Promise<{
   success: boolean
   error?: string
   template?: StudioTemplate
 }> {
-  const user = await getAuthUser()
+  const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
   const file = formData.get('file') as File | null
@@ -65,23 +113,19 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
 
   if (!file) return { success: false, error: 'No file provided' }
 
-  // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
   if (!allowedTypes.includes(file.type)) {
     return { success: false, error: 'Only JPEG, PNG, WebP, and GIF files are allowed' }
   }
 
-  // Validate file size (10 MB max)
-  if (file.size > 10 * 1024 * 1024) {
-    return { success: false, error: 'File must be smaller than 10 MB' }
+  if (!isWithinImageUploadLimit(file.size)) {
+    return { success: false, error: `File must be smaller than ${MAX_IMAGE_UPLOAD_LABEL}` }
   }
 
-  // Build a unique storage path: {userId}/{timestamp}-{sanitized-filename}
   const ext = file.name.split('.').pop()
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
   const filePath = `${user.id}/${fileName}`
 
-  // Upload to Supabase Storage (using admin client)
   const { error: uploadError } = await supabaseAdmin.storage
     .from('studio-templates')
     .upload(filePath, file, { contentType: file.type, upsert: false })
@@ -91,91 +135,83 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
     return { success: false, error: 'Upload failed. Please try again.' }
   }
 
-  // Get the public URL
   const { data: urlData } = supabaseAdmin.storage
     .from('studio-templates')
     .getPublicUrl(filePath)
 
   const fileUrl = urlData.publicUrl
+  const canvasData = photoToEditableCanvas(fileUrl)
 
-  // Insert metadata row
-  const { data: template, error: dbError } = await supabaseAdmin
-    .from('studio_templates')
-    .insert({
-      user_id: user.id,
-      name,
-      category,
-      file_path: filePath,
-      file_url: fileUrl,
-      source: 'upload',
-    })
-    .select()
-    .single()
+  const { template, error: dbError } = await insertStudioTemplateForUser(user.id, {
+    name,
+    file_path: filePath,
+    file_url: fileUrl,
+    source: 'upload',
+    category,
+    template_type: 'canvas',
+    canvas_data: canvasData,
+  })
 
   if (dbError) {
-    console.error('DB insert error:', dbError)
-    // Clean up the uploaded file if DB insert fails
     await supabaseAdmin.storage.from('studio-templates').remove([filePath])
-    return { success: false, error: 'Failed to save template metadata.' }
+    return { success: false, error: dbError }
   }
 
   revalidatePath('/dashboard/studio')
-  return { success: true, template: template as StudioTemplate }
+  return { success: true, template }
 }
 
-// ─── Save an Unsplash photo as a template ─────────────────────────────────────
-export async function saveUnsplashTemplateAction(data: {
+export async function savePexelsTemplateAction(data: {
   name: string
   category?: string
   file_url: string
-  unsplash_id: string
+  pexels_id: string
   author_name: string
   author_url: string
-}): Promise<{ success: boolean; error?: string }> {
-  const user = await getAuthUser()
+}): Promise<{ success: boolean; error?: string; template?: StudioTemplate }> {
+  const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
-  // Check for duplicate saves
   const { data: existing } = await supabaseAdmin
     .from('studio_templates')
     .select('id')
     .eq('user_id', user.id)
-    .eq('unsplash_id', data.unsplash_id)
+    .eq('pexels_id', data.pexels_id)
     .maybeSingle()
 
   if (existing) return { success: false, error: 'Already saved to your templates.' }
 
-  const { error } = await supabaseAdmin.from('studio_templates').insert({
-    user_id: user.id,
+  const canvasData = photoToEditableCanvas(data.file_url)
+
+  const { template, error } = await insertStudioTemplateForUser(user.id, {
     name: data.name,
-    category: data.category ?? null,
-    file_path: `unsplash/${data.unsplash_id}`,
+    file_path: `pexels/${data.pexels_id}`,
     file_url: data.file_url,
-    source: 'unsplash',
-    unsplash_id: data.unsplash_id,
+    source: 'pexels',
+    category: data.category ?? null,
+    template_type: 'canvas',
+    canvas_data: canvasData,
+    pexels_id: data.pexels_id,
     author_name: data.author_name,
     author_url: data.author_url,
   })
 
   if (error) {
-    console.error('Error saving Unsplash template:', error)
-    return { success: false, error: 'Failed to save template.' }
+    return { success: false, error }
   }
 
   revalidatePath('/dashboard/studio')
-  return { success: true }
+  return { success: true, template }
 }
 
-// ─── Delete a template ────────────────────────────────────────────────────────
 export async function deleteTemplateAction(
   id: string,
   filePath: string,
   source: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await getAuthUser()
+  const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
-  // Only delete from storage if it was a user upload (not an Unsplash reference)
   if (source === 'upload') {
     const { error: storageError } = await supabaseAdmin.storage
       .from('studio-templates')
@@ -183,7 +219,6 @@ export async function deleteTemplateAction(
 
     if (storageError) {
       console.error('Storage delete error:', storageError)
-      // Don't block DB deletion even if storage fails
     }
   }
 
@@ -202,38 +237,104 @@ export async function deleteTemplateAction(
   return { success: true }
 }
 
-// ─── Save a Canvas JSON Template ───────────────────────────────────────────────
 export async function saveCanvasTemplateAction(data: {
   name: string
   category?: string
   canvasData: CanvasData
+  previewUrl?: string
 }): Promise<{ success: boolean; error?: string; template?: StudioTemplate }> {
-  const user = await getAuthUser()
+  const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
-  // We use a placeholder for now; later we can export the canvas to a real image and save it to storage
-  const dummyUrl = 'https://via.placeholder.com/1080x1080.png?text=Canvas+Template'
+  const { canvasData, previewUrl: uploadedPreview } = await persistCanvasImageLayers(
+    user.id,
+    data.canvasData
+  )
+
+  let previewUrl =
+    uploadedPreview ??
+    data.previewUrl ??
+    previewUrlFromCanvas(canvasData)
+
+  if (previewUrl?.startsWith('data:')) {
+    previewUrl =
+      (await uploadCanvasPreview(user.id, previewUrl)) ?? previewUrl
+  }
+
+  const { template, error } = await insertStudioTemplateForUser(user.id, {
+    name: data.name,
+    file_path: `canvas/${Date.now()}.json`,
+    file_url: previewUrl,
+    source: 'upload',
+    category: data.category ?? null,
+    template_type: 'canvas',
+    canvas_data: canvasData,
+  })
+
+  if (error) {
+    const hint =
+      process.env.NODE_ENV === 'development'
+        ? error
+        : 'Failed to save canvas template.'
+    return { success: false, error: hint }
+  }
+
+  revalidatePath('/dashboard/studio')
+  revalidatePath('/dashboard/generate')
+  return { success: true, template }
+}
+
+export async function updateCanvasTemplateAction(
+  id: string,
+  data: {
+    name?: string
+    category?: string
+    canvasData: CanvasData
+    previewUrl?: string
+  }
+): Promise<{ success: boolean; error?: string; template?: StudioTemplate }> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  const { canvasData, previewUrl: uploadedPreview } = await persistCanvasImageLayers(
+    user.id,
+    data.canvasData
+  )
+
+  let previewUrl =
+    uploadedPreview ??
+    data.previewUrl ??
+    previewUrlFromCanvas(canvasData)
+
+  if (previewUrl?.startsWith('data:')) {
+    previewUrl =
+      (await uploadCanvasPreview(user.id, previewUrl)) ?? previewUrl
+  }
 
   const { data: template, error } = await supabaseAdmin
     .from('studio_templates')
-    .insert({
-      user_id: user.id,
-      name: data.name,
-      category: data.category ?? null,
-      file_path: `canvas/${Date.now()}.json`,
-      file_url: dummyUrl,
-      source: 'upload',
+    .update({
+      name: data.name ?? undefined,
+      category: data.category ?? undefined,
+      file_url: previewUrl ?? undefined,
+      canvas_data: canvasData,
       template_type: 'canvas',
-      canvas_data: data.canvasData as any,
     })
+    .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single()
 
   if (error) {
-    console.error('Error saving Canvas template:', error)
-    return { success: false, error: 'Failed to save canvas template.' }
+    console.error('Error updating canvas template:', error.message)
+    const hint =
+      process.env.NODE_ENV === 'development'
+        ? error.message
+        : 'Failed to update design.'
+    return { success: false, error: hint }
   }
 
   revalidatePath('/dashboard/studio')
+  revalidatePath('/dashboard/generate')
   return { success: true, template: template as StudioTemplate }
 }

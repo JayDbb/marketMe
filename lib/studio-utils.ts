@@ -160,14 +160,13 @@ export function getTemplatePreviewUrl(template: StudioTemplate): string {
 
 export function filterTemplates(
   templates: StudioTemplate[],
-  opts: { search?: string; category?: string; source?: 'upload' | 'unsplash' | 'saved' | 'all' }
+  opts: { search?: string; category?: string; source?: 'upload' | 'saved' | 'all' }
 ): StudioTemplate[] {
   const search = opts.search?.toLowerCase().trim() ?? ''
   const category = opts.category ?? 'All'
 
   return templates.filter((t) => {
     if (opts.source === 'upload' && t.source !== 'upload') return false
-    if (opts.source === 'unsplash' && t.source !== 'unsplash') return false
     if (opts.source === 'saved' && t.source === 'upload') return false
     if (category !== 'All' && t.category !== category) return false
     if (search && !t.name.toLowerCase().includes(search)) return false

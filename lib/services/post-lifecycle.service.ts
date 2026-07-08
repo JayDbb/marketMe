@@ -43,6 +43,10 @@ async function getOwnedPost(userId: string, postId: string): Promise<Post> {
   return data as Post
 }
 
+export async function verifyPostOwnership(userId: string, postId: string): Promise<Post> {
+  return getOwnedPost(userId, postId)
+}
+
 export async function transitionPostStatus(
   userId: string,
   postId: string,

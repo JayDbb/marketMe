@@ -5,6 +5,61 @@ import { dash } from "@better-auth/infra"
 import { Pool } from "pg"
 import { getResendClient } from "@/lib/resend"
 
+function hostFromUrl(value: string | undefined): string | null {
+  if (!value) return null
+  try {
+    return new URL(value).host
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Dynamic base URL for Vercel previews + local ports.
+ * Without this, BETTER_AUTH_URL=http://localhost:3000 on Vercel makes Google
+ * OAuth use redirect_uri=http://localhost:3000/... and the flow never returns.
+ */
+function buildBaseURLConfig() {
+  const allowedHosts = new Set<string>([
+    "localhost:*",
+    "127.0.0.1:*",
+    "*.vercel.app",
+  ])
+
+  for (const value of [
+    process.env.BETTER_AUTH_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+  ]) {
+    const host = hostFromUrl(value)
+    if (host) allowedHosts.add(host)
+  }
+
+  for (const host of [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]) {
+    if (host) allowedHosts.add(host)
+  }
+
+  // Prefer a non-localhost public URL as fallback so mis-matched hosts
+  // don't silently send OAuth callbacks to the developer's machine.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  const authUrl = process.env.BETTER_AUTH_URL
+  const vercelUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : undefined
+  const fallback =
+    (siteUrl && !siteUrl.includes("localhost") ? siteUrl : undefined) ||
+    (authUrl && !authUrl.includes("localhost") ? authUrl : undefined) ||
+    vercelUrl ||
+    siteUrl ||
+    authUrl ||
+    "http://localhost:3000"
+
+  return {
+    allowedHosts: [...allowedHosts],
+    fallback,
+    protocol: "auto" as const,
+  }
+}
+
 function buildTrustedOrigins(): string[] {
   const origins = new Set<string>([
     process.env.BETTER_AUTH_URL || "http://localhost:3000",
@@ -43,6 +98,7 @@ const pool = DATABASE_URL
 
 export const auth = betterAuth({
   ...(pool ? { database: pool } : {}),
+  baseURL: buildBaseURLConfig(),
   experimental: {
     joins: true,
   },

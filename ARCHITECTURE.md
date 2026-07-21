@@ -67,10 +67,11 @@ proxy.ts                                    # Next.js 16 request proxy (auth gat
 
 ## Authentication
 
-- **Server:** `lib/auth.ts` — Better Auth with email/password, Google OAuth, magic link (Resend).
+- **Server:** `lib/auth.ts` — Better Auth with email/password, Google OAuth, magic link (Resend). Uses dynamic `baseURL.allowedHosts` (`localhost:*`, `*.vercel.app`, plus env hosts) so OAuth `redirect_uri` matches the current deployment instead of a hardcoded localhost URL.
 - **API:** `app/api/auth/[...all]/route.ts` — catch-all handler.
 - **Route protection:** `proxy.ts` redirects unauthenticated users away from `/dashboard` and `/onboarding`.
 - **Session reads:** `lib/supabase/server-auth.ts` → `getAuthenticatedUser()` wraps Better Auth for server code.
+- **Vercel Google OAuth:** Never set `BETTER_AUTH_URL` to localhost on Vercel. Register `https://<deploy-host>/api/auth/callback/google` in Google Cloud Console for each host you use.
 
 See [docs/auth-and-data.md](docs/auth-and-data.md) for client usage and data boundaries.
 

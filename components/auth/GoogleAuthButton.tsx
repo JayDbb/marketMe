@@ -10,11 +10,16 @@ export function GoogleAuthButton() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true)
-    await signIn.social({
-      provider: 'google',
-      callbackURL: '/onboarding',
-      errorCallbackURL: '/login?message=Google+sign-in+failed&type=error',
-    })
+    try {
+      await signIn.social({
+        provider: 'google',
+        callbackURL: '/onboarding',
+        errorCallbackURL: '/login?message=Google+sign-in+failed&type=error',
+      })
+    } catch (error) {
+      console.error('[google-auth]', error)
+      setIsLoading(false)
+    }
   }
 
   return (

@@ -81,7 +81,11 @@ export async function POST(request: NextRequest) {
 
     // 4. Save Posts to DB
     if (postsData.posts && postsData.posts.length > 0) {
-      const postsToInsert = postsData.posts.map((post: any, index: number) => {
+      const postsToInsert = postsData.posts.map((post: {
+        caption?: string
+        hashtags?: string[]
+        suggested_media_prompt?: string
+      }, index: number) => {
         const scheduledDate = new Date(start);
         scheduledDate.setDate(scheduledDate.getDate() + (index % 7));
 

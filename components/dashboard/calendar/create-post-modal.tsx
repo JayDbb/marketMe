@@ -35,6 +35,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { useIsClient } from "@/hooks/use-is-client";
 import { ImageUpload } from "./image-upload";
 import { PannablePreviewImage } from "./pannable-preview-image";
 import { toDatetimeLocalValue } from "@/lib/calendar-utils";
@@ -309,11 +310,7 @@ export function CreatePostModal({
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ctx, setCtx] = useState<PostModalContext>(FALLBACK_CTX);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   useEffect(() => {
     if (!isOpen) return;

@@ -7,7 +7,7 @@ import { Activity } from 'lucide-react';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 
 interface ClientNavbarProps {
-  user: any;
+  user: { id?: string } | null;
 }
 
 export function ClientNavbar({ user }: ClientNavbarProps) {

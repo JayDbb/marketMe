@@ -96,15 +96,12 @@ function SettingsContentInner({
   const searchParams = useSearchParams();
   const initialAccount = useAccount();
 
-  const [account, setAccount] = useState<AccountContext>(initialAccount);
+  const [accountEdits, setAccountEdits] = useState<Partial<AccountContext>>({});
+  const account: AccountContext = { ...initialAccount, ...accountEdits };
   const [settings, setSettings] = useState(initialSettings);
   const [activeTab, setActiveTab] = useState<TabId>(() =>
     parseTab(searchParams.get("tab"))
   );
-
-  useEffect(() => {
-    setAccount(initialAccount);
-  }, [initialAccount]);
 
   // Browser back/forward only — tab clicks stay client-side (no RSC refetch).
   useEffect(() => {
@@ -184,7 +181,7 @@ function SettingsContentInner({
               settings={settings}
               onSaved={(name) => {
                 setSettings((s) => ({ ...s, displayName: name }));
-                setAccount((a) => ({
+                setAccountEdits((a) => ({
                   ...a,
                   displayName: name,
                   initials: getInitials(name),
@@ -192,7 +189,7 @@ function SettingsContentInner({
               }}
               onAvatarUpdated={(avatarUrl) => {
                 setSettings((s) => ({ ...s, avatarUrl }));
-                setAccount((a) => ({ ...a, avatarUrl }));
+                setAccountEdits((a) => ({ ...a, avatarUrl }));
               }}
             />
           )}

@@ -259,7 +259,6 @@ export function GenerateContent({
   const [posts, setPosts] = useState<GeneratedPost[]>([])
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [serverDrafts, setServerDrafts] = useState<GeneratedPostDraft[] | null>(null)
-  const [generationFailed, setGenerationFailed] = useState(false)
   const [scheduledCount, setScheduledCount] = useState(0)
 
   // Template selection state
@@ -310,7 +309,6 @@ export function GenerateContent({
     setFlowState('generating')
     setCurrentStepIndex(0)
     setProgressPulse(0)
-    setGenerationFailed(false)
     setServerDrafts(null)
 
     const result = await generatePostsAction({
@@ -322,7 +320,6 @@ export function GenerateContent({
     })
 
     if (!result.success || !result.posts?.length) {
-      setGenerationFailed(true)
       const message = result.error ?? 'Failed to generate posts'
       if (message.toLowerCase().includes('insufficient credits')) {
         toast.error(message, {

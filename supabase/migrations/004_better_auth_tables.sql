@@ -88,18 +88,14 @@ ALTER TABLE public."verification" ENABLE ROW LEVEL SECURITY;
 
 -- Service role bypasses RLS, so Better Auth (using DATABASE_URL directly) can still
 -- manage these tables. The policies below prevent accidental exposure via PostgREST.
-DROP POLICY IF EXISTS "service_role_only_user" ON public."user";
 CREATE POLICY "service_role_only_user" ON public."user"
   USING (FALSE);
 
-DROP POLICY IF EXISTS "service_role_only_session" ON public."session";
 CREATE POLICY "service_role_only_session" ON public."session"
   USING (FALSE);
 
-DROP POLICY IF EXISTS "service_role_only_account" ON public."account";
 CREATE POLICY "service_role_only_account" ON public."account"
   USING (FALSE);
 
-DROP POLICY IF EXISTS "service_role_only_verification" ON public."verification";
 CREATE POLICY "service_role_only_verification" ON public."verification"
   USING (FALSE);

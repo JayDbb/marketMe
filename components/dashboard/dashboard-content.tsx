@@ -3,15 +3,11 @@
 import { motion, Variants } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   LayoutDashboard,
-  MessageSquare,
-  Send,
   Sparkles,
   Target,
   Briefcase,
@@ -50,12 +46,11 @@ const itemVariants: Variants = {
 }
 
 interface DashboardContentProps {
-  submitFeedbackAction: (formData: FormData) => void
   profile: BusinessProfile | null
   stats: DashboardStats
 }
 
-export function DashboardContent({ submitFeedbackAction, profile, stats }: DashboardContentProps) {
+export function DashboardContent({ profile, stats }: DashboardContentProps) {
   const router = useRouter()
   const { hasInstagram, isLoading: connectionsLoading } = useSocialConnections()
   const [prompt, setPrompt] = useState('')
@@ -87,7 +82,7 @@ export function DashboardContent({ submitFeedbackAction, profile, stats }: Dashb
   }
 
   const connectedLabel = connectionsLoading
-    ? 'Checking…'
+    ? 'Checking...'
     : hasInstagram
       ? 'Instagram linked'
       : 'Not connected'
@@ -152,7 +147,7 @@ export function DashboardContent({ submitFeedbackAction, profile, stats }: Dashb
             </h1>
             <p className="text-zinc-500 dark:text-white/40 mt-1 text-sm">
               {stats.scheduledCount > 0
-                ? `${stats.scheduledCount} post${stats.scheduledCount === 1 ? '' : 's'} scheduled · ${stats.publishedCount} published`
+                ? `${stats.scheduledCount} post${stats.scheduledCount === 1 ? '' : 's'} scheduled Â· ${stats.publishedCount} published`
                 : 'Plan, generate, and schedule your next posts.'}
             </p>
           </div>
@@ -179,7 +174,7 @@ export function DashboardContent({ submitFeedbackAction, profile, stats }: Dashb
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleGenerateNavigate()}
-              placeholder="Describe what you want to post about…"
+              placeholder="Describe what you want to post aboutâ€¦"
               className="flex-1 h-12 bg-transparent border-0 focus-visible:ring-0 text-zinc-900 placeholder:text-zinc-500 dark:text-white text-base shadow-none"
             />
             <Button
@@ -382,62 +377,6 @@ export function DashboardContent({ submitFeedbackAction, profile, stats }: Dashb
         </motion.div>
       </div>
 
-      <motion.div variants={itemVariants} id="feedback">
-        <Card className="bg-white dark:bg-white/4 border-zinc-200 backdrop-blur-2xl dark:border-white/8 text-zinc-900 dark:text-white max-w-2xl shadow-2xl rounded-2xl overflow-hidden">
-          <CardHeader className="bg-white dark:bg-white/3 border-zinc-200 border-b dark:border-white/6 pb-5 pt-7 px-7">
-            <CardTitle className="flex items-center gap-3 text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
-              <div className="p-2 bg-blue-500/12 rounded-lg border border-blue-500/20">
-                <MessageSquare className="w-4 h-4 text-blue-400" />
-              </div>
-              Submit feedback
-            </CardTitle>
-            <CardDescription className="text-zinc-500 dark:text-white/40 text-sm mt-2">
-              Found a bug or have a feature request? Sent directly to our Linear engineering board.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-7">
-            <form action={submitFeedbackAction} className="space-y-5">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="title"
-                  className="text-zinc-500 dark:text-white/50 font-medium text-xs uppercase tracking-wider"
-                >
-                  Issue title
-                </Label>
-                <Input
-                  id="title"
-                  name="title"
-                  placeholder="e.g., Campaign analytics are not updating"
-                  required
-                  className="h-11 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 placeholder:text-zinc-500 dark:text-white rounded-xl transition-all shadow-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="description"
-                  className="text-zinc-500 dark:text-white/50 font-medium text-xs uppercase tracking-wider"
-                >
-                  Detailed description
-                </Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  placeholder="Please provide steps to reproduce or details about your feature request..."
-                  required
-                  className="bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 min-h-[120px] text-zinc-900 placeholder:text-zinc-500 dark:text-white rounded-xl transition-all shadow-none resize-y p-4"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.25)] border-0 transition-all flex items-center justify-center gap-2 active:scale-[0.97]"
-              >
-                <Send className="w-4 h-4" />
-                Submit to Linear
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </motion.div>
     </motion.div>
   )
 }

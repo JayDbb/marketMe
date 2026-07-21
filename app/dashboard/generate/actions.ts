@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import type { CanvasData } from '@/types/canvas'
-import { getBusinessProfile } from '@/app/api/business-profile/_actions'
+import { getBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import { resolveDisplayName, PLANS } from '@/lib/billing-utils'
 import { getUserTemplatesResult } from '@/app/dashboard/studio/actions'
 import { ensureContentPlanForUser } from '@/lib/ensure-content-plan'
@@ -42,7 +42,7 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
   if (!user) return null
 
   const [{ data: profile }, { templates }, creditsBalance, subRes] = await Promise.all([
-    getBusinessProfile(),
+    getBusinessProfileAction(),
     getUserTemplatesResult(),
     getCreditsBalance(user.id),
     supabaseAdmin
@@ -98,7 +98,7 @@ export async function generatePostsAction(
 
   if (process.env.OPENAI_API_KEY?.trim()) {
     try {
-      const { data: profile } = await getBusinessProfile()
+      const { data: profile } = await getBusinessProfileAction()
       const aiPosts = await generateWithOpenAI(setup, {
         industry: profile?.industry?.trim(),
         services: profile?.services?.trim(),
@@ -114,7 +114,7 @@ export async function generatePostsAction(
 
   const fallbackPosts = buildFallbackPosts(setup)
   try {
-    const { data: profile } = await getBusinessProfile()
+    const { data: profile } = await getBusinessProfileAction()
     await recordPostGeneration(user.id, profile?.id, setup, 'fallback')
     return { success: true, posts: fallbackPosts }
   } catch (err) {

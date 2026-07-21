@@ -1,0 +1,18 @@
+# Gitleaks config — https://github.com/gitleaks/gitleaks
+title = "MarketMe"
+
+[allowlist]
+description = "Known CI placeholders and generated local artifacts"
+paths = [
+  '''(?i)\.next/''',
+  '''(?i)node_modules/''',
+  '''(?i)\.tmp-''',
+]
+regexes = [
+  # Fake JWT-shaped placeholders used only in CI workflow env stubs
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.placeholder''',
+  '''ci-anon-key-placeholder-not-a-secret''',
+  '''ci-service-role-key-placeholder-not-a-secret''',
+  '''ci-build-placeholder-secret-min-32-chars-long''',
+  '''tr_dev_ci_placeholder''',
+]

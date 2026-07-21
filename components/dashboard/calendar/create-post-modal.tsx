@@ -33,7 +33,9 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { useIsClient } from "@/hooks/use-is-client";
 import { ImageUpload } from "./image-upload";
 import { PannablePreviewImage } from "./pannable-preview-image";
 import { toDatetimeLocalValue } from "@/lib/calendar-utils";
@@ -308,6 +310,16 @@ export function CreatePostModal({
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ctx, setCtx] = useState<PostModalContext>(FALLBACK_CTX);
+  const mounted = useIsClient();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   const previewUrl = useMemo(() => {
     if (!file) return null;
@@ -414,7 +426,9 @@ export function CreatePostModal({
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -423,10 +437,16 @@ export function CreatePostModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            className="fixed inset-0 z-[200] bg-black/55 backdrop-blur-sm"
+            aria-hidden="true"
           />
 
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="schedule-post-title"
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -437,7 +457,10 @@ export function CreatePostModal({
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">
+                  <h2
+                    id="schedule-post-title"
+                    className="text-lg font-semibold text-foreground"
+                  >
                     {isEditMode ? 'Edit Post' : 'Schedule Post'}
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -612,6 +635,7 @@ export function CreatePostModal({
           </div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useState, useEffect, startTransition, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -18,6 +18,7 @@ import {
   Sparkles, CheckCircle2, Loader2, Wand2, Check,
   AlignLeft, Hash, Image as ImageIcon, Briefcase, Tag, Flag,
   ChevronRight, Send, Clock, Bot, FolderOpen, LayoutTemplate, Info, Coins,
+  CalendarDays, FileText, ArrowRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -31,7 +32,7 @@ import { imageToCanvas } from '@/lib/studio-utils'
 import type { StudioTemplate } from '@/app/dashboard/studio/actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type FlowState = 'setup' | 'generating' | 'review'
+type FlowState = 'setup' | 'generating' | 'review' | 'scheduled'
 type PostStatus = 'draft' | 'needs_review' | 'approved' | 'rejected' | 'scheduled' | 'published'
 type TemplateSource = 'ai' | 'user'
 
@@ -258,7 +259,7 @@ export function GenerateContent({
   const [posts, setPosts] = useState<GeneratedPost[]>([])
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [serverDrafts, setServerDrafts] = useState<GeneratedPostDraft[] | null>(null)
-  const [generationFailed, setGenerationFailed] = useState(false)
+  const [scheduledCount, setScheduledCount] = useState(0)
 
   // Template selection state
   const [templateSource, setTemplateSource] = useState<TemplateSource>('ai')
@@ -289,8 +290,11 @@ export function GenerateContent({
 
   // Generating State
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [progressPulse, setProgressPulse] = useState(0)
   const generationComplete =
-    flowState === 'generating' && currentStepIndex >= PROGRESS_STEPS.length
+    flowState === 'generating' &&
+    currentStepIndex >= PROGRESS_STEPS.length &&
+    Boolean(serverDrafts?.length)
 
   const handleStartGeneration = async () => {
     if (templateSource === 'user' && !selectedTemplateId) {
@@ -304,7 +308,7 @@ export function GenerateContent({
 
     setFlowState('generating')
     setCurrentStepIndex(0)
-    setGenerationFailed(false)
+    setProgressPulse(0)
     setServerDrafts(null)
 
     const result = await generatePostsAction({
@@ -316,7 +320,6 @@ export function GenerateContent({
     })
 
     if (!result.success || !result.posts?.length) {
-      setGenerationFailed(true)
       const message = result.error ?? 'Failed to generate posts'
       if (message.toLowerCase().includes('insufficient credits')) {
         toast.error(message, {
@@ -326,24 +329,57 @@ export function GenerateContent({
         toast.error(message)
       }
       setFlowState('setup')
+      setCurrentStepIndex(0)
       return
     }
 
     setServerDrafts(result.posts)
   }
 
-  // Simulate Generation Progress
+  // Smooth progress: advance through early steps on a timer, hold the last step
+  // until the server responds, then finish quickly.
   useEffect(() => {
-    if (flowState !== 'generating' || currentStepIndex >= PROGRESS_STEPS.length) {
-      return
+    if (flowState !== 'generating') return
+
+    const lastStep = PROGRESS_STEPS.length - 1
+    const draftsReady = Boolean(serverDrafts?.length)
+
+    // Continuous soft progress pulse (0→100 looping feel while waiting)
+    const pulse = window.setInterval(() => {
+      setProgressPulse((p) => (p >= 96 ? 72 : p + 1.5))
+    }, 120)
+
+    if (currentStepIndex >= PROGRESS_STEPS.length) {
+      window.clearInterval(pulse)
+      return () => window.clearInterval(pulse)
     }
 
-    const stepDuration = 1200
-    const timer = setTimeout(() => {
-      setCurrentStepIndex((prev) => prev + 1)
-    }, stepDuration + Math.random() * 600)
-    return () => clearTimeout(timer)
-  }, [flowState, currentStepIndex])
+    // Hold on the final labeled step until drafts arrive
+    if (currentStepIndex === lastStep && !draftsReady) {
+      return () => window.clearInterval(pulse)
+    }
+
+    // Once drafts are ready, finish remaining steps quickly
+    const delay =
+      draftsReady
+        ? 280
+        : currentStepIndex === lastStep - 1
+          ? 900
+          : 700 + currentStepIndex * 80
+
+    const timer = window.setTimeout(() => {
+      setCurrentStepIndex((prev) => {
+        if (prev >= PROGRESS_STEPS.length) return prev
+        if (prev === lastStep && !draftsReady) return prev
+        return prev + 1
+      })
+    }, delay)
+
+    return () => {
+      window.clearTimeout(timer)
+      window.clearInterval(pulse)
+    }
+  }, [flowState, currentStepIndex, serverDrafts])
 
   const handleGoToReview = () => {
     if (!serverDrafts?.length) {
@@ -470,10 +506,12 @@ export function GenerateContent({
             scheduledIds.has(p.id) ? { ...p, status: 'scheduled' as PostStatus } : p
           )
         )
+        setScheduledCount(res.scheduledCount)
+        setFlowState('scheduled')
         toast.success(
           res.scheduledCount === 1
-            ? 'Post scheduled — view it on Calendar or Posts'
-            : `${res.scheduledCount} posts scheduled — view them on Calendar or Posts`
+            ? 'Post scheduled successfully'
+            : `${res.scheduledCount} posts scheduled successfully`
         )
         if (res.error) {
           toast.warning(res.error)
@@ -498,7 +536,7 @@ export function GenerateContent({
   return (
     <div className="relative w-full min-h-[calc(100vh-2rem)] flex flex-col items-center pt-8 pb-12 overflow-hidden">
       
-      {/* Ambient Backgrounds for Setup/Generating */}
+      {/* Ambient Backgrounds for Setup/Generating/Scheduled */}
       {flowState !== 'review' && (
         <>
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
@@ -691,98 +729,195 @@ export function GenerateContent({
         {flowState === 'generating' && (
           <motion.div
             key="generating"
-            initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 1.05, filter: 'blur(10px)' }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="w-full max-w-xl px-6 relative z-10 py-10"
           >
-            <div className="text-center mb-16">
+            <div className="text-center mb-10">
               <div className="relative w-28 h-28 mx-auto mb-8 flex items-center justify-center">
-                <div className={`absolute inset-0 bg-blue-500/20 blur-2xl rounded-full transition-opacity duration-1000 ${generationComplete ? 'opacity-0' : 'opacity-100'}`} />
-                <motion.div 
-                  animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                  className={`absolute inset-0 border-[3px] border-dashed border-blue-500/30 rounded-full ${generationComplete ? 'opacity-0' : 'opacity-100'}`} 
+                <div
+                  className={`absolute inset-0 bg-blue-500/20 blur-2xl rounded-full transition-opacity duration-700 ${
+                    generationComplete ? 'opacity-0' : 'opacity-100'
+                  }`}
                 />
-                <motion.div 
-                  animate={{ rotate: -360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                  className={`absolute inset-2 border-2 border-blue-500/40 rounded-full border-t-transparent ${generationComplete ? 'opacity-0' : 'opacity-100'}`} 
-                />
-                
+                {!generationComplete && (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-0 border-[3px] border-dashed border-blue-500/30 rounded-full"
+                    />
+                    <motion.div
+                      animate={{ rotate: -360 }}
+                      transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-2 border-2 border-blue-500/50 rounded-full border-t-transparent border-l-transparent"
+                    />
+                  </>
+                )}
+
                 <div className="relative z-10 w-16 h-16 bg-white dark:bg-[#0a0a14] rounded-full border border-black/5 dark:border-white/10 flex items-center justify-center shadow-2xl">
                   {generationComplete ? (
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 15 }}>
+                    <motion.div
+                      initial={{ scale: 0.6, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                    >
                       <CheckCircle2 className="w-8 h-8 text-green-400" />
                     </motion.div>
                   ) : (
-                    <Sparkles className="w-7 h-7 text-blue-600 dark:text-white animate-pulse" />
+                    <motion.div
+                      animate={{ scale: [1, 1.08, 1], opacity: [0.85, 1, 0.85] }}
+                      transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <Sparkles className="w-7 h-7 text-blue-600 dark:text-white" />
+                    </motion.div>
                   )}
                 </div>
               </div>
               <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-3 tracking-tight">
-                {generationComplete ? 'Content Generation Complete' : 'Synthesizing Content...'}
+                {generationComplete
+                  ? 'Content Generation Complete'
+                  : 'Synthesizing Content...'}
               </h2>
               <p className="text-zinc-500 dark:text-white/40 text-lg">
-                {generationComplete ? 'Your strategy has been executed successfully.' : 'Hold tight while the AI builds your weekly strategy.'}
+                {generationComplete
+                  ? 'Your strategy has been executed successfully.'
+                  : 'Hold tight while the AI builds your weekly strategy.'}
               </p>
+
+              {!generationComplete && (
+                <div className="mt-6 mx-auto max-w-sm h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-linear-to-r from-blue-500 via-sky-400 to-blue-500"
+                    animate={{
+                      width: `${Math.min(
+                        98,
+                        (Math.min(currentStepIndex, PROGRESS_STEPS.length - 1) /
+                          PROGRESS_STEPS.length) *
+                          100 +
+                          progressPulse * 0.18
+                      )}%`,
+                    }}
+                    transition={{ type: 'spring', stiffness: 80, damping: 22 }}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-3 mb-10">
               {PROGRESS_STEPS.map((step, index) => {
                 const isPast = index < currentStepIndex
-                const isCurrent = index === currentStepIndex && !generationComplete
+                const isCurrent =
+                  index === currentStepIndex &&
+                  currentStepIndex < PROGRESS_STEPS.length &&
+                  !generationComplete
+                const isWaiting = !isPast && !isCurrent
 
                 return (
-                  <motion.div 
-                    key={step} 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-500 ${
-                      isCurrent ? 'bg-white dark:bg-white/10   shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]' : 
-                      isPast ? 'dark:bg-white/5   dark:border-white/10' : 'bg-transparent border-transparent'
+                  <motion.div
+                    key={step}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{
+                      opacity: isWaiting ? 0.45 : 1,
+                      y: 0,
+                      scale: isCurrent ? 1.01 : 1,
+                    }}
+                    transition={{
+                      layout: { type: 'spring', stiffness: 320, damping: 28 },
+                      opacity: { duration: 0.35 },
+                      delay: index * 0.04,
+                    }}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-colors duration-500 ${
+                      isCurrent
+                        ? 'bg-white dark:bg-white/10 border-blue-500/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
+                        : isPast
+                          ? 'dark:bg-white/5 border-black/5 dark:border-white/10'
+                          : 'bg-transparent border-transparent'
                     }`}
                   >
-                    <span className={`text-sm font-medium ${isPast ? 'text-zinc-900 dark:text-white' : isCurrent ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-white/20'}`}>
+                    <span
+                      className={`text-sm font-medium transition-colors duration-300 ${
+                        isPast || isCurrent
+                          ? 'text-zinc-900 dark:text-white'
+                          : 'text-zinc-500 dark:text-white/25'
+                      }`}
+                    >
                       {step}
                     </span>
-                    <div className="flex items-center">
-                      {isPast ? (
-                        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-green-400 flex items-center gap-1.5 text-[11px] font-mono tracking-widest uppercase">
-                          <Check className="w-3.5 h-3.5" /> Done
-                        </motion.span>
-                      ) : isCurrent ? (
-                        <span className="text-blue-400 flex items-center gap-1.5 text-[11px] font-mono tracking-widest uppercase">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> In progress
-                        </span>
-                      ) : (
-                        <span className="text-zinc-500 dark:text-white/10 text-[11px] font-mono tracking-widest uppercase">Waiting</span>
-                      )}
+                    <div className="flex items-center min-w-[7.5rem] justify-end">
+                      <AnimatePresence mode="wait" initial={false}>
+                        {isPast ? (
+                          <motion.span
+                            key="done"
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-green-400 flex items-center gap-1.5 text-[11px] font-mono tracking-widest uppercase"
+                          >
+                            <Check className="w-3.5 h-3.5" /> Done
+                          </motion.span>
+                        ) : isCurrent ? (
+                          <motion.span
+                            key="progress"
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-blue-400 flex items-center gap-1.5 text-[11px] font-mono tracking-widest uppercase"
+                          >
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Working
+                          </motion.span>
+                        ) : (
+                          <motion.span
+                            key="wait"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="text-zinc-500 dark:text-white/15 text-[11px] font-mono tracking-widest uppercase"
+                          >
+                            Waiting
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </motion.div>
                 )
               })}
             </div>
 
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
               {generationComplete && serverDrafts && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }} 
+                <motion.div
+                  key="cta"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 22 }}
                   className="flex justify-center"
                 >
-                  <Button 
-                    onClick={handleGoToReview} 
+                  <Button
+                    onClick={handleGoToReview}
                     className="h-14 px-10 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl text-base shadow-[0_0_40px_rgba(34,197,94,0.3)] transition-all"
                   >
                     Review & Publish Content <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 </motion.div>
               )}
-              {generationComplete && !serverDrafts && !generationFailed && (
-                <p className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Finalizing content…
-                </p>
+              {!generationComplete && currentStepIndex >= PROGRESS_STEPS.length - 1 && !serverDrafts && (
+                <motion.p
+                  key="finalizing"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2"
+                >
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Still generating — this can take a moment…
+                </motion.p>
               )}
             </AnimatePresence>
           </motion.div>
@@ -996,6 +1131,83 @@ export function GenerateContent({
                 <p className="text-zinc-500 dark:text-white/40 text-sm font-medium">Select a post from the sidebar to review.</p>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* ────────────────────────────────────────────────────────────────────────
+            STATE: SCHEDULED (success)
+        ──────────────────────────────────────────────────────────────────────── */}
+        {flowState === 'scheduled' && (
+          <motion.div
+            key="scheduled"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-lg px-6 relative z-10 py-16 text-center"
+          >
+            <div className="relative w-24 h-24 mx-auto mb-8 flex items-center justify-center">
+              <div className="absolute inset-0 bg-green-500/20 blur-2xl rounded-full" />
+              <motion.div
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+                className="relative z-10 w-20 h-20 rounded-full bg-white dark:bg-[#0a0a14] border border-green-500/30 flex items-center justify-center shadow-2xl"
+              >
+                <CheckCircle2 className="w-10 h-10 text-green-400" />
+              </motion.div>
+            </div>
+
+            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-3 tracking-tight">
+              Queue finished
+            </h2>
+            <p className="text-zinc-500 dark:text-white/45 text-base mb-2">
+              {scheduledCount === 1
+                ? 'Your post is scheduled and ready on the calendar.'
+                : `${scheduledCount} posts are scheduled and ready on the calendar.`}
+            </p>
+            <p className="text-sm text-zinc-500 dark:text-white/30 mb-10">
+              You can review them anytime in Calendar or Posts.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+              <Link
+                href="/dashboard/calendar"
+                className={buttonVariants({
+                  className:
+                    'h-12 px-6 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl shadow-[0_0_30px_rgba(34,197,94,0.25)]',
+                })}
+              >
+                <CalendarDays className="w-4 h-4 mr-2" />
+                Open Calendar
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
+              <Link
+                href="/dashboard/posts"
+                className={buttonVariants({
+                  variant: 'outline',
+                  className: 'h-12 px-6 rounded-xl border-zinc-200 dark:border-white/15',
+                })}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                View Posts
+              </Link>
+            </div>
+
+            <Button
+              variant="ghost"
+              className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              onClick={() => {
+                setScheduledCount(0)
+                setPosts([])
+                setServerDrafts(null)
+                setSelectedPostId(null)
+                setCurrentStepIndex(0)
+                setFlowState('setup')
+              }}
+            >
+              Generate more content
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>

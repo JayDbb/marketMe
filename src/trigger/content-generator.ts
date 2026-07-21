@@ -159,13 +159,11 @@ export const generateWeeklyContent = task({
 
     // 5. Save Posts to Next.js posts table
     if (generatedPosts && generatedPosts.length > 0) {
-      type GeneratedPlanPost = {
-        caption: string
+      const postsToInsert = generatedPosts.map((post: {
+        caption?: string
         hashtags?: string[]
-        suggested_media_prompt?: string | null
-      }
-
-      const postsToInsert = (generatedPosts as GeneratedPlanPost[]).map((post, index: number) => {
+        suggested_media_prompt?: string
+      }, index: number) => {
         const scheduledDate = new Date(startDate);
         scheduledDate.setDate(scheduledDate.getDate() + (index % 7));
 
@@ -476,7 +474,7 @@ export const scheduledPublishing = schedules.task({
 
         count++;
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Unknown error";
+        const message = err instanceof Error ? err.message : String(err);
         console.error(`Scheduled publishing failed for post ${post.id}:`, message);
         // Mark failed
         await supabaseAdmin

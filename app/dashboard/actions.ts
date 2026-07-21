@@ -1,43 +1,23 @@
 'use server'
 
-import { linearClient } from '@/lib/linear/client'
 import { revalidatePath } from 'next/cache'
-import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
-export async function submitFeedback(formData: FormData) {
-  const title = formData.get('title') as string
-  const description = formData.get('description') as string
-  const teamId = process.env.LINEAR_TEAM_ID
-
-  if (!title || !description || !teamId) {
-    console.error('Missing required fields or configuration.')
-    return
-  }
-
-  try {
-    const response = await linearClient.createIssue({
-      teamId: teamId,
-      title: `Feedback: ${title}`,
-      description: description,
-    })
-
-    if (response.success) {
-      revalidatePath('/dashboard')
-    } else {
-      console.error('Failed to create issue in Linear.')
-    }
-  } catch (error) {
-    console.error('Error creating Linear issue:', error)
-  }
-}
-
 export async function generateContentAction(businessProfileId: string) {
-  const user = await getAuthenticatedUser()
-  if (!user) return { error: 'Not authenticated' }
+  let session
+  try {
+    session = await auth.api.getSession({ headers: await headers() })
+  } catch {
+    return { error: 'Not authenticated' }
+  }
+  if (!session) return { error: 'Not authenticated' }
+  const user = session.user
 
-  const startDate = new Date().toISOString()
-  const endDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  // Create a dummy content plan
+  const startDate = new Date().toISOString().split('T')[0]
+  const endDate = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   const { data: plan, error: planError } = await supabaseAdmin
     .from('content_plans')

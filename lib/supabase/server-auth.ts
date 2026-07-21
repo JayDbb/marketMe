@@ -1,5 +1,5 @@
-import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
+import { cache } from 'react'
+import { getSession } from '@/lib/services/auth.service'
 
 export const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -18,27 +18,21 @@ export interface AuthUser {
   }
 }
 
-/** Resolve the authenticated user via Better Auth. */
-export async function getAuthenticatedUser(): Promise<(AuthUser & { id: string }) | null> {
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-    if (!session?.user) return null
+/** Resolve the authenticated user via Better Auth (once per request). */
+export const getAuthenticatedUser = cache(async (): Promise<(AuthUser & { id: string }) | null> => {
+  const session = await getSession()
+  if (!session?.user) return null
 
-    const { user } = session
-    return {
-      id: user.id,
-      email: user.email,
-      user_metadata: {
-        full_name: user.name ?? undefined,
-        name: user.name ?? undefined,
-      },
-    }
-  } catch {
-    return null
+  const { user } = session
+  return {
+    id: user.id,
+    email: user.email,
+    user_metadata: {
+      full_name: user.name ?? undefined,
+      name: user.name ?? undefined,
+    },
   }
-}
+})
 
 /** Skip PostgREST uuid filters when the id cannot be cast server-side. */
 export function canQueryByUserId(userId: string): boolean {

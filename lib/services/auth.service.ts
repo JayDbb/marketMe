@@ -1,12 +1,12 @@
+import { cache } from 'react'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 
 /**
  * Get the current Better Auth session from request headers.
- * For use in Server Components, Server Actions, and Route Handlers.
- * Returns null if not authenticated.
+ * Cached once per request so layout + pages share a single lookup.
  */
-export async function getSession() {
+export const getSession = cache(async () => {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -15,7 +15,7 @@ export async function getSession() {
   } catch {
     return null
   }
-}
+})
 
 /**
  * Require authentication. Returns the session or throws a structured error.

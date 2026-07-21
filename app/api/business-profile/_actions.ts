@@ -1,11 +1,7 @@
 'use server'
 
 import { getSession } from '@/lib/services/auth.service'
-import {
-  getBusinessProfile as fetchBusinessProfile,
-  upsertBusinessProfile as saveBusinessProfile,
-  deleteBusinessProfile as removeBusinessProfile,
-} from '@/lib/services/business.service'
+import { getBusinessProfile, upsertBusinessProfile, deleteBusinessProfile } from '@/lib/services/business.service'
 import type { BusinessProfile, BusinessProfileInput } from '@/types/business-profile'
 
 /**
@@ -22,7 +18,7 @@ export async function getBusinessProfileAction(): Promise<{
     return { data: null, error: 'Not authenticated' }
   }
 
-  return fetchBusinessProfile(session.user.id)
+  return getBusinessProfile(session.user.id)
 }
 
 /**
@@ -41,7 +37,7 @@ export async function upsertBusinessProfileAction(
     return { data: null, error: 'Not authenticated' }
   }
 
-  return saveBusinessProfile(session.user.id, input)
+  return upsertBusinessProfile(session.user.id, input)
 }
 
 /**
@@ -57,12 +53,5 @@ export async function deleteBusinessProfileAction(): Promise<{
     return { success: false, error: 'Not authenticated' }
   }
 
-  return removeBusinessProfile(session.user.id)
-}
-
-/** Compatibility aliases for existing call sites. */
-export {
-  getBusinessProfileAction as getBusinessProfile,
-  upsertBusinessProfileAction as upsertBusinessProfile,
-  deleteBusinessProfileAction as deleteBusinessProfile,
+  return deleteBusinessProfile(session.user.id)
 }

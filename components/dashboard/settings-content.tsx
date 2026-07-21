@@ -1,6 +1,7 @@
 "use client";
 
 import { BillingContent } from "@/components/dashboard/billing-content";
+import { useAccount } from "@/components/dashboard/account-provider";
 import { SettingsCalendarTab } from "@/components/dashboard/settings/settings-calendar-tab";
 import { SettingsProfileTab } from "@/components/dashboard/settings/settings-profile-tab";
 import { SettingsTeamTab } from "@/components/dashboard/settings/settings-team-tab";
@@ -8,7 +9,7 @@ import { SettingsWorkspaceTab } from "@/components/dashboard/settings/settings-w
 import { getInitials, PLANS } from "@/lib/billing-utils";
 import type { AccountContext } from "@/types/billing";
 import type { SettingsData } from "@/types/settings";
-import { motion, Variants } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import {
   Calendar,
   Code,
@@ -17,8 +18,8 @@ import {
   Settings,
   Users,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { startTransition, Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 const TABS = [
   "Settings",
@@ -30,6 +31,21 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number];
+
+function parseTab(value: string | null): TabId {
+  return value && TABS.includes(value as TabId) ? (value as TabId) : "Settings";
+}
+
+function replaceTabInUrl(tab: TabId) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("tab", tab);
+  window.history.replaceState(
+    window.history.state,
+    "",
+    `${url.pathname}${url.search}`
+  );
+}
 
 const navSections = [
   {
@@ -71,40 +87,35 @@ const itemVariants: Variants = {
 };
 
 interface SettingsContentProps {
-  account: AccountContext;
   settings: SettingsData;
 }
 
 function SettingsContentInner({
-  account: initialAccount,
   settings: initialSettings,
 }: SettingsContentProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab");
+  const initialAccount = useAccount();
 
-  const [account, setAccount] = useState(initialAccount);
+  const [accountEdits, setAccountEdits] = useState<Partial<AccountContext>>({});
+  const account: AccountContext = { ...initialAccount, ...accountEdits };
   const [settings, setSettings] = useState(initialSettings);
-  const [activeTab, setActiveTab] = useState<TabId>(() => {
-    const t = searchParams.get("tab");
-    return t && TABS.includes(t as TabId) ? (t as TabId) : "Settings";
-  });
+  const [activeTab, setActiveTab] = useState<TabId>(() =>
+    parseTab(searchParams.get("tab"))
+  );
 
+  // Browser back/forward only — tab clicks stay client-side (no RSC refetch).
   useEffect(() => {
-    if (
-      tabParam &&
-      TABS.includes(tabParam as TabId) &&
-      tabParam !== activeTab
-    ) {
-      startTransition(() => {
-        setActiveTab(tabParam as TabId);
-      });
-    }
-  }, [tabParam, activeTab]);
+    const onPopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setActiveTab(parseTab(params.get("tab")));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const selectTab = (tab: TabId) => {
     setActiveTab(tab);
-    router.replace(`/dashboard/settings?tab=${tab}`, { scroll: false });
+    replaceTabInUrl(tab);
   };
 
   const planBadge = PLANS[account.plan].badge;
@@ -170,7 +181,7 @@ function SettingsContentInner({
               settings={settings}
               onSaved={(name) => {
                 setSettings((s) => ({ ...s, displayName: name }));
-                setAccount((a) => ({
+                setAccountEdits((a) => ({
                   ...a,
                   displayName: name,
                   initials: getInitials(name),
@@ -178,7 +189,7 @@ function SettingsContentInner({
               }}
               onAvatarUpdated={(avatarUrl) => {
                 setSettings((s) => ({ ...s, avatarUrl }));
-                setAccount((a) => ({ ...a, avatarUrl }));
+                setAccountEdits((a) => ({ ...a, avatarUrl }));
               }}
             />
           )}
@@ -186,7 +197,11 @@ function SettingsContentInner({
           {activeTab === "Billing" && <BillingContent account={account} />}
 
           {activeTab === "Team" && (
-            <SettingsTeamTab settings={settings} account={account} />
+            <SettingsTeamTab
+              settings={settings}
+              account={account}
+              onGoToBilling={() => selectTab("Billing")}
+            />
           )}
 
           {activeTab === "Workspace" && (

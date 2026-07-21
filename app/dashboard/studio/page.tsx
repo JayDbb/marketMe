@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { StudioContent } from '@/components/dashboard/studio-content'
 import { getUserTemplatesResult } from '@/app/dashboard/studio/actions'
-import { getBusinessProfile } from '@/app/api/business-profile/_actions'
+import { getBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import { getStudioBrandKit } from '@/lib/studio-brand-kit'
 import { Loader2 } from 'lucide-react'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
@@ -22,7 +22,7 @@ export default async function StudioPage() {
 
   const [{ templates, error: templatesError }, profileResult] = await Promise.all([
     getUserTemplatesResult(),
-    getBusinessProfile(),
+    getBusinessProfileAction(),
   ])
 
   const brandKit = getStudioBrandKit(profileResult.data?.industry)

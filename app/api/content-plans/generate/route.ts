@@ -81,13 +81,11 @@ export async function POST(request: NextRequest) {
 
     // 4. Save Posts to DB
     if (postsData.posts && postsData.posts.length > 0) {
-      type GeneratedPlanPost = {
-        caption: string
+      const postsToInsert = postsData.posts.map((post: {
+        caption?: string
         hashtags?: string[]
-        suggested_media_prompt?: string | null
-      }
-
-      const postsToInsert = (postsData.posts as GeneratedPlanPost[]).map((post, index: number) => {
+        suggested_media_prompt?: string
+      }, index: number) => {
         const scheduledDate = new Date(start);
         scheduledDate.setDate(scheduledDate.getDate() + (index % 7));
 

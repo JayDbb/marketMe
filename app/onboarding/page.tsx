@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 import { MarketingPageShell } from '@/components/marketing/marketing-page-shell'
-import { getBusinessProfile } from '@/app/api/business-profile/_actions'
+import { getBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import { isProfileReadyForAI } from '@/lib/marketing-profile-prompt'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 
@@ -12,7 +12,7 @@ export default async function OnboardingPage() {
     return redirect('/login')
   }
 
-  const { data: profile } = await getBusinessProfile()
+  const { data: profile } = await getBusinessProfileAction()
 
   if (isProfileReadyForAI(profile)) {
     redirect('/dashboard')

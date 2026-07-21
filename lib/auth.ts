@@ -32,6 +32,7 @@ function buildTrustedOrigins(): string[] {
 // may be evaluated with placeholder values — better-auth will log errors
 // but won't crash the build since we added it to serverExternalPackages.
 const DATABASE_URL = process.env.DATABASE_URL || ""
+console.log("[Better Auth Init] DATABASE_URL defined:", !!DATABASE_URL, "length:", DATABASE_URL.length);
 
 const pool = DATABASE_URL
   ? new Pool({

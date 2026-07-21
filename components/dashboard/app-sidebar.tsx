@@ -1,6 +1,6 @@
 'use client'
 
-import { Activity, LayoutDashboard, Mail, MessageSquare, Rocket, Calendar as CalendarIcon, Edit3, Link2, MonitorPlay, Workflow, Sparkles } from "lucide-react"
+import { Activity, LayoutDashboard, Mail, Rocket, Calendar as CalendarIcon, Edit3, Link2, MonitorPlay, Workflow, Sparkles } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import { UserNav } from "@/components/dashboard/user-nav"
 import {
@@ -147,17 +147,6 @@ export function AppSidebar({ account }: { account: AccountContext }) {
           </SidebarGroupLabel>
           <SidebarGroupContent className="px-2">
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<Link href="/dashboard#feedback" />}
-                  tooltip="Feedback"
-                  isActive={pathname === '/dashboard'}
-                  className={`mt-0.5 ${navButtonClass}`}
-                >
-                  <MessageSquare className="w-4 h-4 mr-3 shrink-0" />
-                  <span className="font-medium text-[14px]">Feedback</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   render={<Link href="/dashboard/connections" />}

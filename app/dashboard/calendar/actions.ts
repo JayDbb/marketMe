@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { Post } from '@/types/content'
 import { fetchUserPostsResult } from '@/lib/fetch-user-posts'
-import { getBusinessProfile } from '@/app/api/business-profile/_actions'
+import { getBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import { getInitials, resolveDisplayName } from '@/lib/billing-utils'
 import { toSocialHandle } from '@/lib/post-schedule-utils'
 import { isWithinImageUploadLimit } from '@/lib/upload-limits'
@@ -27,7 +27,7 @@ export async function getPostModalContextAction(): Promise<PostModalContext | nu
   const user = await getAuthenticatedUser()
   if (!user) return null
 
-  const { data: profile } = await getBusinessProfile()
+  const { data: profile } = await getBusinessProfileAction()
   const displayName = resolveDisplayName(user, profile)
   const email = user.email ?? ''
 

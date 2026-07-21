@@ -91,7 +91,6 @@ Always scope queries by `user_id` from `getAuthenticatedUser()`.
 |---------|---------|
 | `MARKETME_AI_API_URL` | FastAPI AI backend (strategy, briefs) |
 | `OPENAI_API_KEY` | Direct OpenAI / OpenRouter generation |
-| `LINEAR_PERSONAL_ACCESS_TOKEN` | `/linear` internal tool |
 | `STRIPE_SECRET_KEY` | Billing |
 | `PEXELS_API_KEY` | Stock images in studio |
 

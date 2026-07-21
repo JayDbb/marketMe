@@ -5,7 +5,8 @@ import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { getSession } from '@/lib/services/auth.service'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { getBusinessProfile, upsertBusinessProfile } from '@/app/api/business-profile/_actions'
+import { upsertBusinessProfileAction } from '@/app/api/business-profile/_actions'
+import { getBusinessProfile } from '@/lib/services/business.service'
 import { DEFAULT_PREFERENCES } from '@/lib/settings-utils'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import type { SettingsData, WeekStartsOn } from '@/types/settings'
@@ -99,9 +100,13 @@ export async function getSettingsData(): Promise<SettingsData | null> {
   if (!session) return null
 
   const user = session.user
-  const [{ data: profile }, preferences] = await Promise.all([
-    getBusinessProfile(),
-    getUserPreferencesAction(),
+  const [{ data: profile }, { data: prefs }] = await Promise.all([
+    getBusinessProfile(user.id),
+    supabaseAdmin
+      .from('user_preferences')
+      .select('timezone, week_starts_on')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   return {
@@ -116,7 +121,11 @@ export async function getSettingsData(): Promise<SettingsData | null> {
       primaryGoal: profile?.primary_goal ?? '',
       hasProfile: Boolean(profile?.business_name),
     },
-    preferences,
+    preferences: {
+      timezone: prefs?.timezone ?? DEFAULT_PREFERENCES.timezone,
+      weekStartsOn:
+        (prefs?.week_starts_on as WeekStartsOn) ?? DEFAULT_PREFERENCES.weekStartsOn,
+    },
   }
 }
 
@@ -198,7 +207,7 @@ export async function updateCalendarPreferencesAction(formData: FormData) {
 }
 
 export async function updateWorkspaceAction(formData: FormData) {
-  const result = await upsertBusinessProfile({
+  const result = await upsertBusinessProfileAction({
     business_name: (formData.get('businessName') as string) || undefined,
     industry: (formData.get('industry') as string) || undefined,
     location: (formData.get('location') as string) || undefined,

@@ -1,9 +1,10 @@
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
+import { AccountProvider } from "@/components/dashboard/account-provider"
 import { SocialConnectionsProvider } from "@/components/dashboard/social-connections-provider"
 import { DashboardProviders } from "@/components/dashboard/dashboard-providers"
 import { redirect } from 'next/navigation'
-import { getAccountContext } from '@/app/dashboard/account/actions'
+import { getAccountContext } from '@/lib/services/account.service'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import { createPageMetadata } from '@/lib/metadata'
 
@@ -26,6 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <DashboardProviders>
+      <AccountProvider account={account}>
       <div className="fixed inset-0 z-10 flex overflow-hidden bg-background">
       <SidebarProvider className="h-full w-full min-h-0 overflow-hidden">
         <AppSidebar account={account} />
@@ -55,6 +57,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </SidebarInset>
       </SidebarProvider>
     </div>
+      </AccountProvider>
     </DashboardProviders>
   )
 }

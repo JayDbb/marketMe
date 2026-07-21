@@ -191,7 +191,7 @@ export function StudioToolsPanel({
           <>
             <div>
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-white/40 mb-3">
-                Instagram format
+                Canvas format
               </h4>
               <div className="space-y-2">
                 {INSTAGRAM_FORMATS.map((format) => {

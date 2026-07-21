@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
-import { submitFeedback } from '@/app/dashboard/actions'
 import { DashboardShell } from '@/components/dashboard/dashboard-shell'
-import { getBusinessProfile } from '@/app/api/business-profile/_actions'
+import { getBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import type { DashboardStats } from '@/lib/dashboard-utils'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -93,19 +92,18 @@ export default async function DashboardPage() {
   if (!user) redirect('/login')
 
   const [profileResult, stats] = await Promise.all([
-    getBusinessProfile(),
+    getBusinessProfileAction(),
     getDashboardStats(user.id),
   ])
 
   if (process.env.NODE_ENV === 'development' && profileResult.error) {
-    console.error('[dashboard] getBusinessProfile:', profileResult.error)
+    console.error('[dashboard] getBusinessProfileAction:', profileResult.error)
   }
 
   const profile = profileResult.data
 
   return (
     <DashboardShell
-      submitFeedbackAction={submitFeedback}
       profile={profile}
       stats={stats}
     />

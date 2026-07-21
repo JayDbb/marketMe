@@ -90,3 +90,51 @@ export async function updatePostStatus(
 ): Promise<{ data: Post | null; error: string | null }> {
   return transitionPostStatus(userId, postId, status, { scheduledAt })
 }
+
+/**
+ * Update post fields for the authenticated user.
+ */
+export async function updatePost(
+  userId: string,
+  postId: string,
+  updates: {
+    content?: string
+    platform?: string
+    scheduled_at?: string
+    image_url?: string | null
+  }
+): Promise<{ data: Post | null; error: string | null }> {
+  const { data, error } = await supabaseAdmin
+    .from('posts')
+    .update(updates)
+    .eq('id', postId)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data: data as Post, error: null }
+}
+
+/**
+ * Delete a post owned by the user.
+ */
+export async function deletePost(
+  userId: string,
+  postId: string
+): Promise<{ success: boolean; error: string | null }> {
+  const { error } = await supabaseAdmin
+    .from('posts')
+    .delete()
+    .eq('id', postId)
+    .eq('user_id', userId)
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  return { success: true, error: null }
+}

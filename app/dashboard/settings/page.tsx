@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { SettingsContent } from '@/components/dashboard/settings-content'
-import { getAccountContext } from '@/app/dashboard/account/actions'
 import { getSettingsData } from '@/app/dashboard/settings/actions'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import { Loader2 } from 'lucide-react'
@@ -16,16 +15,14 @@ function SettingsLoading() {
 
 export default async function SettingsPage() {
   const user = await getAuthenticatedUser()
-
   if (!user) redirect('/login')
 
-  const [account, settings] = await Promise.all([getAccountContext(), getSettingsData()])
-
-  if (!account || !settings) redirect('/login')
+  const settings = await getSettingsData()
+  if (!settings) redirect('/login')
 
   return (
     <Suspense fallback={<SettingsLoading />}>
-      <SettingsContent account={account} settings={settings} />
+      <SettingsContent settings={settings} />
     </Suspense>
   )
 }

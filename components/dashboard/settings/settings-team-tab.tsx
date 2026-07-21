@@ -10,9 +10,11 @@ import { toast } from 'sonner'
 export function SettingsTeamTab({
   settings,
   account,
+  onGoToBilling,
 }: {
   settings: SettingsData
   account: AccountContext
+  onGoToBilling?: () => void
 }) {
   const teamLimit = PLANS[account.plan].limits.teamMembers
   const initials = getInitials(settings.displayName || settings.email)
@@ -70,9 +72,19 @@ export function SettingsTeamTab({
       {teamLimit <= 1 && (
         <p className="text-sm text-zinc-500 dark:text-white/40">
           Need more seats?{' '}
-          <Link href="/dashboard/settings?tab=Billing" className="text-blue-400 hover:text-blue-300">
-            View plans
-          </Link>{' '}
+          {onGoToBilling ? (
+            <button
+              type="button"
+              onClick={onGoToBilling}
+              className="text-blue-400 hover:text-blue-300"
+            >
+              View plans
+            </button>
+          ) : (
+            <Link href="/dashboard/settings?tab=Billing" className="text-blue-400 hover:text-blue-300">
+              View plans
+            </Link>
+          )}{' '}
           (payments launching soon).
         </p>
       )}

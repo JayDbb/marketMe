@@ -269,7 +269,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
             Studio
           </p>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-zinc-900 dark:text-white">
-            Instagram design studio
+            Design studio
           </h1>
           <p className="text-zinc-500 dark:text-white/40 mt-1 text-sm max-w-lg">
             {stats.total === 0

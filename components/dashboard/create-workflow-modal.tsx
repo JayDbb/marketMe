@@ -20,7 +20,7 @@ interface CreateWorkflowModalProps {
 export function CreateWorkflowModal({ open, onOpenChange }: CreateWorkflowModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-[#0c0c18] border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white p-6">
+      <DialogContent className="max-w-md bg-card border-border text-card-foreground p-6">
         <DialogHeader className="flex flex-col items-start mb-6 space-y-2">
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-2">
             <GitPullRequest className="w-5 h-5 text-blue-400" />
@@ -59,7 +59,7 @@ export function CreateWorkflowModal({ open, onOpenChange }: CreateWorkflowModalP
           <Button 
             variant="outline" 
             onClick={() => onOpenChange(false)}
-            className="h-11 bg-transparent border-transparent dark:border-white/10 text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-white/5 font-medium rounded-xl"
+            className="h-11 bg-transparent border-border text-foreground hover:bg-muted font-medium rounded-xl"
           >
             Cancel
           </Button>

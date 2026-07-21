@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+import { useIsClient } from '@/hooks/use-is-client'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronDown,
@@ -41,7 +42,7 @@ const ITEMS: ChecklistItem[] = [
   {
     id: 'profileComplete',
     label: 'Set up your business profile',
-    description: 'Tell us about your business so we can tailor your content strategy.',
+    description: 'A 2-minute setup gives the AI your audience, voice, and channels.',
     icon: User,
     href: '/onboarding',
     cta: 'Complete profile',
@@ -59,7 +60,7 @@ const ITEMS: ChecklistItem[] = [
     label: 'Generate your first content plan',
     description: "Use AI to generate a week's worth of posts tailored to your brand.",
     icon: Sparkles,
-    href: '/dashboard',
+    href: '/dashboard/generate',
     cta: 'Generate plan',
   },
   {
@@ -86,14 +87,11 @@ const STORAGE_KEY = 'mm_onboarding_dismissed'
 
 export function OnboardingChecklist({ state }: { state: OnboardingState }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [isDismissed, setIsDismissed] = useState(false)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    const dismissed = localStorage.getItem(STORAGE_KEY)
-    if (dismissed === 'true') setIsDismissed(true)
-  }, [])
+  const [isDismissed, setIsDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem(STORAGE_KEY) === 'true'
+  })
+  const mounted = useIsClient()
 
   const handleDismiss = useCallback(() => {
     setIsDismissed(true)
@@ -117,7 +115,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
         className="relative rounded-2xl overflow-hidden border border-transparent dark:border-white/8 bg-white dark:bg-white/3 backdrop-blur-xl shadow-xl mb-6"
       >
         {/* Gradient accent bar */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-r from-blue-500/60 via-indigo-400/40 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-r from-blue-500/60 via-blue-400/40 to-transparent" />
 
         {/* Ambient glow */}
         <div className="absolute top-0 right-0 w-[300px] h-[200px] bg-blue-600/8 blur-[80px] rounded-full pointer-events-none" />
@@ -143,7 +141,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
               {/* Progress bar */}
               <div className="flex-1 h-1 rounded-full bg-white dark:bg-white/8 border-zinc-200 overflow-hidden">
                 <motion.div
-                  className="h-full rounded-full bg-linear-to-r from-blue-500 to-indigo-400"
+                  className="h-full rounded-full bg-linear-to-r from-blue-500 to-blue-400"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
@@ -264,7 +262,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                     <div>
                       <p className="text-sm font-semibold text-zinc-900 dark:text-white">Setup complete!</p>
                       <p className="text-xs text-zinc-500 dark:text-white/40 mt-0.5">
-                        You're ready to grow your business with Marketme.
+                        You&apos;re ready to grow your business with Marketme.
                       </p>
                     </div>
                     <button

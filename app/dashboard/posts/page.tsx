@@ -1,11 +1,11 @@
 import { PostsContent } from '@/components/dashboard/posts-content'
-import { getUserAndProfile } from '@/lib/user'
 import { redirect } from 'next/navigation'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export default async function PostsPage() {
-  const { user } = await getUserAndProfile()
-  
+  const user = await getAuthenticatedUser()
+
   if (!user) {
     return redirect('/login')
   }
@@ -21,8 +21,9 @@ export default async function PostsPage() {
   }
 
   return (
-    <div className="relative min-h-full font-sans">
-      <PostsContent initialPosts={posts || []} />
-    </div>
+    <PostsContent
+      initialPosts={posts ?? []}
+      loadError={error ? 'Could not load posts. Please refresh the page.' : null}
+    />
   )
 }

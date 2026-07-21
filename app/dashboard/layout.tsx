@@ -1,38 +1,60 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
-import { getUserAndProfile } from '@/lib/user'
+import { SocialConnectionsProvider } from "@/components/dashboard/social-connections-provider"
+import { DashboardProviders } from "@/components/dashboard/dashboard-providers"
 import { redirect } from 'next/navigation'
+import { getAccountContext } from '@/app/dashboard/account/actions'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import { createPageMetadata } from '@/lib/metadata'
 
-// Must be force-dynamic: layout calls getUserAndProfile() which reads headers()
-export const dynamic = 'force-dynamic'
+export const metadata = createPageMetadata({
+  title: 'Dashboard',
+  noIndex: true,
+})
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user } = await getUserAndProfile()
+  const user = await getAuthenticatedUser()
 
   if (!user) {
     return redirect('/login')
   }
 
+  const account = await getAccountContext()
+  if (!account) {
+    return redirect('/login')
+  }
+
   return (
-    <SidebarProvider>
-      <AppSidebar user={user} />
-      <div className="flex-1 h-screen bg-zinc-50 dark:bg-[#0a0a14] text-zinc-900 dark:text-white relative flex flex-col overflow-hidden">
-        {/* Ambient glow */}
-        <div className="fixed top-0 right-0 w-[400px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" aria-hidden="true" />
-        <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-700/8 blur-[150px] rounded-full pointer-events-none" aria-hidden="true" />
+    <DashboardProviders>
+      <div className="fixed inset-0 z-10 flex overflow-hidden bg-background">
+      <SidebarProvider className="h-full w-full min-h-0 overflow-hidden">
+        <AppSidebar account={account} />
+        <SidebarInset className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background text-foreground md:m-0 md:rounded-none md:shadow-none">
+          <div className="pointer-events-none absolute inset-0 dashboard-grid-bg" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            <div className="absolute top-0 right-0 -mt-20 -mr-20 w-[min(500px,45%)] h-[500px] bg-blue-500/10 blur-[120px] rounded-full" />
+            <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-[min(600px,55%)] h-[600px] bg-zinc-600/10 blur-[150px] rounded-full" />
+          </div>
 
-        {/* Sticky Header */}
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-zinc-200 dark:border-white/6 bg-zinc-50/80 dark:bg-[#0a0a14]/80 backdrop-blur-2xl px-6">
-          <SidebarTrigger className="text-zinc-500 dark:text-white/30 hover:text-zinc-900 dark:hover:text-white transition-colors" />
-          <div className="flex-1" />
-          <div className="text-[11px] font-mono tracking-widest uppercase text-zinc-500 dark:text-white/30 bg-white dark:bg-white/5 border-black/5 px-3 py-1.5 border dark:border-white/8 rounded-lg max-w-[240px] truncate" title={user.email ?? ''}>{user.email}</div>
-        </header>
+          <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 backdrop-blur-xl px-4 sm:px-6">
+            <SidebarTrigger className="shrink-0 text-muted-foreground hover:text-foreground transition-colors" />
+            <div className="min-w-0 flex-1" />
+            <div
+              className="shrink-0 max-w-[min(240px,40vw)] truncate text-[11px] font-mono tracking-widest uppercase text-muted-foreground bg-muted/80 border border-border px-3 py-1.5 rounded-lg"
+              title={account.email}
+            >
+              {account.email}
+            </div>
+          </header>
 
-        {/* Page Content */}
-        <main className="flex-1 relative z-10 w-full overflow-y-auto">
-          {children}
-        </main>
-      </div>
-    </SidebarProvider>
+          <main id="main-content" className="relative z-10 min-h-0 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            <SocialConnectionsProvider>
+              {children}
+            </SocialConnectionsProvider>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
+    </DashboardProviders>
   )
 }

@@ -14,6 +14,7 @@ export interface BaseNode {
   scaleY?: number;
   opacity?: number;
   zIndex?: number;
+  locked?: boolean;
 }
 
 export interface TextNode extends BaseNode {
@@ -21,9 +22,11 @@ export interface TextNode extends BaseNode {
   content: string;
   fontSize: number;
   fontFamily: string;
+  fontStyle?: 'normal' | 'bold' | 'italic' | 'bold italic';
   fill: string;
   align?: 'left' | 'center' | 'right';
-  width?: number; // useful for text wrapping
+  width?: number;
+  lineHeight?: number;
 }
 
 export interface ImageNode extends BaseNode {
@@ -42,10 +45,28 @@ export interface RectNode extends BaseNode {
   stroke?: string;
   strokeWidth?: number;
   cornerRadius?: number | number[];
+  /** Konva linear gradient stops [0, color, 1, color] */
+  gradientStops?: number[];
+  gradientColors?: string[];
+}
+
+export interface CircleNode extends BaseNode {
+  type: 'circle';
+  width: number;
+  height: number;
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
 }
 
 // Union of all possible nodes
-export type CanvasNode = TextNode | ImageNode | RectNode;
+export type CanvasNode = TextNode | ImageNode | RectNode | CircleNode;
+
+export interface CanvasPage {
+  id: string;
+  name: string;
+  layers: CanvasNode[];
+}
 
 // The top-level JSON structure stored in Supabase `canvas_data`
 export interface CanvasData {
@@ -54,7 +75,10 @@ export interface CanvasData {
     width: number;
     height: number;
     backgroundColor: string;
-    aspectRatioName: 'square' | 'portrait' | 'story' | 'custom';
+    aspectRatioName: 'square' | 'portrait' | 'story' | 'landscape' | 'custom';
   };
   layers: CanvasNode[];
+  /** Carousel slides — each page shares canvas dimensions */
+  pages?: CanvasPage[];
+  activePageIndex?: number;
 }

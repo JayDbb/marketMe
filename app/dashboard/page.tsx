@@ -1,40 +1,113 @@
-import { getUserAndProfile } from '@/lib/user'
 import { redirect } from 'next/navigation'
 import { submitFeedback } from '@/app/dashboard/actions'
-import { DashboardContent } from '@/components/dashboard/dashboard-content'
+import { DashboardShell } from '@/components/dashboard/dashboard-shell'
+import { getBusinessProfile } from '@/app/api/business-profile/_actions'
+import type { DashboardStats } from '@/lib/dashboard-utils'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
-export default async function DashboardPage() {
-  const { user, profile } = await getUserAndProfile()
+export const dynamic = 'force-dynamic'
 
-  if (!user) {
-    return redirect('/login')
+const EMPTY_STATS: DashboardStats = {
+  postsCount: 0,
+  scheduledCount: 0,
+  publishedCount: 0,
+  draftCount: 0,
+  plansCount: 0,
+  scheduledThisWeek: 0,
+  upcomingPosts: [],
+}
+
+async function getDashboardStats(userId: string): Promise<DashboardStats> {
+  const now = new Date()
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - now.getDay())
+  weekStart.setHours(0, 0, 0, 0)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekStart.getDate() + 7)
+
+  const { data: allPosts, error: postsError } = await supabaseAdmin
+    .from('posts')
+    .select('id, content, platform, scheduled_at, status')
+    .eq('user_id', userId)
+    .order('scheduled_at', { ascending: true, nullsFirst: false })
+
+  if (postsError) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[dashboard] posts:', postsError.message)
+    }
+    return EMPTY_STATS
   }
 
-  // Fetch counts using supabaseAdmin
-  const { count: plansCount } = await supabaseAdmin
+  const posts = allPosts ?? []
+  const scheduledCount = posts.filter(
+    (p) => p.status === 'scheduled' || (p.scheduled_at && p.status !== 'published')
+  ).length
+  const publishedCount = posts.filter((p) => p.status === 'published').length
+  const draftCount = posts.filter((p) => p.status === 'draft').length
+
+  const scheduledThisWeek = posts.filter((p) => {
+    if (!p.scheduled_at) return false
+    const d = new Date(p.scheduled_at)
+    return d >= weekStart && d < weekEnd
+  }).length
+
+  const upcomingPosts = posts
+    .filter((p) => p.scheduled_at && new Date(p.scheduled_at) >= now)
+    .sort(
+      (a, b) =>
+        new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime()
+    )
+    .slice(0, 4)
+    .map((p) => ({
+      id: p.id,
+      content: p.content,
+      platform: p.platform,
+      scheduled_at: p.scheduled_at!,
+      status: p.status,
+    }))
+
+  const { count: plansCount, error: plansError } = await supabaseAdmin
     .from('content_plans')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
 
-  const { count: postsCount } = await supabaseAdmin
-    .from('posts')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+  if (plansError && process.env.NODE_ENV === 'development') {
+    console.error('[dashboard] content_plans count:', plansError.message)
+  }
+
+  return {
+    postsCount: posts.length,
+    scheduledCount,
+    publishedCount,
+    draftCount,
+    plansCount: plansCount ?? 0,
+    scheduledThisWeek,
+    upcomingPosts,
+  }
+}
+
+export default async function DashboardPage() {
+  const user = await getAuthenticatedUser()
+
+  if (!user) redirect('/login')
+
+  const [profileResult, stats] = await Promise.all([
+    getBusinessProfile(),
+    getDashboardStats(user.id),
+  ])
+
+  if (process.env.NODE_ENV === 'development' && profileResult.error) {
+    console.error('[dashboard] getBusinessProfile:', profileResult.error)
+  }
+
+  const profile = profileResult.data
 
   return (
-    <div className="relative min-h-full font-sans">
-      {/* Ambient Backgrounds */}
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px] pointer-events-none" />
-      <div className="fixed top-0 right-0 -mt-20 -mr-20 w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-0 left-0 -mb-20 -ml-20 w-[600px] h-[600px] bg-indigo-700/8 blur-[150px] rounded-full pointer-events-none" />
-
-      <DashboardContent 
-        submitFeedbackAction={submitFeedback} 
-        profile={profile} 
-        plansCount={plansCount || 0}
-        postsCount={postsCount || 0}
-      />
-    </div>
+    <DashboardShell
+      submitFeedbackAction={submitFeedback}
+      profile={profile}
+      stats={stats}
+    />
   )
 }

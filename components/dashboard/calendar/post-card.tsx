@@ -116,11 +116,15 @@ export function PostCard({ post, onApprove }: PostCardProps) {
       {/* Asset Image */}
       {post.media_url && (
         <div className="relative w-full h-32 rounded-lg overflow-hidden border border-transparent dark:border-white/5 mt-1">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            src={post.media_url} 
-            alt="Post media" 
+          {/* eslint-disable-next-line @next/next/no-img-element -- remote URLs may be from any storage host */}
+          <img
+            src={post.media_url}
+            alt={post.caption ? `Media for: ${post.caption.slice(0, 80)}` : 'Post media'}
             className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+            width={320}
+            height={128}
           />
         </div>
       )}

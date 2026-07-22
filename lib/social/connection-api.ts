@@ -1,8 +1,9 @@
 /**
- * Social connections — localStorage stub until real OAuth is wired.
+ * Social connections — Real Meta OAuth integration with backend API & Supabase.
  */
 
 import type { SocialConnection, SocialPlatform } from '@/types/social'
+import { getPublishAuthUrl, getSocialConnections } from '@/lib/services/marketing-ai.service'
 
 const STORAGE_KEY = 'marketme_social_connections'
 
@@ -22,21 +23,56 @@ function writeStored(connections: SocialConnection[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(connections))
 }
 
-export async function fetchConnections(): Promise<SocialConnection[]> {
-  await delay(200)
+export async function fetchConnections(businessId: string = '1'): Promise<SocialConnection[]> {
+  try {
+    const rawAccounts = await getSocialConnections(businessId)
+    if (Array.isArray(rawAccounts) && rawAccounts.length > 0) {
+      const apiConnections: SocialConnection[] = rawAccounts.map((acc) => ({
+        id: String(acc.id || acc.instagram_user_id || acc.platform),
+        platform: (acc.platform || 'instagram') as SocialPlatform,
+        handle: acc.handle || 'connected_account',
+        displayName: acc.handle || 'Connected Account',
+        status: acc.connected_status === 'connected' ? 'connected' : 'disconnected',
+        connectedAt: acc.created_at || new Date().toISOString(),
+      }))
+
+      // Sync with localStorage cache
+      writeStored(apiConnections)
+      return apiConnections
+    }
+  } catch (error) {
+    console.warn('Failed to fetch connections from backend API, falling back to local storage:', error)
+  }
+
   return readStored()
 }
 
 export async function initiatePlatformConnect(
-  platform: SocialPlatform
+  platform: SocialPlatform,
+  businessId: string = '1'
 ): Promise<SocialConnection> {
-  await delay(1200)
+  if (platform === 'instagram') {
+    const authUrl = await getPublishAuthUrl(businessId)
+    if (typeof window !== 'undefined' && authUrl) {
+      window.location.href = authUrl
+    }
+    // Return temporary pending state while redirecting
+    return {
+      id: `${platform}-pending`,
+      platform,
+      handle: 'connecting...',
+      displayName: 'Connecting Instagram...',
+      status: 'disconnected',
+    }
+  }
 
+  // Fallback stub for unsupported platforms
+  await delay(600)
   const connection: SocialConnection = {
     id: `${platform}-${Date.now()}`,
     platform,
-    handle: platform === 'instagram' ? 'mybrand' : platform,
-    displayName: platform === 'instagram' ? 'My Brand' : platform,
+    handle: platform,
+    displayName: platform,
     status: 'connected',
     connectedAt: new Date().toISOString(),
   }

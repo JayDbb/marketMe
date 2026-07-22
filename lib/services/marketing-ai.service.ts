@@ -3,7 +3,7 @@
  * Provides retry logic, timeout handling, and structured error responses.
  */
 
-const API_URL = process.env.MARKETME_AI_API_URL || "http://localhost:8000"
+const API_URL = process.env.MARKETME_AI_API_URL || "https://marketme-api-9oap.onrender.com"
 const DEFAULT_TIMEOUT = 30_000
 const MAX_RETRIES = 3
 const RETRY_BASE_DELAY = 1000
@@ -239,6 +239,29 @@ export async function getPublishAuthUrl(businessId: string): Promise<string> {
     { method: "GET" }
   )
   return data.auth_url
+}
+
+export interface RawSocialConnection {
+  id?: string | number
+  business_id: number | string
+  platform: string
+  handle?: string
+  account_url?: string
+  connected_status: string
+  instagram_user_id?: string
+  facebook_page_id?: string
+  created_at?: string
+}
+
+/**
+ * Fetch connected social accounts for a business from backend API.
+ */
+export async function getSocialConnections(businessId: string | number): Promise<RawSocialConnection[]> {
+  const params = new URLSearchParams({ business_id: String(businessId) })
+  return fetchWithRetry<RawSocialConnection[]>(
+    `/api/v1/publish/connections?${params.toString()}`,
+    { method: "GET" }
+  )
 }
 
 /**

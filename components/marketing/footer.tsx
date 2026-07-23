@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Activity } from 'lucide-react'
+import { legalCompany } from '@/lib/legal-company'
 
 function TwitterIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -53,15 +54,20 @@ const companyLinks = [
   { label: 'Contact', href: '/contact' },
 ]
 
-const resourcesLinks = [
-  { label: 'Blog', href: '/blog' },
-  { label: 'Help Center', href: '/help' },
-  { label: 'API Docs', href: '/docs' },
+const legalNavLinks = [
+  { label: 'Privacy', href: '/privacy' },
+  { label: 'Terms', href: '/terms' },
+  { label: 'Cookies', href: '/cookies' },
+  { label: 'Acceptable Use', href: '/acceptable-use' },
+  { label: 'AI Transparency', href: '/ai-ethics' },
+  { label: 'Refunds', href: '/refunds' },
+  { label: 'Do Not Sell/Share', href: '/do-not-sell' },
 ]
 
-const legalLinks = [
+const bottomLegalLinks = [
   { label: 'Privacy Policy', href: '/privacy' },
   { label: 'Terms of Service', href: '/terms' },
+  { label: 'Do Not Sell or Share', href: '/do-not-sell' },
 ]
 
 export function Footer() {
@@ -84,6 +90,21 @@ export function Footer() {
             <p className="text-sm text-white/50 max-w-xs leading-relaxed">
               Plan, schedule, and publish across every platform — powered by AI.
             </p>
+            <div className="text-xs leading-relaxed text-white/35 max-w-sm space-y-1">
+              <p>{legalCompany.legalEntityName}</p>
+              <p>{legalCompany.address}, {legalCompany.country}</p>
+              <p>
+                <a
+                  href={`mailto:${legalCompany.supportEmail}`}
+                  className="hover:text-white/60 transition-colors"
+                >
+                  {legalCompany.supportEmail}
+                </a>
+              </p>
+              {legalCompany.registrationNumber ? (
+                <p>Reg. {legalCompany.registrationNumber}</p>
+              ) : null}
+            </div>
           </div>
 
           {/* Product */}
@@ -118,13 +139,13 @@ export function Footer() {
             </ul>
           </nav>
 
-          {/* Resources */}
-          <nav aria-label="Resources navigation">
+          {/* Legal */}
+          <nav aria-label="Legal navigation">
             <h3 className="text-xs uppercase tracking-widest font-semibold text-white mb-6">
-              Resources
+              Legal
             </h3>
-            <ul className="space-y-4">
-              {resourcesLinks.map((l) => (
+            <ul className="space-y-3">
+              {legalNavLinks.map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-sm text-white/50 hover:text-white transition-colors">
                     {l.label}
@@ -137,11 +158,11 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/8 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <p className="text-sm text-white/40">
-              © {new Date().getFullYear()} Marketme.
+              © {new Date().getFullYear()} Marketme. Based in Jamaica.
             </p>
-            {legalLinks.map((l) => (
+            {bottomLegalLinks.map((l) => (
               <Link key={l.href} href={l.href} className="text-sm text-white/40 hover:text-white transition-colors">
                 {l.label}
               </Link>

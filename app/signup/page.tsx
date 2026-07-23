@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useActionState } from 'react'
+import { Suspense, useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { signup, type AuthActionState } from '@/app/login/actions'
@@ -18,6 +18,8 @@ function SignupForm() {
   const queryMessage = searchParams.get('message')
   const queryType = searchParams.get('type')
   const [state, formAction] = useActionState(signup, {} as AuthActionState)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
   const message = state.error ?? state.success ?? queryMessage
   const type = state.error ? 'error' : state.success ? 'success' : queryType
 
@@ -61,23 +63,67 @@ function SignupForm() {
           minLength={6}
         />
 
-        <p className="text-[11px] leading-relaxed text-zinc-400">
-          By creating an account you agree to our{' '}
-          <Link href="/terms" className="underline underline-offset-2 hover:text-zinc-600">
-            Terms
-          </Link>{' '}
-          and{' '}
-          <Link href="/privacy" className="underline underline-offset-2 hover:text-zinc-600">
-            Privacy Policy
-          </Link>
-          .
-        </p>
+        <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
+          <label className="flex items-start gap-3 text-[11px] leading-relaxed text-zinc-400">
+            <input
+              type="checkbox"
+              name="accepted_terms"
+              value="yes"
+              required
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              I agree to the{' '}
+              <Link href="/terms" className="underline underline-offset-2 hover:text-zinc-200">
+                Terms of Service
+              </Link>
+              ,{' '}
+              <Link href="/privacy" className="underline underline-offset-2 hover:text-zinc-200">
+                Privacy Policy
+              </Link>
+              , and{' '}
+              <Link
+                href="/acceptable-use"
+                className="underline underline-offset-2 hover:text-zinc-200"
+              >
+                Acceptable Use Policy
+              </Link>
+              .
+            </span>
+          </label>
+          <label className="flex items-start gap-3 text-[11px] leading-relaxed text-zinc-400">
+            <input
+              type="checkbox"
+              name="marketing_opt_in"
+              value="yes"
+              checked={marketingOptIn}
+              onChange={(e) => setMarketingOptIn(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Optional: send me product tips and updates by email. I can unsubscribe anytime.
+            </span>
+          </label>
+        </div>
 
-        <AuthPrimaryButton idleLabel="Create account" pendingLabel="Creating account..." />
+        <AuthPrimaryButton
+          idleLabel="Create account"
+          pendingLabel="Creating account..."
+          disabled={!acceptedTerms}
+        />
       </form>
 
       <AuthDivider />
-      <GoogleAuthButton />
+      <div className={!acceptedTerms ? 'pointer-events-none opacity-50' : undefined}>
+        <GoogleAuthButton />
+      </div>
+      {!acceptedTerms ? (
+        <p className="mt-2 text-center text-[11px] text-zinc-500">
+          Accept the Terms to continue with Google.
+        </p>
+      ) : null}
     </AuthShell>
   )
 }

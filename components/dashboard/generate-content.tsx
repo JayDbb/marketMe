@@ -30,6 +30,7 @@ import { generateCanvasFromTemplate, matchTemplateToGoal } from '@/lib/generate-
 import { formatScheduledPreview, getMinScheduleDatetime } from '@/lib/post-schedule-utils'
 import { imageToCanvas } from '@/lib/studio-utils'
 import type { StudioTemplate } from '@/app/dashboard/studio/actions'
+import { AiContentNotice } from '@/components/legal/ai-content-notice'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FlowState = 'setup' | 'generating' | 'review' | 'scheduled'
@@ -940,6 +941,7 @@ export function GenerateContent({
               <div className="p-6 border-b border-zinc-200 dark:border-white/10 bg-white/2">
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1 tracking-tight">Review Content</h2>
                 <p className="text-zinc-500 dark:text-white/40 text-sm leading-relaxed">Approve or edit the AI-generated posts below before scheduling.</p>
+                <AiContentNotice className="mt-4" />
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">

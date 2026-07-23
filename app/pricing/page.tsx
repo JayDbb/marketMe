@@ -3,6 +3,7 @@ import { FaqSection } from "@/components/marketing/faq-section";
 import { FinalCta } from "@/components/marketing/final-cta";
 import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
 import { createPageMetadata } from "@/lib/metadata";
+import Link from "next/link";
 
 export const metadata = createPageMetadata({
   title: "Pricing",
@@ -22,6 +23,13 @@ export default function PricingPage() {
         </h1>
         <p className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto">
           Choose the perfect plan for your team. Every plan includes unlimited scheduling and AI generation.
+        </p>
+        <p className="mt-4 text-sm text-white/40">
+          Prices, renewals, and refunds are explained in our{" "}
+          <Link href="/refunds" className="text-sky-300 underline underline-offset-2 hover:text-sky-200">
+            Refunds &amp; Billing
+          </Link>{" "}
+          policy (disclosed before purchase).
         </p>
       </div>
 

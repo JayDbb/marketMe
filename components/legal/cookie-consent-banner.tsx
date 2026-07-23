@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'marketme-cookie-consent-v1'
 
@@ -34,22 +34,43 @@ function writeConsent(next: Omit<ConsentState, 'necessary' | 'decidedAt'>) {
   return value
 }
 
+function subscribeConsent(onStoreChange: () => void) {
+  const handler = () => onStoreChange()
+  window.addEventListener('storage', handler)
+  window.addEventListener('marketme:cookie-consent', handler)
+  return () => {
+    window.removeEventListener('storage', handler)
+    window.removeEventListener('marketme:cookie-consent', handler)
+  }
+}
+
+function getConsentSnapshot() {
+  return readConsent() !== null
+}
+
+/** SSR: hide banner to avoid hydration mismatch; client decides after hydrate. */
+function getServerConsentSnapshot() {
+  return true
+}
+
 export function CookieConsentBanner() {
-  const [visible, setVisible] = useState(false)
+  const hasStoredConsent = useSyncExternalStore(
+    subscribeConsent,
+    getConsentSnapshot,
+    getServerConsentSnapshot
+  )
   const [customize, setCustomize] = useState(false)
   const [analytics, setAnalytics] = useState(false)
   const [marketing, setMarketing] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
 
-  useEffect(() => {
-    const existing = readConsent()
-    if (!existing) setVisible(true)
-  }, [])
+  const visible = !hasStoredConsent && !dismissed
 
   if (!visible) return null
 
   const save = (next: { analytics: boolean; marketing: boolean }) => {
     writeConsent(next)
-    setVisible(false)
+    setDismissed(true)
   }
 
   return (

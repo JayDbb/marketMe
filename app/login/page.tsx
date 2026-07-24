@@ -1,31 +1,15 @@
 'use client'
 
-import { Suspense, useActionState, useState } from 'react'
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { login, signInWithMagicLink, type AuthActionState } from '@/app/login/actions'
 import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton'
 import { AuthShell } from '@/components/auth/auth-shell'
-import {
-  AuthAlert,
-  AuthDivider,
-  AuthEmailField,
-  AuthMethodTabs,
-  AuthPasswordField,
-  AuthPrimaryButton,
-  type AuthMethod,
-} from '@/components/auth/auth-ui'
+import { AuthAlert } from '@/components/auth/auth-ui'
 
 function LoginForm() {
   const searchParams = useSearchParams()
   const queryMessage = searchParams.get('message')
   const queryType = searchParams.get('type')
-  const [method, setMethod] = useState<AuthMethod>('password')
-  const [passwordState, passwordAction] = useActionState(login, {} as AuthActionState)
-  const [magicState, magicAction] = useActionState(signInWithMagicLink, {} as AuthActionState)
-
-  const actionState = method === 'magic' ? magicState : passwordState
-  const message = actionState.error ?? actionState.success ?? queryMessage
-  const type = actionState.error ? 'error' : actionState.success ? 'success' : queryType
 
   return (
     <AuthShell
@@ -35,23 +19,12 @@ function LoginForm() {
       alternateHref="/signup"
       alternateLabel="Sign up"
     >
-      <AuthMethodTabs value={method} onChange={setMethod} />
-      <AuthAlert message={message} type={type} />
+      <AuthAlert message={queryMessage} type={queryType} />
 
-      {method === 'magic' ? (
-        <form id="magic-link-form" action={magicAction} className="space-y-4">
-          <AuthEmailField id="magic-email" />
-          <AuthPrimaryButton idleLabel="Send magic link" pendingLabel="Sending..." />
-        </form>
-      ) : (
-        <form id="login-form" action={passwordAction} className="space-y-4">
-          <AuthEmailField id="email" />
-          <AuthPasswordField id="password" />
-          <AuthPrimaryButton idleLabel="Sign in" pendingLabel="Signing in..." />
-        </form>
-      )}
+      <p className="mb-5 text-sm leading-relaxed text-zinc-600">
+        Sign in with Google to continue to your Marketme workspace.
+      </p>
 
-      <AuthDivider />
       <GoogleAuthButton />
     </AuthShell>
   )

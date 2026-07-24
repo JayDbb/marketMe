@@ -200,7 +200,7 @@ export function AuthPrimaryButton({
       type="submit"
       disabled={isDisabled}
       aria-disabled={isDisabled}
-      className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border-0 bg-zinc-900 font-medium text-white transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:opacity-60"
+      className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border-0 bg-blue-600 font-medium text-white shadow-[0_8px_24px_-8px_rgba(37,99,235,0.55)] transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-60"
     >
       {pending ? (
         <>

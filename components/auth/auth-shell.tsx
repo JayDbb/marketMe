@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Activity } from 'lucide-react'
+import { Activity, ArrowLeft } from 'lucide-react'
 
 /** Full-bleed backdrop: deep navy + sky mesh, on-brand with the dashboard. */
 export function AuthBackdrop() {
@@ -21,7 +21,6 @@ export function AuthBackdrop() {
         }}
       />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-size-[48px_48px] opacity-60" />
-      {/* Abstract floating "scheduled post" shapes */}
       <div className="absolute top-[12%] left-[8%] h-28 w-44 rotate-[-8deg] rounded-2xl border border-sky-400/15 bg-sky-500/8 blur-[0.5px] shadow-[0_20px_60px_rgba(14,165,233,0.12)]" />
       <div className="absolute bottom-[18%] right-[10%] h-32 w-48 rotate-[6deg] rounded-2xl border border-blue-400/12 bg-blue-500/6 blur-[0.5px] shadow-[0_24px_70px_rgba(59,130,246,0.1)]" />
       <div className="absolute top-[42%] right-[18%] h-20 w-32 rotate-[12deg] rounded-xl border border-white/6 bg-white/4" />
@@ -47,7 +46,10 @@ export function AuthShell({
   children: React.ReactNode
 }) {
   return (
-    <main id="main-content" className="relative min-h-dvh font-sans text-zinc-900 selection:bg-sky-500/20">
+    <main
+      id="main-content"
+      className="relative min-h-dvh font-sans text-zinc-900 selection:bg-sky-500/20"
+    >
       <AuthBackdrop />
       <div className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-10">
         <motion.div
@@ -56,19 +58,28 @@ export function AuthShell({
           transition={{ type: 'spring', stiffness: 120, damping: 24 }}
           className="w-full max-w-[440px] rounded-2xl border border-zinc-200/80 bg-white p-8 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.45)] sm:p-10"
         >
-          <Link href="/" className="mb-8 inline-flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.35)] transition-transform group-hover:scale-[1.02]">
-              <Activity className="h-4 w-4 text-white" aria-hidden="true" />
-            </div>
-            <span className="font-serif text-lg tracking-tight text-zinc-900">Marketme</span>
-          </Link>
+          <div className="mb-8 flex items-center justify-between gap-3">
+            <Link href="/" className="group inline-flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.35)] transition-transform group-hover:scale-[1.02]">
+                <Activity className="h-4 w-4 text-white" aria-hidden="true" />
+              </div>
+              <span className="font-serif text-lg tracking-tight text-zinc-900">Marketme</span>
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              Back to home
+            </Link>
+          </div>
 
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{headline}</h1>
           <p className="mt-2 text-sm text-zinc-500">
             {alternatePrompt}{' '}
             <Link
               href={alternateHref}
-              className="font-medium text-zinc-900 underline underline-offset-2 decoration-zinc-300 hover:decoration-zinc-500"
+              className="font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-500"
             >
               {alternateLabel}
             </Link>

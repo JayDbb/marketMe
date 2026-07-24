@@ -63,8 +63,8 @@ function SignupForm() {
           minLength={6}
         />
 
-        <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
-          <label className="flex items-start gap-3 text-[11px] leading-relaxed text-zinc-400">
+        <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <label className="flex items-start gap-3 text-[11px] leading-relaxed text-zinc-600">
             <input
               type="checkbox"
               name="accepted_terms"
@@ -72,35 +72,41 @@ function SignupForm() {
               required
               checked={acceptedTerms}
               onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5"
+              className="mt-0.5 accent-zinc-900"
             />
             <span>
               I agree to the{' '}
-              <Link href="/terms" className="underline underline-offset-2 hover:text-zinc-200">
+              <Link
+                href="/terms"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
+              >
                 Terms of Service
               </Link>
               ,{' '}
-              <Link href="/privacy" className="underline underline-offset-2 hover:text-zinc-200">
+              <Link
+                href="/privacy"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
+              >
                 Privacy Policy
               </Link>
               , and{' '}
               <Link
                 href="/acceptable-use"
-                className="underline underline-offset-2 hover:text-zinc-200"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
               >
                 Acceptable Use Policy
               </Link>
               .
             </span>
           </label>
-          <label className="flex items-start gap-3 text-[11px] leading-relaxed text-zinc-400">
+          <label className="flex items-start gap-3 text-[11px] leading-relaxed text-zinc-600">
             <input
               type="checkbox"
               name="marketing_opt_in"
               value="yes"
               checked={marketingOptIn}
               onChange={(e) => setMarketingOptIn(e.target.checked)}
-              className="mt-0.5"
+              className="mt-0.5 accent-zinc-900"
             />
             <span>
               Optional: send me product tips and updates by email. I can unsubscribe anytime.

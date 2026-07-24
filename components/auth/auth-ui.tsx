@@ -187,16 +187,19 @@ export function AuthField({
 export function AuthPrimaryButton({
   idleLabel,
   pendingLabel,
+  disabled = false,
 }: {
   idleLabel: string
   pendingLabel: string
+  disabled?: boolean
 }) {
   const { pending } = useFormStatus()
+  const isDisabled = pending || disabled
   return (
     <Button
       type="submit"
-      disabled={pending}
-      aria-disabled={pending}
+      disabled={isDisabled}
+      aria-disabled={isDisabled}
       className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border-0 bg-zinc-900 font-medium text-white transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:opacity-60"
     >
       {pending ? (

@@ -18,6 +18,11 @@ export const marketingRoutes = [
   '/help',
   '/privacy',
   '/terms',
+  '/cookies',
+  '/acceptable-use',
+  '/ai-ethics',
+  '/do-not-sell',
+  '/refunds',
   '/login',
   '/signup',
 ] as const

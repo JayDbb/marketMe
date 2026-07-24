@@ -11,7 +11,6 @@ import {
   completeStudioTemplateUploadAction,
   prepareStudioTemplateUploadAction,
 } from '@/app/dashboard/studio/actions'
-import { createClient } from '@/lib/supabase/client'
 import { STUDIO_CATEGORIES } from '@/lib/studio-utils'
 import { isWithinImageUploadLimit, MAX_IMAGE_UPLOAD_LABEL } from '@/lib/upload-limits'
 import { toast } from 'sonner'
@@ -72,20 +71,20 @@ export function StudioUploadZone({
         fileSize: pendingFile.size,
       })
 
-      if (!prepared.success || !prepared.path || !prepared.token) {
+      if (!prepared.success || !prepared.path || !prepared.signedUrl) {
         throw new Error(prepared.error ?? 'Could not start upload.')
       }
 
-      const supabase = createClient()
-      const { error: uploadError } = await supabase.storage
-        .from('studio-templates')
-        .uploadToSignedUrl(prepared.path, prepared.token, pendingFile, {
-          contentType: pendingFile.type,
-          upsert: false,
-        })
+      const uploadResponse = await fetch(prepared.signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': pendingFile.type || 'application/octet-stream',
+        },
+        body: pendingFile,
+      })
 
-      if (uploadError) {
-        console.error('[studio-upload]', uploadError.message)
+      if (!uploadResponse.ok) {
+        console.error('[studio-upload]', uploadResponse.status, await uploadResponse.text().catch(() => ''))
         throw new Error('Upload failed. Please try again.')
       }
 

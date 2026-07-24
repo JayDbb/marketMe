@@ -7,7 +7,11 @@ import { Upload, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { StudioTemplate } from '@/app/dashboard/studio/actions'
-import { uploadTemplateAction } from '@/app/dashboard/studio/actions'
+import {
+  completeStudioTemplateUploadAction,
+  prepareStudioTemplateUploadAction,
+} from '@/app/dashboard/studio/actions'
+import { createClient } from '@/lib/supabase/client'
 import { STUDIO_CATEGORIES } from '@/lib/studio-utils'
 import { isWithinImageUploadLimit, MAX_IMAGE_UPLOAD_LABEL } from '@/lib/upload-limits'
 import { toast } from 'sonner'
@@ -60,24 +64,55 @@ export function StudioUploadZone({
     if (!pendingFile || !templateName.trim()) return
     setIsUploading(true)
     setError(null)
-    const fd = new FormData()
-    fd.append('file', pendingFile)
-    fd.append('name', templateName.trim())
-    fd.append('category', category)
-    const result = await uploadTemplateAction(fd)
-    setIsUploading(false)
-    if (!result.success) {
-      setError(result.error ?? 'Upload failed.')
-      toast.error(result.error ?? 'Upload failed')
-      return
+
+    try {
+      const prepared = await prepareStudioTemplateUploadAction({
+        fileName: pendingFile.name,
+        contentType: pendingFile.type,
+        fileSize: pendingFile.size,
+      })
+
+      if (!prepared.success || !prepared.path || !prepared.token) {
+        throw new Error(prepared.error ?? 'Could not start upload.')
+      }
+
+      const supabase = createClient()
+      const { error: uploadError } = await supabase.storage
+        .from('studio-templates')
+        .uploadToSignedUrl(prepared.path, prepared.token, pendingFile, {
+          contentType: pendingFile.type,
+          upsert: false,
+        })
+
+      if (uploadError) {
+        console.error('[studio-upload]', uploadError.message)
+        throw new Error('Upload failed. Please try again.')
+      }
+
+      const result = await completeStudioTemplateUploadAction({
+        filePath: prepared.path,
+        name: templateName.trim(),
+        category,
+      })
+
+      if (!result.success || !result.template) {
+        throw new Error(result.error ?? 'Upload failed.')
+      }
+
+      setSuccess(true)
+      onUploadSuccess(result.template)
+      toast.success('Template uploaded')
+      setTimeout(() => {
+        setSuccess(false)
+        clearPending()
+      }, 1500)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Upload failed.'
+      setError(message)
+      toast.error(message)
+    } finally {
+      setIsUploading(false)
     }
-    setSuccess(true)
-    onUploadSuccess(result.template!)
-    toast.success('Template uploaded')
-    setTimeout(() => {
-      setSuccess(false)
-      clearPending()
-    }, 1500)
   }
 
   if (!pendingFile) {

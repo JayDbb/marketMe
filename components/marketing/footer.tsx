@@ -56,18 +56,14 @@ const companyLinks = [
 
 const legalNavLinks = [
   { label: 'Privacy', href: '/privacy' },
-  { label: 'Terms', href: '/terms' },
+  { label: 'Terms of Service', href: '/terms' },
   { label: 'Cookies', href: '/cookies' },
-  { label: 'Acceptable Use', href: '/acceptable-use' },
-  { label: 'AI Transparency', href: '/ai-ethics' },
-  { label: 'Refunds', href: '/refunds' },
-  { label: 'Do Not Sell/Share', href: '/do-not-sell' },
 ]
 
 const bottomLegalLinks = [
-  { label: 'Privacy Policy', href: '/privacy' },
+  { label: 'Privacy', href: '/privacy' },
   { label: 'Terms of Service', href: '/terms' },
-  { label: 'Do Not Sell or Share', href: '/do-not-sell' },
+  { label: 'Cookies', href: '/cookies' },
 ]
 
 export function Footer() {

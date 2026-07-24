@@ -2,7 +2,7 @@ export const siteConfig = {
   name: 'Marketme',
   title: 'Marketme | Your AI Marketing Manager',
   description:
-    'Plan, schedule, and publish social content across every platform — powered by AI. Automate campaigns, generate leads, and analyze performance effortlessly.',
+    'Generate AI drafts, design in Studio, and schedule across connected social accounts — with a human review before anything goes live.',
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   locale: 'en_US',
   twitterHandle: '@marketme',

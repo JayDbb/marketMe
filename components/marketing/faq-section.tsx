@@ -1,69 +1,77 @@
-"use client"
+'use client'
 
+import Link from 'next/link'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/accordion'
+import { buttonVariants } from '@/components/ui/button'
+import { legalCompany } from '@/lib/legal-company'
+import { cn } from '@/lib/utils'
 
 const faqs = [
   {
-    question: "How does pricing work for teams?",
+    question: 'What is included on Free, Pro, and Team?',
     answer:
-      "Marketme pricing scales with your team size. Every plan includes unlimited campaigns and lead routing. You only pay for the active contacts you manage each month — no hidden fees, no seat charges.",
+      'Free covers the core loop — Generate, Studio, and Calendar — with modest AI credits and one social profile. Pro raises credits, posts, and profiles. Team adds more seats, workspaces, and room to scale. See Pricing for exact limits.',
   },
   {
-    question: "How does the AI generate content?",
+    question: 'How does AI generation work?',
     answer:
-      "Our AI is trained on top-performing marketing campaigns. You provide a prompt, and it generates platform-optimized copy, hashtags, and visual suggestions. It learns your brand voice over time.",
+      'You give Marketme your business context and goals. It drafts captions and ideas for the platforms you choose. Every draft is meant for human review before you schedule or publish — generation is assistive, not autopilot.',
   },
   {
-    question: "Can I set approval workflows for my team?",
+    question: 'Do posts go live without my approval?',
     answer:
-      "Yes. You can require manager approval for specific team members or platforms before any post goes live. Approvers get notified via email or Slack.",
+      'No. Marketme is built so you review drafts before they hit the calendar. That keeps tone, claims, and disclosures under your control.',
   },
   {
-    question: "What analytics do I get?",
+    question: 'Which platforms can I connect?',
     answer:
-      "You get a unified dashboard showing cross-platform engagement, click-through rates, and audience demographics. We also provide AI-driven insights on the best times to post for your specific audience.",
+      'Connections use official OAuth flows. Meta (Facebook / Instagram) is the primary path today, with clear status in the dashboard when a reconnect is needed. More channels follow the same pattern as they ship.',
   },
   {
-    question: "Can I connect my existing CRM?",
+    question: 'Can my team approve content before it publishes?',
     answer:
-      "Yes. We have native, bidirectional integrations with Salesforce, HubSpot, Pipedrive, and 200+ other tools. Data stays in sync automatically — no manual exports required.",
+      'Team plans are built for shared workspaces and members. Use review before schedule as your approval gate — we are expanding formal approval workflows as the product matures.',
   },
   {
-    question: "Is my data secure and private?",
+    question: 'Is my data sold or shared for ads?',
     answer:
-      "Absolutely. Marketme is SOC2 Type II certified. All data is encrypted at rest and in transit using AES-256. We never sell or share your data with third parties.",
+      'We do not sell your personal data. Privacy, Cookies, and related legal pages explain what we collect, why, and your choices under Jamaica-first framing. Contact privacy if you have a request.',
   },
   {
-    question: "How long does it take to set up?",
+    question: 'How long does setup take?',
     answer:
-      "Most teams are fully operational within 15 minutes. Connect your data sources, import your leads, and your first automation can be live the same day. No engineering resources needed.",
+      'Most people can sign up, connect an account, and generate a first draft in a few minutes. No engineering work required.',
   },
-];
+]
 
 export function FaqSection() {
+  const supportMailto = `mailto:${legalCompany.supportEmail}`
+
   return (
-    <section className="relative w-full max-w-6xl mx-auto px-6 py-24 z-10">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 items-start">
-        
-        {/* Left Column - Questions */}
+    <section className="relative z-10 mx-auto w-full max-w-6xl px-6 py-24">
+      <div className="grid grid-cols-1 items-start gap-12 md:grid-cols-3 lg:gap-16">
         <div className="md:col-span-2">
-          <h2 className="text-3xl md:text-5xl font-serif font-light tracking-tighter text-white mb-10 leading-tight">
-            Frequently asked <span className="font-serif italic font-medium text-blue-400">questions</span>
+          <h2 className="mb-10 font-serif text-3xl font-light leading-tight tracking-tighter text-white md:text-5xl">
+            Frequently asked{' '}
+            <span className="font-serif italic font-medium text-sky-400">questions</span>
           </h2>
 
           <Accordion className="w-full space-y-0">
             {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`item-${i}`} className="border-white/8 last:border-b-0">
-                <AccordionTrigger className="text-sm md:text-base text-white/70 hover:text-white/90 transition-colors duration-200 pr-4 font-light hover:no-underline py-5 text-left [&[data-state=open]>svg]:text-blue-400">
+              <AccordionItem
+                key={faq.question}
+                value={`item-${i}`}
+                className="border-white/8 last:border-b-0"
+              >
+                <AccordionTrigger className="py-5 pr-4 text-left text-sm font-light text-white/70 transition-colors duration-200 hover:text-white/90 hover:no-underline md:text-base [&[data-state=open]>svg]:text-sky-400">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm text-white/45 leading-relaxed pb-5 max-w-lg">
+                <AccordionContent className="max-w-lg pb-5 text-sm leading-relaxed text-white/45">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
@@ -71,27 +79,43 @@ export function FaqSection() {
           </Accordion>
         </div>
 
-        {/* Right Column - Sidebar Card */}
-        <div className="md:col-span-1 pt-2 md:pt-24">
-          <div className="bg-white/4 border border-white/8 rounded-2xl p-6 md:p-8 backdrop-blur-sm sticky top-24">
-            <h3 className="text-lg font-serif font-medium text-white mb-3">Still have questions?</h3>
-            <p className="text-sm text-white/40 leading-relaxed mb-8">
-              Our team typically replies in under 2 hours.
+        <div className="md:col-span-1 md:pt-24">
+          <div className="sticky top-24 rounded-2xl border border-white/8 bg-white/4 p-6 backdrop-blur-sm md:p-8">
+            <h3 className="mb-3 font-serif text-lg font-medium text-white">
+              Still have questions?
+            </h3>
+            <p className="mb-8 text-sm leading-relaxed text-white/40">
+              Email support or browse Help — we reply as soon as we can.
             </p>
-            
-            <Button 
-              className="w-full bg-white text-black hover:bg-white/90 rounded-full h-12 font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)] border-0 mb-6"
-            >
-              Chat with us &rarr;
-            </Button>
 
-            <div className="pt-6 border-t border-white/8 flex items-center justify-center gap-2 text-xs font-medium text-white/50 tracking-wide">
-              <span className="text-yellow-500">⭐</span> 4.8 / 5 average support rating
+            <Link
+              href={supportMailto}
+              className={cn(
+                buttonVariants({ size: 'lg' }),
+                'mb-3 h-12 w-full rounded-full border-0 bg-white font-medium text-black hover:bg-white/90'
+              )}
+            >
+              Email support
+            </Link>
+            <Link
+              href="/help"
+              className="block text-center text-sm font-medium text-white/45 transition-colors hover:text-sky-300"
+            >
+              Visit Help →
+            </Link>
+
+            <div className="mt-6 flex items-center justify-center gap-2 border-t border-white/8 pt-6 text-xs tracking-wide text-white/40">
+              <Link href="/privacy" className="hover:text-white/70">
+                Privacy
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link href="/pricing" className="hover:text-white/70">
+                Pricing
+              </Link>
             </div>
           </div>
         </div>
-
       </div>
     </section>
-  );
+  )
 }

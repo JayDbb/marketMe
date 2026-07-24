@@ -1,24 +1,17 @@
-'use client';
-
-import { motion } from 'framer-motion';
-
 export function ProblemStatement() {
   return (
-    <section className="py-32 px-6 bg-transparent border-t border-white/8">
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="max-w-3xl mx-auto text-center space-y-6"
-      >
-        <h2 className="text-3xl md:text-5xl font-serif font-medium text-white tracking-tight leading-tight">
-          Managing content shouldn&apos;t feel like <span className="font-serif italic font-medium text-blue-400">a second job.</span>
+    <section className="border-t border-white/8 bg-transparent px-6 py-24 md:py-32">
+      <div className="mx-auto max-w-3xl space-y-6 text-center">
+        <h2 className="font-serif text-3xl font-medium leading-tight tracking-tight text-white md:text-5xl">
+          Content shouldn&apos;t feel like{" "}
+          <span className="font-serif italic font-medium text-sky-400">a second job.</span>
         </h2>
-        <p className="text-lg md:text-xl text-white/50 leading-relaxed max-w-2xl mx-auto">
-          Jumping between tabs, missing post times, losing track of campaigns — there&apos;s a better way.
+        <p className="mx-auto max-w-2xl text-lg leading-relaxed text-white/50 md:text-xl">
+          Jumping between apps, missing post times, rewriting captions from scratch —
+          Marketme keeps generation, design, and scheduling in one place, with a human
+          pass before anything goes live.
         </p>
-      </motion.div>
+      </div>
     </section>
-  );
+  )
 }

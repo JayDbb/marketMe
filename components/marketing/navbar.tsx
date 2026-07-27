@@ -65,14 +65,26 @@ export function Navbar() {
 
   return (
     <div className="pointer-events-none fixed top-6 right-0 left-0 z-50 flex justify-center px-4">
-      <div className="pointer-events-auto relative w-full max-w-[1000px]">
+      {/*
+        When condensed the pill is content-sized — the wrapper must shrink too,
+        or flex centering only centers a full-width shell and the pill sticks left.
+        Keep full width while the mobile menu is open so the panel can span.
+      */}
+      <div
+        className={cn(
+          'pointer-events-auto relative max-w-[1000px]',
+          isCondensed && !menuOpen
+            ? 'w-fit max-w-[calc(100vw-2rem)]'
+            : 'w-full'
+        )}
+      >
         <nav
           aria-label="Primary"
           className={cn(
-            'flex items-center justify-between rounded-full transition-[width,padding,background-color,border-color,box-shadow] duration-300',
+            'flex w-full items-center justify-between rounded-full transition-[padding,background-color,border-color,box-shadow] duration-300',
             isCondensed || menuOpen
-              ? 'w-full gap-4 border border-white/10 bg-white/5 px-4 py-2.5 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] backdrop-blur-[20px] backdrop-saturate-[1.8] md:w-fit md:gap-16'
-              : 'w-full gap-4 border-transparent bg-transparent px-6 py-4 shadow-none'
+              ? 'gap-4 border border-white/10 bg-white/5 px-4 py-2.5 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] backdrop-blur-[20px] backdrop-saturate-[1.8] md:gap-10'
+              : 'gap-4 border-transparent bg-transparent px-6 py-4 shadow-none'
           )}
         >
           <div className="flex shrink-0 items-center gap-8">

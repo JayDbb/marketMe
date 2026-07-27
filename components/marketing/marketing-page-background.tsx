@@ -10,7 +10,9 @@ export function MarketingPageBackground({ children, className }: MarketingPageBa
   return (
     <div
       className={cn(
-        'relative min-h-dvh bg-[#0d1117] text-zinc-50 overflow-x-hidden font-sans selection:bg-blue-500/30 selection:text-white',
+        // overflow-x stays on body — clipping here turns fixed nav into a
+        // containing-block child and chops the condensed pill on scroll.
+        'relative min-h-dvh bg-[#0d1117] text-zinc-50 font-sans selection:bg-blue-500/30 selection:text-white',
         className
       )}
     >

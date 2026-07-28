@@ -86,6 +86,51 @@ export const blogPosts: BlogPost[] = [
       'Billing renewals and refunds are covered in our Refunds & Billing policy. Prices shown at checkout are the source of truth when paid billing is enabled.',
     ],
   },
+  {
+    slug: 'jamaica-first-privacy-for-operators',
+    title: 'What Jamaica-first privacy means for your Marketme account',
+    excerpt:
+      'Plain-language notes on where we are based, what we collect, and how to reach privacy when you need a request handled.',
+    category: 'Trust',
+    date: '2026-07-21',
+    readMinutes: 5,
+    featured: true,
+    body: [
+      'Marketme is built by a Jamaica-based company. Our Privacy Policy, Cookie Policy, and related legal pages explain what we collect, why, and which vendors help us run hosting, auth, AI, and email.',
+      'Necessary cookies keep you signed in and protect the service. Analytics or marketing cookies only run if you allow them where consent is required. Use the cookie banner choices when they appear.',
+      'If you need access or deletion help, email privacy — not a ticket bot. We also publish AI ethics guidance so generation stays assistive: you review before publish.',
+      'Transparency is incomplete without product honesty. We do not invent SOC2 badges or customer logos. When certifications or case studies exist, they will show up here with receipts.',
+    ],
+  },
+  {
+    slug: 'from-draft-to-calendar-in-one-sitting',
+    title: 'From first draft to a filled calendar in one sitting',
+    excerpt:
+      'A practical 45-minute batching session using Generate, review, Studio, and Calendar without context-switching chaos.',
+    category: 'Workflow',
+    date: '2026-07-25',
+    readMinutes: 6,
+    body: [
+      'Open Generate with one goal for the week — foot traffic, product drop, or brand story. Produce a small pack of captions, then stop. Quantity without review creates cleanup work later.',
+      'Spend ten focused minutes editing claims, prices, and tone. Delete anything you would not say out loud to a customer. That filter is the product’s point.',
+      'Match survivors to Studio templates (square feed + story). If you lack a visual, use a simple offer layout rather than delaying the whole week.',
+      'Drop approved posts onto Calendar at times your audience is actually online. Leave one slot empty on purpose — real life will fill it with a last-minute update.',
+    ],
+  },
+  {
+    slug: 'choosing-free-pro-or-team',
+    title: 'Choosing Free, Pro, or Team without overbuying',
+    excerpt:
+      'Match plan limits to how many profiles, posts, and teammates you actually have — not to aspirational org charts.',
+    category: 'Product',
+    date: '2026-07-26',
+    readMinutes: 4,
+    body: [
+      'Start on Free if you are validating the weekly loop alone: one profile, modest credits, enough Calendar to prove the habit. Upgrade when you hit a hard limit twice in a normal month.',
+      'Pro fits operators juggling a few brands or profiles who need higher AI credits and more monthly posts. Team is for shared workspaces and more seats — not a vanity purchase.',
+      'Ignore “unlimited everything” marketing elsewhere. Our Pricing page shows the real numbers. If a limit is wrong for your shop, tell support — product roadmap listens to operators who ship.',
+    ],
+  },
 ]
 
 export function getAllBlogPosts(): BlogPost[] {

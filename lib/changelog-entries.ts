@@ -13,6 +13,19 @@ export type ChangelogEntry = {
 /** Static product changelog until a CMS is wired. Newest first. */
 export const changelogEntries: ChangelogEntry[] = [
   {
+    id: '2026-07-trust-company-pages',
+    date: '2026-07-28',
+    title: 'Company pages, honest trust, and deeper Help',
+    summary:
+      'About, Customers, Contact, and Help are real product pages. Home adds verifiable trust signals instead of fake logos. Blog and sitemap expanded for operators.',
+    tags: ['improvement', 'feature'],
+    highlights: [
+      'About / Customers / Contact rebuilt for Jamaica-first operators',
+      'Help center with setup, credits, and connections guides',
+      'Home trust strip + blog posts in sitemap',
+    ],
+  },
+  {
     id: '2026-07-marketing-pages',
     date: '2026-07-24',
     title: 'Features, Pricing, and Blog as real product pages',

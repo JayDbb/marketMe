@@ -74,20 +74,64 @@ const DEFAULT_CONTEXT: GenerateContext = {
   defaultTone: 'Professional',
   defaultGoal: 'Increase Brand Awareness',
   defaultPlatform: 'Instagram',
+  hasLiveAi: false,
   hasOpenAI: false,
+  aiProvider: 'none',
+  preferredAiProvider: 'auto',
+  captionModel: 'openai/gpt-4o-mini',
+  captionModelLabel: 'GPT-4o mini',
   templateCount: 0,
   creditsBalance: 50,
   creditsLimit: 50,
   creditCostPerGeneration: 2,
 }
 
+const JOURNEY_STEPS = [
+  { id: 'setup', label: 'Generate' },
+  { id: 'review', label: 'Review' },
+  { id: 'scheduled', label: 'Calendar' },
+] as const
+
 const PROGRESS_STEPS = [
-  'Analyzing Strategy Goal',
-  'Brainstorming Content Angles',
-  'Drafting Captions & Copy',
-  'Injecting text into Studio Canvas',
-  'Finalizing Review Package',
+  'Reading your business profile',
+  "Planning the week's posts",
+  'Writing captions',
+  'Packaging drafts for review',
+  'Ready when you are',
 ]
+
+function GenerateJourney({ active }: { active: FlowState }) {
+  const current: (typeof JOURNEY_STEPS)[number]['id'] =
+    active === 'generating' ? 'setup' : active === 'review' ? 'review' : active === 'scheduled' ? 'scheduled' : 'setup'
+  const currentIndex = JOURNEY_STEPS.findIndex((s) => s.id === current)
+
+  return (
+    <ol className="mb-8 flex items-center justify-center gap-2 sm:gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-white/35">
+      {JOURNEY_STEPS.map((step, i) => {
+        const done = i < currentIndex
+        const isActive = i === currentIndex
+        return (
+          <li key={step.id} className="flex items-center gap-2 sm:gap-3">
+            {i > 0 ? (
+              <span className="h-px w-4 sm:w-8 bg-zinc-200 dark:bg-white/10" aria-hidden />
+            ) : null}
+            <span
+              className={
+                isActive
+                  ? 'text-blue-500 dark:text-blue-300'
+                  : done
+                    ? 'text-zinc-600 dark:text-white/55'
+                    : undefined
+              }
+            >
+              {step.label}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
 
 // ─── Template Source Toggle ───────────────────────────────────────────────────
 function TemplateSourcePicker({
@@ -560,6 +604,7 @@ export function GenerateContent({
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="w-full max-w-3xl px-6 relative z-10"
           >
+            <GenerateJourney active={flowState} />
             <div className="mb-12 text-center">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br from-blue-500/20 to-blue-500/20 border border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.2)] mb-6">
                 <Sparkles className="w-6 h-6 text-blue-300" />
@@ -568,7 +613,7 @@ export function GenerateContent({
                 Generate <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-sky-300">Weekly Content</span>
               </h1>
               <p className="text-lg text-zinc-500 dark:text-white/50 max-w-lg mx-auto leading-relaxed">
-                Configure your AI engine to craft a week&apos;s worth of high-converting social posts in seconds.
+                Create a week of posts, review what you like, then schedule it on your calendar.
               </p>
             </div>
 
@@ -583,15 +628,24 @@ export function GenerateContent({
                   </span>
                 </span>
               </div>
-              {!ctx.hasOpenAI && (
+              {ctx.hasLiveAi ? (
+                <p className="text-center text-xs text-zinc-500 dark:text-white/40">
+                  {ctx.preferredAiProvider === 'openai'
+                    ? `Captions use ${ctx.captionModelLabel}.`
+                    : ctx.preferredAiProvider === 'marketme-api'
+                      ? 'Using your MarketMe AI content pipeline.'
+                      : `Auto pipeline with ${ctx.captionModelLabel} fallback.`}{' '}
+                  <Link href="/dashboard/settings?tab=AI" className="underline underline-offset-2 hover:text-zinc-700 dark:hover:text-white/70">
+                    AI preferences
+                  </Link>
+                </p>
+              ) : (
                 <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-900 dark:text-amber-100/90">
                   <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <p>
-                    AI providers are not connected yet — generation uses sample templates from your
-                    business profile. Add <code className="text-xs">OPENAI_API_KEY</code> for live AI copy.
-                    {ctx.templateCount > 0
-                      ? ` ${ctx.templateCount} Studio template${ctx.templateCount === 1 ? '' : 's'} available.`
-                      : ''}
+                    Live AI is not connected yet — generation uses sample templates from your
+                    business profile. Set <code className="text-xs">MARKETME_AI_API_URL</code> or{' '}
+                    <code className="text-xs">OPENAI_API_KEY</code> for live copy.
                   </p>
                 </div>
               )}
@@ -736,6 +790,7 @@ export function GenerateContent({
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="w-full max-w-xl px-6 relative z-10 py-10"
           >
+            <GenerateJourney active={flowState} />
             <div className="text-center mb-10">
               <div className="relative w-28 h-28 mx-auto mb-8 flex items-center justify-center">
                 <div
@@ -779,13 +834,13 @@ export function GenerateContent({
               </div>
               <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-3 tracking-tight">
                 {generationComplete
-                  ? 'Content Generation Complete'
-                  : 'Synthesizing Content...'}
+                  ? 'Drafts are ready to review'
+                  : 'Creating your week…'}
               </h2>
               <p className="text-zinc-500 dark:text-white/40 text-lg">
                 {generationComplete
-                  ? 'Your strategy has been executed successfully.'
-                  : 'Hold tight while the AI builds your weekly strategy.'}
+                  ? 'Approve what you like, tweak captions, then schedule to the calendar.'
+                  : 'Hang tight — drafting posts from your business profile.'}
               </p>
 
               {!generationComplete && (
@@ -904,7 +959,7 @@ export function GenerateContent({
                     onClick={handleGoToReview}
                     className="h-14 px-10 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl text-base shadow-[0_0_40px_rgba(34,197,94,0.3)] transition-all"
                   >
-                    Review & Publish Content <ChevronRight className="w-5 h-5 ml-2" />
+                    Review & schedule <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 </motion.div>
               )}
@@ -934,13 +989,17 @@ export function GenerateContent({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)] px-6"
+            className="w-full flex flex-col gap-4 h-[calc(100vh-8rem)] px-6"
           >
+            <GenerateJourney active={flowState} />
+            <div className="flex flex-col lg:flex-row gap-6 min-h-0 flex-1">
             {/* Left Sidebar: Post List */}
             <div className="w-full lg:w-80 xl:w-96 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-3xl overflow-hidden">
               <div className="p-6 border-b border-zinc-200 dark:border-white/10 bg-white/2">
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1 tracking-tight">Review Content</h2>
-                <p className="text-zinc-500 dark:text-white/40 text-sm leading-relaxed">Approve or edit the AI-generated posts below before scheduling.</p>
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1 tracking-tight">Review</h2>
+                <p className="text-zinc-500 dark:text-white/40 text-sm leading-relaxed">
+                  Approve or edit posts, then schedule them to your calendar.
+                </p>
                 <AiContentNotice className="mt-4" />
               </div>
 
@@ -1133,6 +1192,7 @@ export function GenerateContent({
                 <p className="text-zinc-500 dark:text-white/40 text-sm font-medium">Select a post from the sidebar to review.</p>
               </div>
             )}
+            </div>
           </motion.div>
         )}
 
@@ -1148,6 +1208,7 @@ export function GenerateContent({
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="w-full max-w-lg px-6 relative z-10 py-16 text-center"
           >
+            <GenerateJourney active={flowState} />
             <div className="relative w-24 h-24 mx-auto mb-8 flex items-center justify-center">
               <div className="absolute inset-0 bg-green-500/20 blur-2xl rounded-full" />
               <motion.div
@@ -1161,15 +1222,15 @@ export function GenerateContent({
             </div>
 
             <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-3 tracking-tight">
-              Queue finished
+              On your calendar
             </h2>
             <p className="text-zinc-500 dark:text-white/45 text-base mb-2">
               {scheduledCount === 1
-                ? 'Your post is scheduled and ready on the calendar.'
-                : `${scheduledCount} posts are scheduled and ready on the calendar.`}
+                ? 'Your post is scheduled.'
+                : `${scheduledCount} posts are scheduled.`}
             </p>
             <p className="text-sm text-zinc-500 dark:text-white/30 mb-10">
-              You can review them anytime in Calendar or Posts.
+              Open Calendar to drag times, or Posts to manage the queue.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">

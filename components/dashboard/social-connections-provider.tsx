@@ -9,6 +9,7 @@ import {
   useState,
   startTransition,
 } from 'react'
+import { toast } from 'sonner'
 import type { SocialConnection, SocialPlatform } from '@/types/social'
 import {
   disconnectConnection,
@@ -16,12 +17,16 @@ import {
   initiatePlatformConnect,
 } from '@/lib/social/connection-api'
 
+export type RefreshConnectionsResult =
+  | { ok: true }
+  | { ok: false; error: string }
+
 interface SocialConnectionsContextValue {
   connections: SocialConnection[]
   isLoading: boolean
   connectingPlatform: SocialPlatform | null
   error: string | null
-  refresh: () => Promise<void>
+  refresh: () => Promise<RefreshConnectionsResult>
   connect: (platform: SocialPlatform) => Promise<void>
   disconnect: (connectionId: string) => Promise<void>
   getConnection: (platform: SocialPlatform) => SocialConnection | undefined
@@ -43,14 +48,18 @@ export function SocialConnectionsProvider({
     useState<SocialPlatform | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<RefreshConnectionsResult> => {
     setIsLoading(true)
     setError(null)
     try {
-      const data = await fetchConnections()
-      setConnections(data)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load connections')
+      const result = await fetchConnections()
+      if (!result.ok) {
+        setConnections([])
+        setError(result.error)
+        return { ok: false, error: result.error }
+      }
+      setConnections(result.connections)
+      return { ok: true }
     } finally {
       setIsLoading(false)
     }
@@ -66,14 +75,12 @@ export function SocialConnectionsProvider({
     setConnectingPlatform(platform)
     setError(null)
     try {
-      const connection = await initiatePlatformConnect(platform)
-      setConnections((prev) => {
-        const rest = prev.filter((c) => c.platform !== platform)
-        return [...rest, connection]
-      })
+      await initiatePlatformConnect(platform)
+      // Browser navigates away to Meta; no local state update needed.
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Connection failed')
-    } finally {
+      const message = e instanceof Error ? e.message : 'Connection failed'
+      setError(message)
+      toast.error(message)
       setConnectingPlatform(null)
     }
   }, [])
@@ -83,6 +90,10 @@ export function SocialConnectionsProvider({
     try {
       await disconnectConnection(connectionId)
       setConnections((prev) => prev.filter((c) => c.id !== connectionId))
+      toast.message('Removed from this view', {
+        description:
+          'Revoke access in Meta Business settings to fully disconnect the publish service.',
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Disconnect failed')
     }

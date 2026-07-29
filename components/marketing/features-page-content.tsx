@@ -285,8 +285,7 @@ export function FeaturesPageContent() {
             transition={{ delay: 0.05 }}
             className="max-w-xl font-serif text-4xl font-light tracking-tighter text-white md:text-6xl"
           >
-            The tools behind{' '}
-            <span className="italic font-medium text-sky-400">every scheduled week</span>
+            The tools behind every scheduled week
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 12 }}

@@ -57,8 +57,7 @@ export function FaqSection() {
       <div className="grid grid-cols-1 items-start gap-12 md:grid-cols-3 lg:gap-16">
         <div className="md:col-span-2">
           <h2 className="mb-10 font-serif text-3xl font-light leading-tight tracking-tighter text-white md:text-5xl">
-            Frequently asked{' '}
-            <span className="font-serif italic font-medium text-sky-400">questions</span>
+            Frequently asked questions
           </h2>
 
           <Accordion className="w-full space-y-0">

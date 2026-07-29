@@ -8,6 +8,7 @@ import { persistCanvasImageLayers, uploadCanvasPreview } from '@/lib/canvas-pers
 import { CanvasData } from '@/types/canvas'
 import { isWithinImageUploadLimit, MAX_IMAGE_UPLOAD_LABEL } from '@/lib/upload-limits'
 import { previewUrlFromCanvas, photoToEditableCanvas } from '@/lib/studio-utils'
+import { rateLimitMessage } from '@/lib/rate-limit'
 
 export interface StudioTemplate {
   id: string
@@ -109,6 +110,9 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
+  const limited = rateLimitMessage(`studio:upload:${user.id}`, 20, 60_000)
+  if (limited) return { success: false, error: limited }
+
   const file = formData.get('file') as File | null
   const name = (formData.get('name') as string) || 'Untitled'
   const category = (formData.get('category') as string) || null
@@ -118,8 +122,9 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
   const typeError = validateImageUploadMeta(file.type, file.size)
   if (typeError) return { success: false, error: typeError }
 
-  const ext = file.name.split('.').pop() || 'jpg'
-  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg'
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`
   const filePath = `${user.id}/${fileName}`
 
   const { error: uploadError } = await supabaseAdmin.storage
@@ -155,6 +160,9 @@ export async function prepareStudioTemplateUploadAction(input: {
 }> {
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Not authenticated' }
+
+  const limited = rateLimitMessage(`studio:prepare:${user.id}`, 30, 60_000)
+  if (limited) return { success: false, error: limited }
 
   const typeError = validateImageUploadMeta(input.contentType, input.fileSize)
   if (typeError) return { success: false, error: typeError }
@@ -196,11 +204,14 @@ export async function completeStudioTemplateUploadAction(input: {
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
+  const limited = rateLimitMessage(`studio:complete:${user.id}`, 30, 60_000)
+  if (limited) return { success: false, error: limited }
+
   const name = input.name.trim() || 'Untitled'
   const category = input.category ?? null
   const filePath = input.filePath.trim()
 
-  if (!filePath.startsWith(`${user.id}/`)) {
+  if (!isOwnedStudioUploadPath(user.id, filePath)) {
     return { success: false, error: 'Invalid upload path.' }
   }
 
@@ -213,7 +224,7 @@ export async function completeStudioTemplateUploadAction(input: {
     return { success: false, error: 'Could not verify upload. Please try again.' }
   }
 
-  const fileName = filePath.split('/').pop()
+  const fileName = filePath.split('/')[1]
   if (!fileName || !existingFile?.some((f) => f.name === fileName)) {
     return { success: false, error: 'Upload not found. Please try again.' }
   }
@@ -253,6 +264,28 @@ function validateImageUploadMeta(contentType: string, fileSize: number): string 
     return `File must be smaller than ${MAX_IMAGE_UPLOAD_LABEL}`
   }
   return null
+}
+
+/** Reject path traversal and require the canonical prepareStudioTemplateUpload path shape. */
+function isOwnedStudioUploadPath(userId: string, filePath: string): boolean {
+  if (!userId || !filePath) return false
+  if (
+    filePath.includes('..') ||
+    filePath.includes('\\') ||
+    filePath.includes('%') ||
+    filePath.includes('\0') ||
+    filePath.startsWith('/') ||
+    filePath.includes('//')
+  ) {
+    return false
+  }
+
+  const parts = filePath.split('/')
+  if (parts.length !== 2) return false
+  const [owner, fileName] = parts
+  if (owner !== userId) return false
+
+  return /^\d+-[a-z0-9]+\.(jpg|jpeg|png|webp|gif)$/i.test(fileName)
 }
 
 export async function savePexelsTemplateAction(data: {

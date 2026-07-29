@@ -1,7 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, AuthError } from "@/lib/services/auth.service";
-import { supabaseAdmin } from "@/lib/supabase/admin";
-import { generateStrategy, generatePosts } from "@/lib/services/marketing-ai.service";
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, AuthError } from '@/lib/services/auth.service'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import {
+  profileToPipelineInput,
+  runCreativePipeline,
+} from '@/lib/services/creative-pipeline.service'
+import { isMarketingAiConfigured, MarketingAIError } from '@/lib/services/marketing-ai.service'
+import { isRateLimitError, rateLimitOrThrow } from '@/lib/rate-limit'
+import type { BusinessProfile } from '@/types/business-profile'
 
 export async function POST(request: NextRequest) {
   let session
@@ -11,56 +17,61 @@ export async function POST(request: NextRequest) {
     if (e instanceof AuthError) {
       return NextResponse.json({ error: e.message }, { status: e.status })
     }
-    return NextResponse.json({ error: "Authentication error" }, { status: 401 })
+    return NextResponse.json({ error: 'Authentication error' }, { status: 401 })
   }
 
   try {
-    const body = await request.json();
-    const { businessProfileId, startDate } = body;
+    rateLimitOrThrow(`content-plans:generate:${session.user.id}`, 5, 60_000)
+  } catch (e) {
+    if (isRateLimitError(e)) {
+      return NextResponse.json({ error: e.message }, { status: 429 })
+    }
+    throw e
+  }
+
+  if (!isMarketingAiConfigured()) {
+    return NextResponse.json(
+      { error: 'MARKETME_AI_API_URL is not configured' },
+      { status: 503 }
+    )
+  }
+
+  try {
+    const body = await request.json()
+    const { businessProfileId, startDate, numPosts = 3, platform } = body
 
     if (!businessProfileId || !startDate) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Verify ownership of the business profile
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('business_profiles')
       .select('*')
       .eq('id', businessProfileId)
       .eq('user_id', session.user.id)
-      .single();
+      .single()
 
     if (profileError || !profile) {
-      return NextResponse.json({ error: "Profile not found or unauthorized" }, { status: 403 });
+      return NextResponse.json({ error: 'Profile not found or unauthorized' }, { status: 403 })
     }
 
-    // 1. Generate Strategy
-    const strategyData = await generateStrategy({
-      business_id: profile.id,
-      business_name: profile.business_name || 'My Business',
-      industry: profile.industry || 'General',
-      target_audience: profile.target_customers || 'Everyone',
-      goals: profile.primary_goal || 'Growth',
-      platforms: Array.isArray(profile.channels) && profile.channels.length > 0
-        ? profile.channels.map((c: string) => c.toLowerCase())
-        : ['instagram'],
-    });
+    const typedProfile = profile as BusinessProfile
+    const pipeline = await runCreativePipeline({
+      business: profileToPipelineInput(typedProfile),
+      platform:
+        platform ||
+        (Array.isArray(typedProfile.channels) && typedProfile.channels[0]) ||
+        'instagram',
+      goal: typedProfile.primary_goal ?? undefined,
+      tone: typedProfile.tone ?? undefined,
+      numPosts: Math.max(1, Math.min(14, Number(numPosts) || 3)),
+      weekStartDate: String(startDate).slice(0, 10),
+      includeCreativeBriefs: false,
+    })
 
-    if (!strategyData.strategy_id) {
-      throw new Error('No strategy_id returned from AI service');
-    }
+    const start = new Date(startDate)
+    const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-    // 2. Generate Posts from strategy
-    const postsData = await generatePosts({
-      strategy_id: strategyData.strategy_id,
-      platform: 'instagram',
-      num_posts: 3
-    });
-
-    // 3. Save Content Plan to DB
-    const start = new Date(startDate);
-    const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
-    
     const { data: planData, error: planError } = await supabaseAdmin
       .from('content_plans')
       .insert({
@@ -68,53 +79,68 @@ export async function POST(request: NextRequest) {
         business_profile_id: businessProfileId,
         start_date: start.toISOString().split('T')[0],
         end_date: end.toISOString().split('T')[0],
-        target_audience: profile.target_customers || null,
-        strategy_summary: strategyData.strategy?.overview || 'Weekly generated content strategy',
+        target_audience: typedProfile.target_customers || null,
+        strategy_summary: pipeline.strategySummary,
         status: 'draft',
       })
       .select()
-      .single();
+      .single()
 
     if (planError || !planData) {
-      throw new Error(`Failed to save content plan: ${planError?.message}`);
+      throw new Error(`Failed to save content plan: ${planError?.message}`)
     }
 
-    // 4. Save Posts to DB
-    if (postsData.posts && postsData.posts.length > 0) {
-      const postsToInsert = postsData.posts.map((post: {
-        caption?: string
-        hashtags?: string[]
-        suggested_media_prompt?: string
-      }, index: number) => {
-        const scheduledDate = new Date(start);
-        scheduledDate.setDate(scheduledDate.getDate() + (index % 7));
-
-        const hashtagsStr = Array.isArray(post.hashtags)
-          ? post.hashtags.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ')
-          : '';
+    if (pipeline.posts.length > 0) {
+      const postsToInsert = pipeline.posts.map((post) => {
+        const scheduled = new Date(post.scheduledDate)
+        const scheduledAt = Number.isNaN(scheduled.getTime())
+          ? new Date(start).toISOString()
+          : scheduled.toISOString()
 
         return {
           content_plan_id: planData.id,
           user_id: session.user.id,
-          platform: 'instagram',
+          platform: mapPlatformForDb(platform, typedProfile.channels),
           post_type: 'image',
-          content: post.caption + (hashtagsStr ? '\n\n' + hashtagsStr : ''),
-          image_prompt: post.suggested_media_prompt || null,
-          scheduled_at: scheduledDate.toISOString(),
+          content: [post.caption, post.hashtags].filter(Boolean).join('\n\n'),
+          image_prompt: post.imagePrompt || null,
+          scheduled_at: scheduledAt,
           status: 'draft',
-        };
-      });
+        }
+      })
 
-      const { error: postsError } = await supabaseAdmin.from('posts').insert(postsToInsert);
+      const { error: postsError } = await supabaseAdmin.from('posts').insert(postsToInsert)
       if (postsError) {
-        throw new Error(`Failed to save posts: ${postsError.message}`);
+        throw new Error(`Failed to save posts: ${postsError.message}`)
       }
     }
 
-    return NextResponse.json({ success: true, contentPlanId: planData.id });
+    return NextResponse.json({
+      success: true,
+      contentPlanId: planData.id,
+      strategyId: pipeline.strategyId,
+      postCount: pipeline.posts.length,
+    })
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    console.error("Generate API Error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const message =
+      error instanceof MarketingAIError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'Unknown error'
+    console.error('Generate API Error:', message)
+    const status = error instanceof MarketingAIError ? 502 : 500
+    return NextResponse.json({ error: message }, { status })
   }
+}
+
+function mapPlatformForDb(platform: unknown, channels: string[] | null | undefined): string {
+  if (typeof platform === 'string' && platform.trim()) {
+    return platform.trim().toLowerCase() === 'x' ? 'twitter' : platform.trim().toLowerCase()
+  }
+  if (Array.isArray(channels) && channels[0]) {
+    const c = channels[0].toLowerCase()
+    return c === 'x' ? 'twitter' : c
+  }
+  return 'instagram'
 }

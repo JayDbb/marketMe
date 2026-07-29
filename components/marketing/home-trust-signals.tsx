@@ -44,8 +44,7 @@ export function HomeTrustSignals() {
             id="trust-signals-heading"
             className="font-serif text-3xl font-light tracking-tighter text-white md:text-4xl"
           >
-            Proof without the{' '}
-            <span className="italic font-medium text-sky-400">fiction</span>
+            Proof without the fiction
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-white/45 md:text-base">
             We would rather show how the product works than invent customer counts. These are

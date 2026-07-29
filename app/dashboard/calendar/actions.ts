@@ -16,6 +16,7 @@ import {
   approveAndSchedulePost,
   transitionPostStatus,
 } from '@/lib/services/post-lifecycle.service'
+import { rateLimitMessage } from '@/lib/rate-limit'
 
 export type PostModalContext = {
   displayName: string
@@ -104,6 +105,9 @@ export async function approveCalendarPostAction(
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Unauthorized' }
 
+  const limited = rateLimitMessage(`calendar:mutate:${user.id}`, 60, 60_000)
+  if (limited) return { success: false, error: limited }
+
   const { data, error } = await transitionPostStatus(user.id, postId, 'approved')
   if (error || !data) {
     return { success: false, error: error ?? 'Approval failed' }
@@ -119,6 +123,9 @@ export async function scheduleCalendarPostAction(
 ): Promise<{ success: boolean; error?: string }> {
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Unauthorized' }
+
+  const limited = rateLimitMessage(`calendar:mutate:${user.id}`, 60, 60_000)
+  if (limited) return { success: false, error: limited }
 
   const { data, error } = await approveAndSchedulePost(user.id, postId)
   if (error || !data) {
@@ -139,6 +146,9 @@ export async function createCalendarPostAction(payload: {
 }): Promise<{ success: boolean; error?: string; postId?: string }> {
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Unauthorized' }
+
+  const limited = rateLimitMessage(`calendar:mutate:${user.id}`, 60, 60_000)
+  if (limited) return { success: false, error: limited }
 
   const planResult = await ensureContentPlanForUser(
     user.id,
@@ -184,6 +194,9 @@ export async function updateCalendarPostAction(payload: {
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Unauthorized' }
 
+  const limited = rateLimitMessage(`calendar:mutate:${user.id}`, 60, 60_000)
+  if (limited) return { success: false, error: limited }
+
   const updates: {
     content: string
     platform: string
@@ -221,6 +234,9 @@ export async function deleteCalendarPostAction(
 ): Promise<{ success: boolean; error?: string }> {
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Unauthorized' }
+
+  const limited = rateLimitMessage(`calendar:mutate:${user.id}`, 60, 60_000)
+  if (limited) return { success: false, error: limited }
 
   const { success, error } = await deletePost(user.id, postId)
 

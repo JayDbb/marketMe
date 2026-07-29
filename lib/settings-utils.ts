@@ -1,4 +1,5 @@
 import type { WeekStartsOn } from '@/types/settings'
+import { DEFAULT_AI_PREFERENCES } from '@/lib/ai-models'
 
 export const TIMEZONE_OPTIONS = [
   { value: 'America/New_York', label: 'Eastern (US)' },
@@ -16,3 +17,5 @@ export const DEFAULT_PREFERENCES = {
   timezone: 'America/New_York',
   weekStartsOn: 'monday' as WeekStartsOn,
 }
+
+export { DEFAULT_AI_PREFERENCES }

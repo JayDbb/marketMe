@@ -1,12 +1,20 @@
 'use client'
 
+import { Suspense, useEffect, useRef } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { motion, type Variants } from 'framer-motion'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Link2, Loader2, Unplug, Info } from 'lucide-react'
+import { AtSign, CheckCircle2, Link2, Loader2, Unplug, Info } from 'lucide-react'
 import { useSocialConnections } from '@/components/dashboard/social-connections-provider'
 import { SOCIAL_PLATFORMS } from '@/lib/social/platforms'
 import { formatDistanceToNow } from '@/lib/social/format-relative'
+import {
+  consumeInstagramOAuthPending,
+  parseOAuthReturnParams,
+  stripOAuthReturnParams,
+} from '@/lib/social/oauth'
 import type { SocialPlatform } from '@/types/social'
 
 const containerVariants = {
@@ -26,6 +34,47 @@ function platformInitial(platform: SocialPlatform): string {
   return platform.charAt(0).toUpperCase()
 }
 
+function OAuthReturnHandler() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { refresh } = useSocialConnections()
+  const handled = useRef(false)
+
+  useEffect(() => {
+    if (handled.current) return
+
+    const result = parseOAuthReturnParams(searchParams)
+    const pending = consumeInstagramOAuthPending()
+    if (result.kind === 'none' && !pending) return
+
+    handled.current = true
+
+    void (async () => {
+      if (result.kind === 'error') {
+        toast.error(result.message)
+      } else {
+        const refreshed = await refresh()
+        if (refreshed.ok) {
+          toast.success(
+            result.kind === 'success' && result.message
+              ? result.message
+              : 'Instagram authorized with Meta'
+          )
+        } else {
+          toast.error(refreshed.error)
+        }
+      }
+
+      if (result.kind !== 'none') {
+        router.replace(`${pathname}${stripOAuthReturnParams(searchParams)}`)
+      }
+    })()
+  }, [searchParams, refresh, router, pathname])
+
+  return null
+}
+
 export function ConnectionsContent() {
   const {
     connections,
@@ -35,6 +84,8 @@ export function ConnectionsContent() {
     connect,
     disconnect,
     isConnected,
+    hasInstagram,
+    refresh,
   } = useSocialConnections()
 
   const connected = connections.filter((c) => c.status === 'connected')
@@ -46,15 +97,38 @@ export function ConnectionsContent() {
       animate="show"
       className="max-w-7xl mx-auto px-6 py-10 relative z-10"
     >
-      <div className="mb-6 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 flex gap-3">
-        <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+      <Suspense fallback={null}>
+        <OAuthReturnHandler />
+      </Suspense>
+
+      <div
+        className={`mb-6 rounded-xl border px-4 py-3 flex gap-3 ${
+          error
+            ? 'border-amber-500/25 bg-amber-500/8'
+            : hasInstagram
+              ? 'border-emerald-500/25 bg-emerald-500/8'
+              : 'border-blue-500/25 bg-blue-500/8'
+        }`}
+      >
+        <Info
+          className={`w-5 h-5 shrink-0 mt-0.5 ${
+            error ? 'text-amber-500' : hasInstagram ? 'text-emerald-500' : 'text-blue-500'
+          }`}
+        />
         <div>
           <p className="text-sm font-medium text-zinc-900 dark:text-white">
-            Instagram publishing coming soon
+            {error
+              ? 'Meta may be connected, but MarketMe cannot load it yet'
+              : hasInstagram
+                ? 'Instagram is connected'
+                : 'Connect Instagram with Meta OAuth'}
           </p>
           <p className="text-xs text-zinc-500 dark:text-white/45 mt-0.5 leading-relaxed">
-            You can draft, approve, and queue posts now. Real OAuth and auto-publish will activate once
-            Instagram Graph API is connected. Demo connections below are stored locally only.
+            {error
+              ? 'Facebook showed “connected,” but the publish API is failing when saving or reading tokens. This is a backend fix on the MarketMe AI (Render) service — not your Connect button.'
+              : hasInstagram
+                ? 'You can schedule and publish through the MarketMe publish service. Reconnect anytime if the token expires.'
+                : 'Connect opens Meta Login for Instagram Business / Creator accounts linked to a Facebook Page. Tokens are stored on the MarketMe AI publish service.'}
           </p>
         </div>
       </div>
@@ -71,16 +145,26 @@ export function ConnectionsContent() {
               Connected profiles
             </h2>
             <p className="text-xs text-zinc-400 dark:text-white/30">
-              Demo connections stored locally until OAuth is wired
+              Live from Meta via MarketMe AI
             </p>
           </div>
 
           {error ? (
             <div
               role="alert"
-              className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 relative z-10"
+              className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 relative z-10 space-y-2"
             >
-              {error}
+              <p className="font-medium">Could not load Instagram connection</p>
+              <p className="text-xs leading-relaxed opacity-90">{error}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => void refresh()}
+              >
+                Retry
+              </Button>
             </div>
           ) : null}
 
@@ -91,9 +175,9 @@ export function ConnectionsContent() {
             </div>
           ) : connected.length === 0 ? (
             <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/10 p-10 text-center relative z-10">
-              <Link2 className="w-10 h-10 mx-auto mb-3 text-zinc-300 dark:text-white/20" />
+              <AtSign className="w-10 h-10 mx-auto mb-3 text-zinc-300 dark:text-white/20" />
               <p className="text-sm text-zinc-500 dark:text-white/50">
-                No profiles connected yet. Use the panel on the right to connect Instagram.
+                No Instagram account connected yet. Use Connect on the right to authorize Meta.
               </p>
             </div>
           ) : (
@@ -122,7 +206,7 @@ export function ConnectionsContent() {
                     </div>
                     <div>
                       <h4 className="font-semibold text-zinc-900 dark:text-white text-sm truncate">
-                        @{conn.handle}
+                        @{conn.handle.replace(/^@/, '')}
                       </h4>
                       <p className="text-xs text-zinc-500 dark:text-white/40 mt-0.5 truncate">
                         {conn.displayName}
@@ -155,11 +239,11 @@ export function ConnectionsContent() {
             </li>
             <li className="flex items-start gap-3 text-sm text-zinc-500 dark:text-white/70">
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <span>Reply to DMs and comments from the inbox</span>
+              <span>Publish through Instagram Graph API</span>
             </li>
             <li className="flex items-start gap-3 text-sm text-zinc-500 dark:text-white/70">
               <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-              <span>Use Studio templates across your content</span>
+              <span>Reconnect anytime if Meta tokens expire</span>
             </li>
           </ul>
 
@@ -172,16 +256,25 @@ export function ConnectionsContent() {
                 <Button
                   key={platform.id}
                   type="button"
-                  disabled={!platform.available || connectedPlatform || isConnecting}
+                  disabled={!platform.available || isConnecting}
                   onClick={() => void connect(platform.id)}
                   className="h-11 w-full justify-between rounded-xl font-bold border-0"
                   variant={connectedPlatform ? 'secondary' : 'default'}
                 >
-                  <span>{platform.label}</span>
+                  <span className="inline-flex items-center gap-2">
+                    {platform.id === 'instagram' ? (
+                      <AtSign className="w-4 h-4" />
+                    ) : (
+                      <Link2 className="w-4 h-4" />
+                    )}
+                    {platform.label}
+                  </span>
                   {isConnecting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : connectedPlatform ? (
-                    <span className="text-xs font-medium text-green-600">Connected</span>
+                    <span className="text-xs font-medium text-green-600">
+                      {platform.available ? 'Reconnect' : 'Connected'}
+                    </span>
                   ) : !platform.available ? (
                     <span className="text-xs font-medium opacity-60">Soon</span>
                   ) : (
@@ -191,6 +284,11 @@ export function ConnectionsContent() {
               )
             })}
           </div>
+
+          <p className="mt-4 text-[11px] leading-relaxed text-zinc-400 dark:text-white/30">
+            Requires an Instagram Business or Creator account linked to a Facebook Page. After Meta
+            approval, you&apos;ll return here automatically.
+          </p>
         </motion.div>
       </div>
     </motion.div>

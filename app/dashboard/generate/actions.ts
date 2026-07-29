@@ -32,29 +32,65 @@ import {
 } from '@/lib/generate-utils'
 import { openai } from '@/lib/openai'
 import { getCreditsBalance } from '@/lib/services/credits.service'
+import {
+  profileToPipelineInput,
+  runCreativePipeline,
+} from '@/lib/services/creative-pipeline.service'
+import {
+  isMarketingAiConfigured,
+  MarketingAIError,
+} from '@/lib/services/marketing-ai.service'
 import { PIPELINE_CREDIT_COSTS } from '@/types/pipeline'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import type { PlanId } from '@/types/billing'
+import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
+import {
+  captionModelLabel,
+  resolveChatModel,
+  type AiProviderPreference,
+} from '@/lib/ai-models'
+
+function resolveConfiguredProvider(): GenerateContext['aiProvider'] {
+  if (isMarketingAiConfigured()) return 'marketme-api'
+  if (process.env.OPENAI_API_KEY?.trim()) return 'openai'
+  return 'none'
+}
+
+function shouldUseMarketMePipeline(pref: AiProviderPreference): boolean {
+  if (pref === 'openai') return false
+  if (pref === 'marketme-api') return isMarketingAiConfigured()
+  return isMarketingAiConfigured()
+}
+
+function shouldUseOpenAiPath(pref: AiProviderPreference): boolean {
+  if (!process.env.OPENAI_API_KEY?.trim()) return false
+  if (pref === 'marketme-api') return false
+  return true
+}
 
 export async function getGenerateContextAction(): Promise<GenerateContext | null> {
   const user = await getAuthenticatedUser()
 
   if (!user) return null
 
-  const [{ data: profile }, { templates }, creditsBalance, subRes] = await Promise.all([
-    getBusinessProfileAction(),
-    getUserTemplatesResult(),
-    getCreditsBalance(user.id),
-    supabaseAdmin
-      .from('user_subscriptions')
-      .select('plan')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-  ])
+  const [{ data: profile }, { templates }, creditsBalance, subRes, aiPrefs] =
+    await Promise.all([
+      getBusinessProfileAction(),
+      getUserTemplatesResult(),
+      getCreditsBalance(user.id),
+      supabaseAdmin
+        .from('user_subscriptions')
+        .select('plan')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      getUserAiPreferences(user.id),
+    ])
 
   const businessName = resolveDisplayName(user, profile)
   const plan = ((subRes.data?.plan as PlanId) ?? 'free') as PlanId
   const creditsLimit = PLANS[plan]?.limits.aiCredits ?? null
+  const aiProvider = resolveConfiguredProvider()
+  const hasLiveAi = aiProvider !== 'none'
 
   return {
     businessName,
@@ -63,11 +99,19 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
     defaultTone: profile?.tone?.trim() || 'Professional',
     defaultGoal: mapProfileGoalToGenerateGoal(profile?.primary_goal),
     defaultPlatform: primaryChannelFromProfile(profile?.channels),
-    hasOpenAI: Boolean(process.env.OPENAI_API_KEY?.trim()),
+    hasLiveAi,
+    hasOpenAI: hasLiveAi,
+    aiProvider,
+    preferredAiProvider: aiPrefs.aiProvider,
+    captionModel: aiPrefs.captionModel,
+    captionModelLabel: captionModelLabel(aiPrefs.captionModel),
     templateCount: templates.length,
     creditsBalance,
     creditsLimit,
-    creditCostPerGeneration: PIPELINE_CREDIT_COSTS.post_generation,
+    creditCostPerGeneration:
+      PIPELINE_CREDIT_COSTS.marketing_strategy_generation +
+      PIPELINE_CREDIT_COSTS.content_schedule_generation +
+      PIPELINE_CREDIT_COSTS.post_generation,
   }
 }
 
@@ -79,7 +123,18 @@ export async function generatePostsAction(
 
   try {
     rateLimitOrThrow(`generate:${user.id}`, 10, 60_000)
-    await assertCreditsAvailable(user.id, 'post_generation')
+    if (isMarketingAiConfigured()) {
+      const pipelineCost =
+        PIPELINE_CREDIT_COSTS.marketing_strategy_generation +
+        PIPELINE_CREDIT_COSTS.content_schedule_generation +
+        PIPELINE_CREDIT_COSTS.post_generation
+      const balance = await getCreditsBalance(user.id)
+      if (balance < pipelineCost) {
+        throw new InsufficientCreditsError(pipelineCost, balance)
+      }
+    } else {
+      await assertCreditsAvailable(user.id, 'post_generation')
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Request blocked'
     return { success: false, error: message }
@@ -96,15 +151,74 @@ export async function generatePostsAction(
     tone: input.tone.trim(),
   }
 
-  if (process.env.OPENAI_API_KEY?.trim()) {
+  const { data: profile } = await getBusinessProfileAction()
+  const aiPrefs = await getUserAiPreferences(user.id)
+  const chatModel = resolveChatModel(aiPrefs.captionModel)
+
+  if (shouldUseMarketMePipeline(aiPrefs.aiProvider) && profile?.id) {
     try {
-      const { data: profile } = await getBusinessProfileAction()
-      const aiPosts = await generateWithOpenAI(setup, {
-        industry: profile?.industry?.trim(),
-        services: profile?.services?.trim(),
+      const pipeline = await runCreativePipeline({
+        business: profileToPipelineInput(profile, {
+          businessName: setup.businessName,
+          tone: setup.tone || profile.tone,
+          primaryGoal: setup.goal,
+        }),
+        platform: setup.platform,
+        goal: setup.goal,
+        tone: setup.tone,
+        numPosts,
+        includeCreativeBriefs: false,
       })
+
+      const posts: GeneratedPostDraft[] = pipeline.posts.map((p) => ({
+        id: p.id,
+        title: p.title,
+        caption: p.caption,
+        hashtags: p.hashtags,
+        scheduledDate: p.scheduledDate,
+        status: 'needs_review' as const,
+      }))
+
+      if (posts.length > 0) {
+        await recordPostGeneration(user.id, profile.id, setup, 'marketme-api')
+        return { success: true, posts }
+      }
+    } catch (error) {
+      console.error('MarketMe AI pipeline failed, trying OpenAI fallback:', error)
+      if (
+        aiPrefs.aiProvider === 'marketme-api' &&
+        error instanceof MarketingAIError &&
+        error.status === 401
+      ) {
+        return {
+          success: false,
+          error: 'MarketMe AI API rejected credentials (check MARKETME_AI_API_KEY).',
+        }
+      }
+      if (aiPrefs.aiProvider === 'marketme-api' && !shouldUseOpenAiPath('auto')) {
+        return {
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'MarketMe AI pipeline failed and OpenAI fallback is disabled.',
+        }
+      }
+    }
+  }
+
+  if (shouldUseOpenAiPath(aiPrefs.aiProvider)) {
+    try {
+      const aiPosts = await generateWithOpenAI(
+        setup,
+        {
+          industry: profile?.industry?.trim(),
+          services: profile?.services?.trim(),
+        },
+        chatModel
+      )
       if (aiPosts.length > 0) {
-        await recordPostGeneration(user.id, profile?.id, setup, 'openai')
+        await recordPostGeneration(user.id, profile?.id, setup, 'openai', chatModel)
         return { success: true, posts: aiPosts }
       }
     } catch (error) {
@@ -114,7 +228,6 @@ export async function generatePostsAction(
 
   const fallbackPosts = buildFallbackPosts(setup)
   try {
-    const { data: profile } = await getBusinessProfileAction()
     await recordPostGeneration(user.id, profile?.id, setup, 'fallback')
     return { success: true, posts: fallbackPosts }
   } catch (err) {
@@ -129,13 +242,19 @@ async function recordPostGeneration(
   userId: string,
   businessProfileId: string | undefined,
   setup: GenerateSetupInput,
-  source: 'openai' | 'fallback'
+  source: 'marketme-api' | 'openai' | 'fallback',
+  modelUsed?: string
 ): Promise<void> {
   const generation = await startGeneration({
     userId,
     stage: 'post_generation',
     businessProfileId,
-    modelUsed: source === 'openai' ? 'openai' : 'template-fallback',
+    modelUsed:
+      source === 'marketme-api'
+        ? 'marketme-ai-pipeline'
+        : source === 'openai'
+          ? modelUsed || 'openai'
+          : 'template-fallback',
     inputRef: {
       businessName: setup.businessName,
       platform: setup.platform,
@@ -145,6 +264,18 @@ async function recordPostGeneration(
   })
 
   try {
+    if (source === 'marketme-api') {
+      await spendCredits(userId, 'marketing_strategy_generation', {
+        businessProfileId,
+        generationId: generation.id,
+        metadata: { source, stage: 'strategy' },
+      })
+      await spendCredits(userId, 'content_schedule_generation', {
+        businessProfileId,
+        generationId: generation.id,
+        metadata: { source, stage: 'schedule' },
+      })
+    }
     await spendCredits(userId, 'post_generation', {
       businessProfileId,
       generationId: generation.id,
@@ -167,7 +298,8 @@ async function recordPostGeneration(
 
 async function generateWithOpenAI(
   input: GenerateSetupInput,
-  profileContext?: { industry?: string; services?: string }
+  profileContext?: { industry?: string; services?: string },
+  model = resolveChatModel(null)
 ): Promise<GeneratedPostDraft[]> {
   const dates = buildScheduleDates(input.numPosts)
 
@@ -190,7 +322,7 @@ Goal: ${input.goal}
 Tone: ${input.tone || 'Professional and approachable'}`
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model,
     messages: [
       {
         role: 'system',
@@ -230,8 +362,11 @@ export async function reviseCaptionAction(
 ): Promise<string> {
   if (process.env.OPENAI_API_KEY?.trim()) {
     try {
+      const user = await getAuthenticatedUser()
+      const prefs = user ? await getUserAiPreferences(user.id) : null
+      const model = resolveChatModel(prefs?.captionModel)
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model,
         messages: [
           {
             role: 'system',

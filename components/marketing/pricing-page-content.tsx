@@ -101,8 +101,7 @@ export function PricingPageContent() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-xl font-serif text-4xl font-light tracking-tighter text-white md:text-6xl"
           >
-            Plans that meter{' '}
-            <span className="italic font-medium text-sky-400">credits</span>, not vanity features
+            Plans that meter credits, not vanity features
           </motion.h1>
           <motion.div
             initial={{ opacity: 0, y: 12 }}

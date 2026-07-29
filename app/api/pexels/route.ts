@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    rateLimitOrThrow(`pexels:${session.user.id}`, 60, 60_000)
+    await rateLimitOrThrow(`pexels:${session.user.id}`, 60, 60_000)
   } catch {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }

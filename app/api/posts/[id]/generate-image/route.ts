@@ -6,7 +6,7 @@ import {
   PostLifecycleError,
   verifyPostOwnership,
 } from "@/lib/services/post-lifecycle.service";
-import { rateLimitOrThrow } from "@/lib/rate-limit";
+import { isRateLimitError, rateLimitOrThrow } from "@/lib/rate-limit";
 
 export async function POST(
   request: NextRequest,
@@ -31,7 +31,7 @@ export async function POST(
     if (e instanceof PostLifecycleError) {
       return NextResponse.json({ error: e.message }, { status: e.status })
     }
-    if (e instanceof Error && e.message.includes('Rate limit')) {
+    if (isRateLimitError(e)) {
       return NextResponse.json({ error: e.message }, { status: 429 })
     }
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })

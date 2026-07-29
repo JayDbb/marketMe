@@ -25,7 +25,14 @@ export interface GenerateContext {
   defaultTone: string
   defaultGoal: string
   defaultPlatform: string
+  /** True when MarketMe AI API and/or OpenAI/OpenRouter is configured. */
+  hasLiveAi: boolean
+  /** @deprecated Use hasLiveAi */
   hasOpenAI: boolean
+  aiProvider: 'marketme-api' | 'openai' | 'none'
+  preferredAiProvider: 'auto' | 'marketme-api' | 'openai'
+  captionModel: string
+  captionModelLabel: string
   templateCount: number
   creditsBalance: number
   creditsLimit: number | null

@@ -508,13 +508,15 @@ export async function resolveFreeVisualsAction(input: {
     businessName: input.businessName,
   })
 
-  let bestPexels: {
+  type BestPexels = {
     url: string
     thumb: string
     alt: string | null
     score: number
     query: string
-  } | null = null
+  }
+
+  let bestPexels: BestPexels | null = null
 
   if (input.rankCandidates !== false) {
     const { photos, error } = await searchPexelsPhotos({
@@ -527,11 +529,14 @@ export async function resolveFreeVisualsAction(input: {
     }
 
     let topScore = -1
-    photos.forEach((photo, rank) => {
-      const score = scorePexelsAlt(photo.alt_description, matchCtx) + Math.max(0, 6 - rank)
+    let ranked: BestPexels | null = null
+    for (let rank = 0; rank < photos.length; rank++) {
+      const photo = photos[rank]
+      const score =
+        scorePexelsAlt(photo.alt_description, matchCtx) + Math.max(0, 6 - rank)
       if (score > topScore) {
         topScore = score
-        bestPexels = {
+        ranked = {
           url: photo.urls.regular,
           thumb: photo.urls.thumb || photo.urls.preview,
           alt: photo.alt_description,
@@ -539,7 +544,8 @@ export async function resolveFreeVisualsAction(input: {
           query: primaryQuery,
         }
       }
-    })
+    }
+    bestPexels = ranked
   }
 
   const images: Record<string, string> = {}
@@ -567,10 +573,7 @@ export async function resolveFreeVisualsAction(input: {
     })
   )
 
-  // Prefer the ranked winner for the first post when available
-  if (bestPexels && input.posts[0] && !images[input.posts[0].id]) {
-    images[input.posts[0].id] = bestPexels.url
-  } else if (bestPexels && input.posts[0]) {
+  if (bestPexels && input.posts[0]) {
     images[input.posts[0].id] = bestPexels.url
   }
 

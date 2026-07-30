@@ -53,6 +53,12 @@ export async function POST(request: NextRequest) {
     // 2. Generate Posts from strategy
     const postsData = await generatePosts({
       strategy_id: strategyData.strategy_id,
+      business_id: profile.id,
+      business_name: profile.business_name || 'My Business',
+      industry: profile.industry || 'General',
+      target_audience: profile.target_customers || 'Everyone',
+      goal: profile.primary_goal || 'Growth',
+      topic: 'Weekly social media content plan post',
       platform: 'instagram',
       num_posts: 3
     });

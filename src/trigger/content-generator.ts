@@ -2,6 +2,7 @@ import { task, schedules } from "@trigger.dev/sdk/v3";
 import { openai } from "@/lib/openai";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { GenerateWeeklyContentPayload, RegenerateCaptionPayload, GenerateImagePayload } from "@/types/ai";
+import { toNumericId } from "@/lib/services/marketing-ai.service";
 
 const API_URL = process.env.MARKETME_AI_API_URL || 'http://localhost:8000';
 
@@ -60,18 +61,29 @@ export const marketingStrategy = task({
       throw new Error(`Business profile not found: ${profileError?.message}`);
     }
 
+    const numericBusinessId = toNumericId(profile.id);
+    const primaryPlatform = Array.isArray(profile.channels) && profile.channels.length > 0
+      ? profile.channels[0].toLowerCase()
+      : 'instagram';
+
     const strategyRes = await fetch(`${API_URL}/api/v1/strategy/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        business_id: profile.id,
-        business_name: profile.business_name || 'My Business',
-        industry: profile.industry || 'General',
-        target_audience: profile.target_customers || 'Everyone',
-        goals: profile.primary_goal || 'Growth',
-        platforms: Array.isArray(profile.channels) && profile.channels.length > 0
-          ? profile.channels
-          : ['instagram'],
+        business: {
+          business_id: numericBusinessId,
+          business_name: profile.business_name || 'My Business',
+          business_type: profile.industry || 'General',
+          tone: profile.tone || 'friendly and professional',
+          target_audience: profile.target_customers || 'Everyone',
+        },
+        options: {
+          primary_platform: primaryPlatform,
+          timeframe: 'monthly',
+          primary_objective: 'awareness',
+          target_audience_hint: profile.target_customers || undefined,
+          posting_capacity_per_week: 5,
+        }
       })
     });
 
@@ -81,7 +93,11 @@ export const marketingStrategy = task({
     }
 
     const strategyData = await strategyRes.json();
-    return { success: true, strategyId: strategyData.strategy_id, strategy: strategyData.strategy };
+    return {
+      success: true,
+      strategyId: strategyData.strategy_id,
+      strategy: strategyData.generated || strategyData.strategy
+    };
   }
 });
 
@@ -117,13 +133,31 @@ export const generateWeeklyContent = task({
     const strategyData = strategyResult.output.strategy;
 
     // 3. Call MarketMe-AI Posts Generation
+    const numericBusinessId = toNumericId(profile.id);
+    const numericStrategyId = toNumericId(strategyId);
+
     const postsRes = await fetch(`${API_URL}/api/v1/posts/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        strategy_id: strategyId,
-        platform: 'instagram',
-        num_posts: 3
+        business: {
+          business_id: numericBusinessId,
+          business_name: profile.business_name || 'My Business',
+          business_type: profile.industry || 'General',
+          tone: profile.tone || 'friendly and professional',
+          target_audience: profile.target_customers || 'Everyone',
+        },
+        strategy: {
+          strategy_id: numericStrategyId,
+          strategy_name: 'Weekly Strategy',
+          goal: profile.primary_goal || 'Growth',
+        },
+        options: {
+          platform: 'instagram',
+          objective: 'engagement',
+          topic: 'Weekly content plan post',
+          desired_length: 'medium',
+        }
       })
     });
 
@@ -133,7 +167,16 @@ export const generateWeeklyContent = task({
     }
 
     const postsData = await postsRes.json();
-    const generatedPosts = postsData.posts;
+    const rawGenerated = postsData.generated;
+    const generatedPosts = rawGenerated
+      ? [{
+          caption: rawGenerated.caption,
+          hashtags: Array.isArray(rawGenerated.hashtags)
+            ? rawGenerated.hashtags.map((h: { value?: string } | string) => typeof h === 'string' ? h : h.value || '')
+            : [],
+          suggested_media_prompt: rawGenerated.image_prompt,
+        }]
+      : (postsData.posts || []);
 
     // 4. Save Content Plan to Next.js content_plans table
     const startDate = new Date(payload.startDate);
@@ -147,7 +190,7 @@ export const generateWeeklyContent = task({
         start_date: startDate.toISOString().split('T')[0],
         end_date: endDate.toISOString().split('T')[0],
         target_audience: profile.target_customers || null,
-        strategy_summary: strategyData?.overview || 'Weekly generated content strategy',
+        strategy_summary: strategyData?.overview || strategyData?.strategy_name || 'Weekly generated content strategy',
         status: 'draft',
       })
       .select()
@@ -176,7 +219,7 @@ export const generateWeeklyContent = task({
           user_id: payload.userId,
           platform: 'instagram',
           post_type: 'image',
-          content: post.caption + (hashtagsStr ? '\n\n' + hashtagsStr : ''),
+          content: (post.caption || '') + (hashtagsStr ? '\n\n' + hashtagsStr : ''),
           image_prompt: post.suggested_media_prompt || null,
           scheduled_at: scheduledDate.toISOString(),
           status: 'draft',
@@ -243,12 +286,33 @@ export const regenerateCaption = task({
 export const generateCreativeBrief = task({
   id: "generate-creative-brief",
   run: async (payload: { postId: string; style?: string }) => {
+    const numericPostId = toNumericId(payload.postId);
+
     const creativeRes = await fetch(`${API_URL}/api/v1/creative/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        post_id: payload.postId,
-        style_hint: payload.style || 'High quality, professional photograph'
+        metadata: {
+          request_id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-0000-0000-000000000001',
+          prompt_version: 'v1',
+          business_id: 1,
+        },
+        business: {
+          business_id: 1,
+          business_name: 'My Business',
+          business_type: 'General',
+        },
+        post: {
+          post_id: numericPostId,
+          business_id: 1,
+          caption: 'Social media post',
+          image_prompt: payload.style || 'High quality photograph matching content for social media',
+          content_type: 'promotional',
+        },
+        options: {
+          platform: 'instagram',
+          preferred_style: 'modern',
+        }
       })
     });
 
@@ -258,9 +322,10 @@ export const generateCreativeBrief = task({
     }
 
     const creativeData = await creativeRes.json();
+    const brief = creativeData.creative_brief || {};
     return {
       success: true,
-      refinedPrompt: creativeData.refined_prompt || "Professional photograph matching content",
+      refinedPrompt: brief.creative_concept || creativeData.refined_prompt || "Professional photograph matching content",
       colorPalette: creativeData.color_palette || "Sleek, modern styling",
       typography: creativeData.typography || "Inter",
       layoutDescription: creativeData.layout_description || "Balanced composition"

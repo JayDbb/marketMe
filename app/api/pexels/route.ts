@@ -57,6 +57,13 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get('query') || 'business marketing'
   const page = searchParams.get('page') || '1'
   const perPage = searchParams.get('per_page') || '20'
+  const orientationParam = searchParams.get('orientation')
+  const orientation =
+    orientationParam === 'landscape' ||
+    orientationParam === 'portrait' ||
+    orientationParam === 'square'
+      ? orientationParam
+      : 'square'
 
   const apiKey = process.env.PEXELS_API_KEY
 
@@ -69,7 +76,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const res = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&orientation=portrait`,
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&orientation=${orientation}`,
       {
         headers: { Authorization: apiKey },
         next: { revalidate: 300 },

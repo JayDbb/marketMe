@@ -23,13 +23,17 @@ import {
 } from '@/lib/marketing-profile-prompt'
 import {
   buildFallbackPosts,
+  buildPexelsSearchQuery,
   buildScheduleDates,
   normalizePlatform,
+  scorePexelsAlt,
   toIsoScheduledDate,
   type GenerateContext,
   type GenerateSetupInput,
   type GeneratedPostDraft,
+  type TemplateMatchContext,
 } from '@/lib/generate-utils'
+import { searchPexelsPhotos, pickPexelsImageUrl } from '@/lib/services/pexels.service'
 import { openai } from '@/lib/openai'
 import { getCreditsBalance } from '@/lib/services/credits.service'
 import {
@@ -44,6 +48,12 @@ import { PIPELINE_CREDIT_COSTS } from '@/types/pipeline'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import type { PlanId } from '@/types/billing'
 import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
+import {
+  formatBrandMemoryPromptBlock,
+  getBrandMemoryContext,
+  recordReviseSignal,
+  REVISE_EXAMPLES,
+} from '@/lib/services/brand-memory.service'
 import {
   captionModelLabel,
   resolveChatModel,
@@ -96,6 +106,7 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
     businessName,
     industry: profile?.industry?.trim() ?? '',
     services: profile?.services?.trim() ?? '',
+    location: profile?.location?.trim() ?? '',
     defaultTone: profile?.tone?.trim() || 'Professional',
     defaultGoal: mapProfileGoalToGenerateGoal(profile?.primary_goal),
     defaultPlatform: primaryChannelFromProfile(profile?.channels),
@@ -106,6 +117,7 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
     captionModel: aiPrefs.captionModel,
     captionModelLabel: captionModelLabel(aiPrefs.captionModel),
     templateCount: templates.length,
+    templateUsageCounts: await getTemplateUsageCounts(user.id),
     creditsBalance,
     creditsLimit,
     creditCostPerGeneration:
@@ -113,6 +125,26 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
       PIPELINE_CREDIT_COSTS.content_schedule_generation +
       PIPELINE_CREDIT_COSTS.post_generation,
   }
+}
+
+async function getTemplateUsageCounts(
+  userId: string
+): Promise<Record<string, number>> {
+  const { data } = await supabaseAdmin
+    .from('posts')
+    .select('template_id')
+    .eq('user_id', userId)
+    .in('status', ['approved', 'scheduled', 'published'])
+    .not('template_id', 'is', null)
+    .limit(200)
+
+  const counts: Record<string, number> = {}
+  for (const row of data ?? []) {
+    const id = row.template_id as string | null
+    if (!id) continue
+    counts[id] = (counts[id] ?? 0) + 1
+  }
+  return counts
 }
 
 export async function generatePostsAction(
@@ -154,6 +186,8 @@ export async function generatePostsAction(
   const { data: profile } = await getBusinessProfileAction()
   const aiPrefs = await getUserAiPreferences(user.id)
   const chatModel = resolveChatModel(aiPrefs.captionModel)
+  const brandMemory = await getBrandMemoryContext(user.id, profile?.id)
+  const brandMemoryBlock = formatBrandMemoryPromptBlock(brandMemory)
 
   if (shouldUseMarketMePipeline(aiPrefs.aiProvider) && profile?.id) {
     try {
@@ -168,6 +202,7 @@ export async function generatePostsAction(
         tone: setup.tone,
         numPosts,
         includeCreativeBriefs: false,
+        brandMemoryInstructions: brandMemoryBlock || undefined,
       })
 
       const posts: GeneratedPostDraft[] = pipeline.posts.map((p) => ({
@@ -215,7 +250,8 @@ export async function generatePostsAction(
           industry: profile?.industry?.trim(),
           services: profile?.services?.trim(),
         },
-        chatModel
+        chatModel,
+        brandMemoryBlock
       )
       if (aiPosts.length > 0) {
         await recordPostGeneration(user.id, profile?.id, setup, 'openai', chatModel)
@@ -299,7 +335,8 @@ async function recordPostGeneration(
 async function generateWithOpenAI(
   input: GenerateSetupInput,
   profileContext?: { industry?: string; services?: string },
-  model = resolveChatModel(null)
+  model = resolveChatModel(null),
+  brandMemoryBlock = ''
 ): Promise<GeneratedPostDraft[]> {
   const dates = buildScheduleDates(input.numPosts)
 
@@ -326,7 +363,7 @@ Tone: ${input.tone || 'Professional and approachable'}`
     messages: [
       {
         role: 'system',
-        content: `${systemPrompt}
+        content: `${systemPrompt}${brandMemoryBlock}
 Return JSON: { "posts": [{ "title": string, "caption": string, "hashtags": string }] }
 Captions should be ready to publish (no placeholder brackets). Hashtags as a single space-separated string starting with #.`,
       },
@@ -360,9 +397,16 @@ export async function reviseCaptionAction(
   prompt: string,
   platform: string
 ): Promise<string> {
+  const user = await getAuthenticatedUser()
+  const brandMemory = user
+    ? await getBrandMemoryContext(user.id)
+    : null
+  const brandMemoryBlock = brandMemory
+    ? formatBrandMemoryPromptBlock(brandMemory, { maxExamples: REVISE_EXAMPLES })
+    : ''
+
   if (process.env.OPENAI_API_KEY?.trim()) {
     try {
-      const user = await getAuthenticatedUser()
       const prefs = user ? await getUserAiPreferences(user.id) : null
       const model = resolveChatModel(prefs?.captionModel)
       const completion = await openai.chat.completions.create({
@@ -370,7 +414,7 @@ export async function reviseCaptionAction(
         messages: [
           {
             role: 'system',
-            content: `Revise the following ${platform} post caption based on the user's instruction. Return only the revised caption text, no quotes or markdown.`,
+            content: `Revise the following ${platform} post caption based on the user's instruction. Return only the revised caption text, no quotes or markdown.${brandMemoryBlock}`,
           },
           {
             role: 'user',
@@ -379,7 +423,22 @@ export async function reviseCaptionAction(
         ],
       })
       const revised = completion.choices[0]?.message?.content?.trim()
-      if (revised) return revised
+      if (revised) {
+        if (user) {
+          try {
+            await recordReviseSignal({
+              userId: user.id,
+              businessProfileId: brandMemory?.businessProfileId,
+              instruction: prompt,
+              originalCaption: currentCaption,
+              revisedCaption: revised,
+            })
+          } catch (memoryErr) {
+            console.error('Brand memory revise signal failed:', memoryErr)
+          }
+        }
+        return revised
+      }
     } catch (error) {
       console.error('OpenAI revise failed:', error)
     }
@@ -387,6 +446,135 @@ export async function reviseCaptionAction(
 
   await new Promise((resolve) => setTimeout(resolve, 800))
   return `${currentCaption}\n\n(Revised: ${prompt})`
+}
+
+/**
+ * Free visual matching: ranks Pexels results against the post/profile corpus,
+ * returns per-post images plus the best overall Pexels candidate for AI Selects Best.
+ */
+export async function resolveFreeVisualsAction(input: {
+  posts: { id: string; title: string; caption: string }[]
+  goal: string
+  platform: string
+  industry?: string
+  services?: string
+  location?: string
+  businessName?: string
+  /** When true, fetch a wider Pexels shortlist and score it for Studio-vs-Pexels ranking */
+  rankCandidates?: boolean
+}): Promise<{
+  images: Record<string, string>
+  bestPexels: {
+    url: string
+    thumb: string
+    alt: string | null
+    score: number
+    query: string
+  } | null
+  error?: string
+}> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { images: {}, bestPexels: null, error: 'Unauthorized' }
+
+  try {
+    rateLimitOrThrow(`pexels-visuals:${user.id}`, 30, 60_000)
+  } catch (err) {
+    return {
+      images: {},
+      bestPexels: null,
+      error: err instanceof Error ? err.message : 'Rate limit exceeded',
+    }
+  }
+
+  const orientation =
+    normalizePlatform(input.platform) === 'instagram' ? 'square' : 'portrait'
+
+  const first = input.posts[0]
+  const matchCtx: TemplateMatchContext = {
+    goal: input.goal,
+    industry: input.industry,
+    services: input.services,
+    title: first?.title,
+    caption: first?.caption,
+  }
+
+  const primaryQuery = buildPexelsSearchQuery({
+    industry: input.industry,
+    services: input.services,
+    location: input.location,
+    goal: input.goal,
+    title: first?.title,
+    caption: first?.caption,
+    businessName: input.businessName,
+  })
+
+  let bestPexels: {
+    url: string
+    thumb: string
+    alt: string | null
+    score: number
+    query: string
+  } | null = null
+
+  if (input.rankCandidates !== false) {
+    const { photos, error } = await searchPexelsPhotos({
+      query: primaryQuery,
+      perPage: 12,
+      orientation: orientation as 'square' | 'portrait',
+    })
+    if (error === 'PEXELS_NOT_CONFIGURED') {
+      return { images: {}, bestPexels: null, error }
+    }
+
+    let topScore = -1
+    photos.forEach((photo, rank) => {
+      const score = scorePexelsAlt(photo.alt_description, matchCtx) + Math.max(0, 6 - rank)
+      if (score > topScore) {
+        topScore = score
+        bestPexels = {
+          url: photo.urls.regular,
+          thumb: photo.urls.thumb || photo.urls.preview,
+          alt: photo.alt_description,
+          score,
+          query: primaryQuery,
+        }
+      }
+    })
+  }
+
+  const images: Record<string, string> = {}
+  const usedQueries = new Map<string, number>()
+
+  await Promise.all(
+    input.posts.map(async (post, index) => {
+      const query = buildPexelsSearchQuery({
+        industry: input.industry,
+        services: input.services,
+        location: input.location,
+        goal: input.goal,
+        title: post.title,
+        caption: post.caption,
+        businessName: input.businessName,
+      })
+      const offset = usedQueries.get(query) ?? 0
+      usedQueries.set(query, offset + 1)
+      const url = await pickPexelsImageUrl(
+        query,
+        orientation as 'square' | 'portrait',
+        offset + (index % 3)
+      )
+      if (url) images[post.id] = url
+    })
+  )
+
+  // Prefer the ranked winner for the first post when available
+  if (bestPexels && input.posts[0] && !images[input.posts[0].id]) {
+    images[input.posts[0].id] = bestPexels.url
+  } else if (bestPexels && input.posts[0]) {
+    images[input.posts[0].id] = bestPexels.url
+  }
+
+  return { images, bestPexels }
 }
 
 export async function schedulePostAction(payload: {

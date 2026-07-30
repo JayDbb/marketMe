@@ -108,6 +108,10 @@ Dashboard Generate and `/api/content-plans/generate` call `lib/services/creative
 5. Image generation stays on OpenAI/OpenRouter (DALL·E) via Trigger
 6. Publish via `POST /api/v1/publish/instagram`
 
+### Brand memory (prompt context)
+
+Invisible style learning — no fine-tuning. On revise / approve / reject, MarketMe stores short style notes on `business_profiles` (`style_notes`, `preferred_ctas`, `avoid_phrases`) and loads the last few approved captions into Generate, Revise, and pipeline `additional_instructions`.
+
 ### Instagram OAuth (Connections)
 
 Flow:

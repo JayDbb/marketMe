@@ -24,11 +24,24 @@ import { toast } from 'sonner'
 
 import { CanvasData } from '@/types/canvas'
 import { CanvasEditor } from '@/components/dashboard/studio/canvas-editor'
-import { reviseCaptionAction, schedulePostsBatchAction, generatePostsAction } from '@/app/dashboard/generate/actions'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { reviseCaptionAction, schedulePostsBatchAction, generatePostsAction, resolveFreeVisualsAction } from '@/app/dashboard/generate/actions'
 import type { GenerateContext, GeneratedPostDraft } from '@/lib/generate-utils'
-import { generateCanvasFromTemplate, matchTemplateToGoal } from '@/lib/generate-utils'
+import {
+  generateCanvasFromTemplate,
+  matchTemplateToGoal,
+  scoreTemplateMatch,
+  setCanvasBackgroundImage,
+} from '@/lib/generate-utils'
 import { formatScheduledPreview, getMinScheduleDatetime } from '@/lib/post-schedule-utils'
-import { imageToCanvas } from '@/lib/studio-utils'
+import { imageToCanvas, photoToEditableCanvas } from '@/lib/studio-utils'
 import type { StudioTemplate } from '@/app/dashboard/studio/actions'
 import { AiContentNotice } from '@/components/legal/ai-content-notice'
 
@@ -71,6 +84,7 @@ const DEFAULT_CONTEXT: GenerateContext = {
   businessName: 'My Business',
   industry: '',
   services: '',
+  location: '',
   defaultTone: 'Professional',
   defaultGoal: 'Increase Brand Awareness',
   defaultPlatform: 'Instagram',
@@ -81,6 +95,7 @@ const DEFAULT_CONTEXT: GenerateContext = {
   captionModel: 'openai/gpt-4o-mini',
   captionModelLabel: 'GPT-4o mini',
   templateCount: 0,
+  templateUsageCounts: {},
   creditsBalance: 50,
   creditsLimit: 50,
   creditCostPerGeneration: 2,
@@ -180,7 +195,7 @@ function TemplateSourcePicker({
               AI Selects Best
             </p>
             <p className="text-[11px] text-zinc-500 dark:text-white/30 leading-tight mt-0.5">
-              Matches your goal to the best template automatically
+              Compares your saved Studio templates with free Pexels photos
             </p>
           </div>
         </button>
@@ -227,7 +242,9 @@ function TemplateSourcePicker({
             <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
           </div>
           <p className="text-xs text-blue-300 leading-relaxed">
-            The AI will analyze your goal and select the best matching template from your Studio library. If you have no templates, a built-in design will be used.
+            Ranks your saved Studio templates and matching Pexels photos for this goal.
+            If the best match is from Pexels (not your library), you&apos;ll be asked to
+            continue or stick to saved templates only.
           </p>
         </motion.div>
       )}
@@ -426,28 +443,52 @@ export function GenerateContent({
     }
   }, [flowState, currentStepIndex, serverDrafts])
 
-  const handleGoToReview = () => {
-    if (!serverDrafts?.length) {
-      toast.error('Generation is still in progress. Please wait.')
-      return
+  const [pexelsOutsidePrompt, setPexelsOutsidePrompt] = useState<{
+    studioTemplate: StudioTemplate | null
+    studioScore: number
+    pexelsImages: Record<string, string>
+    bestPexels: {
+      url: string
+      thumb: string
+      alt: string | null
+      score: number
+      query: string
     }
+  } | null>(null)
+  const [isPreparingVisuals, setIsPreparingVisuals] = useState(false)
 
-    let resolvedTemplate: StudioTemplate | null = null
-
-    if (templateSource === 'user' && selectedTemplateId) {
-      resolvedTemplate = initialTemplates.find((t) => t.id === selectedTemplateId) ?? null
-    } else if (templateSource === 'ai') {
-      const canvasTemplates = initialTemplates.filter((t) => t.canvas_data !== null)
-      resolvedTemplate = matchTemplateToGoal(
-        canvasTemplates.length ? canvasTemplates : initialTemplates,
-        setupData.goal
-      )
-    }
-
-    const generated: GeneratedPost[] = serverDrafts.map((p) => {
+  const buildReviewPosts = (
+    drafts: GeneratedPostDraft[],
+    mode: 'studio' | 'pexels',
+    resolvedTemplate: StudioTemplate | null,
+    pexelsImages: Record<string, string>
+  ): GeneratedPost[] => {
+    return drafts.map((p) => {
       let canvasData: CanvasData
-      if (resolvedTemplate?.canvas_data) {
-        canvasData = generateCanvasFromTemplate(resolvedTemplate.canvas_data, p.title, p.caption)
+
+      if (mode === 'pexels') {
+        const bg = pexelsImages[p.id]
+        if (bg) {
+          canvasData = generateCanvasFromTemplate(
+            photoToEditableCanvas(bg),
+            p.title,
+            p.caption
+          )
+        } else if (resolvedTemplate?.canvas_data) {
+          canvasData = generateCanvasFromTemplate(
+            resolvedTemplate.canvas_data,
+            p.title,
+            p.caption
+          )
+        } else {
+          canvasData = generateCanvasFromTemplate(DUMMY_CANVAS_TEMPLATE, p.title, p.caption)
+        }
+      } else if (resolvedTemplate?.canvas_data) {
+        canvasData = generateCanvasFromTemplate(
+          resolvedTemplate.canvas_data,
+          p.title,
+          p.caption
+        )
       } else if (resolvedTemplate) {
         canvasData = generateCanvasFromTemplate(
           imageToCanvas(resolvedTemplate.file_url, p.title),
@@ -457,17 +498,157 @@ export function GenerateContent({
       } else {
         canvasData = generateCanvasFromTemplate(DUMMY_CANVAS_TEMPLATE, p.title, p.caption)
       }
+
+      // Optional: when Studio wins, still refresh the photo layer from Pexels
+      if (mode === 'studio') {
+        const bgUrl = pexelsImages[p.id]
+        if (bgUrl) canvasData = setCanvasBackgroundImage(canvasData, bgUrl)
+      }
+
       return {
         ...p,
         canvasData,
-        templateId: resolvedTemplate?.id ?? null,
+        templateId: mode === 'studio' ? resolvedTemplate?.id ?? null : null,
         status: 'needs_review' as PostStatus,
       }
     })
+  }
 
+  const enterReview = (generated: GeneratedPost[]) => {
     setPosts(generated)
-    setSelectedPostId(generated[0].id)
+    setSelectedPostId(generated[0]?.id ?? null)
     setFlowState('review')
+    setPexelsOutsidePrompt(null)
+    setIsPreparingVisuals(false)
+  }
+
+  const handleGoToReview = async () => {
+    if (!serverDrafts?.length) {
+      toast.error('Generation is still in progress. Please wait.')
+      return
+    }
+
+    const matchCorpus = {
+      goal: setupData.goal,
+      industry: ctx.industry,
+      services: ctx.services,
+      usageCounts: ctx.templateUsageCounts,
+    }
+
+    if (templateSource === 'user' && selectedTemplateId) {
+      const resolvedTemplate =
+        initialTemplates.find((t) => t.id === selectedTemplateId) ?? null
+      enterReview(buildReviewPosts(serverDrafts, 'studio', resolvedTemplate, {}))
+      return
+    }
+
+    if (templateSource !== 'ai') return
+
+    setIsPreparingVisuals(true)
+
+    const canvasTemplates = initialTemplates.filter((t) => t.canvas_data !== null)
+    const pool = canvasTemplates.length ? canvasTemplates : initialTemplates
+    const first = serverDrafts[0]
+    const studioContext = {
+      ...matchCorpus,
+      title: first?.title,
+      caption: first?.caption,
+    }
+
+    let bestStudio: StudioTemplate | null = null
+    let studioScore = 0
+    if (pool.length) {
+      bestStudio = matchTemplateToGoal(pool, studioContext)
+      if (bestStudio) {
+        studioScore = scoreTemplateMatch(bestStudio, studioContext)
+      }
+    }
+
+    let pexelsImages: Record<string, string> = {}
+    let bestPexels: {
+      url: string
+      thumb: string
+      alt: string | null
+      score: number
+      query: string
+    } | null = null
+
+    try {
+      const visuals = await resolveFreeVisualsAction({
+        posts: serverDrafts.map((p) => ({
+          id: p.id,
+          title: p.title,
+          caption: p.caption,
+        })),
+        goal: setupData.goal,
+        platform: setupData.platform,
+        industry: ctx.industry,
+        services: ctx.services,
+        location: ctx.location,
+        businessName: setupData.business,
+        rankCandidates: true,
+      })
+      pexelsImages = visuals.images
+      bestPexels = visuals.bestPexels
+      if (visuals.error === 'PEXELS_NOT_CONFIGURED') {
+        toast.message('Pexels is not configured — using saved templates only.')
+      }
+    } catch (err) {
+      console.error('Free visuals failed:', err)
+    }
+
+    const pexelsScore = bestPexels?.score ?? 0
+    const pexelsWins =
+      Boolean(bestPexels) &&
+      (pexelsScore > studioScore || !bestStudio)
+
+    // Outside saved library → confirm when the user has Studio templates
+    if (pexelsWins && bestPexels && initialTemplates.length > 0) {
+      setPexelsOutsidePrompt({
+        studioTemplate: bestStudio,
+        studioScore,
+        pexelsImages,
+        bestPexels,
+      })
+      setIsPreparingVisuals(false)
+      return
+    }
+
+    if (pexelsWins && bestPexels) {
+      enterReview(buildReviewPosts(serverDrafts, 'pexels', null, pexelsImages))
+      return
+    }
+
+    enterReview(
+      buildReviewPosts(
+        serverDrafts,
+        'studio',
+        bestStudio,
+        // Soft fill: Pexels bg on Studio layout when Studio wins
+        pexelsImages
+      )
+    )
+  }
+
+  const confirmPexelsOutside = (choice: 'continue' | 'saved') => {
+    if (!serverDrafts?.length || !pexelsOutsidePrompt) return
+    if (choice === 'continue') {
+      enterReview(
+        buildReviewPosts(
+          serverDrafts,
+          'pexels',
+          pexelsOutsidePrompt.studioTemplate,
+          pexelsOutsidePrompt.pexelsImages
+        )
+      )
+      return
+    }
+    const saved =
+      pexelsOutsidePrompt.studioTemplate ??
+      initialTemplates.find((t) => t.canvas_data !== null) ??
+      initialTemplates[0] ??
+      null
+    enterReview(buildReviewPosts(serverDrafts, 'studio', saved, {}))
   }
 
   // Edit State
@@ -957,9 +1138,18 @@ export function GenerateContent({
                 >
                   <Button
                     onClick={handleGoToReview}
+                    disabled={isPreparingVisuals}
                     className="h-14 px-10 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl text-base shadow-[0_0_40px_rgba(34,197,94,0.3)] transition-all"
                   >
-                    Review & schedule <ChevronRight className="w-5 h-5 ml-2" />
+                    {isPreparingVisuals ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Matching visuals…
+                      </>
+                    ) : (
+                      <>
+                        Review & schedule <ChevronRight className="w-5 h-5 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </motion.div>
               )}
@@ -1274,6 +1464,66 @@ export function GenerateContent({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Dialog
+        open={Boolean(pexelsOutsidePrompt)}
+        onOpenChange={(open) => {
+          if (!open) setPexelsOutsidePrompt(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md" showCloseButton>
+          <DialogHeader>
+            <DialogTitle>Best match is outside your library</DialogTitle>
+            <DialogDescription>
+              AI Selects Best ranked a free Pexels photo higher than your saved Studio
+              templates for this goal. Continue with Pexels, or keep designs limited to
+              your saved templates.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pexelsOutsidePrompt ? (
+            <div className="space-y-3">
+              <div className="relative aspect-square w-full max-w-[220px] mx-auto rounded-xl overflow-hidden border border-border">
+                <Image
+                  src={pexelsOutsidePrompt.bestPexels.thumb}
+                  alt={pexelsOutsidePrompt.bestPexels.alt || 'Pexels match'}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Pexels score {pexelsOutsidePrompt.bestPexels.score}
+                {pexelsOutsidePrompt.studioTemplate
+                  ? ` · Best saved “${pexelsOutsidePrompt.studioTemplate.name}” scored ${pexelsOutsidePrompt.studioScore}`
+                  : ' · No strong saved-template match'}
+              </p>
+              <p className="text-[11px] text-muted-foreground text-center truncate">
+                Search: {pexelsOutsidePrompt.bestPexels.query}
+              </p>
+            </div>
+          ) : null}
+
+          <DialogFooter className="sm:justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => confirmPexelsOutside('saved')}
+              disabled={initialTemplates.length === 0}
+            >
+              Use saved templates
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              onClick={() => confirmPexelsOutside('continue')}
+            >
+              Continue with Pexels
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

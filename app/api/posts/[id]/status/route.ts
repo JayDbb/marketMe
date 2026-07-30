@@ -33,7 +33,7 @@ export async function PATCH(
     rateLimitOrThrow(`post-status:${session.user.id}`, 30, 60_000)
 
     const body = await request.json();
-    const { status, scheduled_at } = body;
+    const { status, scheduled_at, feedback } = body;
 
     if (!ALLOWED_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
@@ -43,7 +43,12 @@ export async function PATCH(
       session.user.id,
       id,
       status,
-      scheduled_at ? { scheduledAt: scheduled_at } : undefined
+      {
+        ...(scheduled_at ? { scheduledAt: scheduled_at } : {}),
+        ...(typeof feedback === 'string' && feedback.trim()
+          ? { feedback: feedback.trim() }
+          : {}),
+      }
     )
 
     if (error) {

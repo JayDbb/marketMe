@@ -15,7 +15,13 @@ import {
   publishToInstagram,
 } from '@/lib/services/marketing-ai.service'
 import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
-import { resolveImageModel } from '@/lib/ai-models'
+import {
+  formatBrandMemoryPromptBlock,
+  getBrandMemoryContext,
+  recordReviseSignal,
+  REVISE_EXAMPLES,
+} from '@/lib/services/brand-memory.service'
+import { resolveChatModel, resolveImageModel } from '@/lib/ai-models'
 import type {
   GenerateWeeklyContentPayload,
   RegenerateCaptionPayload,
@@ -124,6 +130,12 @@ export const generateWeeklyContent = task({
     }
 
     const typed = profile as BusinessProfile
+    const brandMemory = await getBrandMemoryContext(
+      payload.userId,
+      typed.id
+    )
+    const brandMemoryBlock = formatBrandMemoryPromptBlock(brandMemory)
+
     const pipeline = await runCreativePipeline({
       business: profileToPipelineInput(typed),
       platform:
@@ -135,6 +147,7 @@ export const generateWeeklyContent = task({
       numPosts: 5,
       weekStartDate: payload.startDate.slice(0, 10),
       includeCreativeBriefs: false,
+      brandMemoryInstructions: brandMemoryBlock || undefined,
     })
 
     const startDate = new Date(payload.startDate)
@@ -202,33 +215,64 @@ export const regenerateCaption = task({
   run: async (payload: RegenerateCaptionPayload) => {
     const { data: post, error: postError } = await supabaseAdmin
       .from('posts')
-      .select('*, content_plans(*)')
+      .select('*, content_plans(business_profile_id)')
       .eq('id', payload.postId)
       .single()
 
     if (postError || !post) throw new Error('Post not found')
 
+    const businessProfileId =
+      (post.content_plans as { business_profile_id?: string } | null)
+        ?.business_profile_id ?? null
+
+    const brandMemory = await getBrandMemoryContext(
+      post.user_id as string,
+      businessProfileId
+    )
+    const brandMemoryBlock = formatBrandMemoryPromptBlock(brandMemory, {
+      maxExamples: REVISE_EXAMPLES,
+    })
+
+    const feedback =
+      payload.feedback?.trim() || 'Make it more engaging and professional.'
+
+    const prefs = await getUserAiPreferences(post.user_id as string)
+    const model = resolveChatModel(prefs.captionModel)
+
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model,
       messages: [
         {
           role: 'system',
-          content:
-            'You are an expert social media copywriter. Rewrite the following social media post caption based on the user\'s feedback.',
+          content: `You are an expert social media copywriter. Rewrite the following social media post caption based on the user's feedback. Provide only the rewritten caption.${brandMemoryBlock}`,
         },
         {
           role: 'user',
-          content: `Original Post: ${post.content}\n\nFeedback: ${payload.feedback || 'Make it more engaging and professional.'}\n\nProvide only the rewritten caption.`,
+          content: `Original Post: ${post.content}\n\nFeedback: ${feedback}\n\nProvide only the rewritten caption.`,
         },
       ],
     })
 
-    const newCaption = completion.choices[0].message.content
+    const newCaption = completion.choices[0].message.content?.trim() || post.content
 
     await supabaseAdmin
       .from('posts')
       .update({ content: newCaption, status: 'draft' })
       .eq('id', payload.postId)
+
+    if (payload.feedback?.trim()) {
+      try {
+        await recordReviseSignal({
+          userId: post.user_id as string,
+          businessProfileId,
+          instruction: payload.feedback,
+          originalCaption: post.content ?? '',
+          revisedCaption: newCaption ?? '',
+        })
+      } catch (err) {
+        console.error('Brand memory revise signal failed:', err)
+      }
+    }
 
     return { success: true, newCaption }
   },

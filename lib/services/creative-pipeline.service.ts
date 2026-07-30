@@ -248,11 +248,14 @@ export async function runCreativePipeline(options: {
   numPosts?: number
   weekStartDate?: string
   includeCreativeBriefs?: boolean
+  /** Pre-formatted brand memory block for additional_instructions */
+  brandMemoryInstructions?: string
 }): Promise<CreativePipelineResult> {
   const numPosts = Math.max(1, Math.min(14, options.numPosts ?? 3))
   const platform = mapPlatform(options.platform)
   const objective = mapGoalToObjective(options.goal ?? options.business.primaryGoal)
   const tone = options.tone?.trim() || options.business.tone || 'friendly and professional'
+  const memory = options.brandMemoryInstructions?.trim() ?? ''
 
   const businessInput: PipelineBusinessInput = {
     ...options.business,
@@ -285,7 +288,7 @@ export async function runCreativePipeline(options: {
       target_audience_hint: options.business.targetCustomers ?? null,
       campaign_focus: options.goal ?? options.business.primaryGoal ?? null,
       posting_capacity_per_week: numPosts,
-      additional_instructions: `Brand tone: ${tone}. Generate a practical weekly content strategy.`,
+      additional_instructions: `Brand tone: ${tone}. Generate a practical weekly content strategy.${memory}`,
     },
   })
 
@@ -305,7 +308,7 @@ export async function runCreativePipeline(options: {
       primary_platform: platform,
       include_weekends: true,
       include_promotional_content: true,
-      additional_instructions: `Plan exactly ${numPosts} posts for the week.`,
+      additional_instructions: `Plan exactly ${numPosts} posts for the week.${memory}`,
     },
   })
 
@@ -369,6 +372,7 @@ export async function runCreativePipeline(options: {
           item.visual_direction_hint
             ? `Visual direction hint: ${item.visual_direction_hint}`
             : '',
+          memory,
         ]
           .filter(Boolean)
           .join('\n'),

@@ -54,6 +54,7 @@ import {
   recordReviseSignal,
   REVISE_EXAMPLES,
 } from '@/lib/services/brand-memory.service'
+import { buildBrandBrainPromptBlock } from '@/lib/services/brand-intelligence.service'
 import {
   captionModelLabel,
   resolveChatModel,
@@ -186,8 +187,9 @@ export async function generatePostsAction(
   const { data: profile } = await getBusinessProfileAction()
   const aiPrefs = await getUserAiPreferences(user.id)
   const chatModel = resolveChatModel(aiPrefs.captionModel)
-  const brandMemory = await getBrandMemoryContext(user.id, profile?.id)
-  const brandMemoryBlock = formatBrandMemoryPromptBlock(brandMemory)
+  const brandBrainBlock = profile?.id
+    ? await buildBrandBrainPromptBlock(user.id, profile.id)
+    : formatBrandMemoryPromptBlock(await getBrandMemoryContext(user.id, profile?.id))
 
   if (shouldUseMarketMePipeline(aiPrefs.aiProvider) && profile?.id) {
     try {
@@ -202,7 +204,7 @@ export async function generatePostsAction(
         tone: setup.tone,
         numPosts,
         includeCreativeBriefs: false,
-        brandMemoryInstructions: brandMemoryBlock || undefined,
+        brandMemoryInstructions: brandBrainBlock || undefined,
       })
 
       const posts: GeneratedPostDraft[] = pipeline.posts.map((p) => ({
@@ -251,7 +253,7 @@ export async function generatePostsAction(
           services: profile?.services?.trim(),
         },
         chatModel,
-        brandMemoryBlock
+        brandBrainBlock
       )
       if (aiPosts.length > 0) {
         await recordPostGeneration(user.id, profile?.id, setup, 'openai', chatModel)
@@ -401,8 +403,10 @@ export async function reviseCaptionAction(
   const brandMemory = user
     ? await getBrandMemoryContext(user.id)
     : null
-  const brandMemoryBlock = brandMemory
-    ? formatBrandMemoryPromptBlock(brandMemory, { maxExamples: REVISE_EXAMPLES })
+  const brandBrainBlock = user
+    ? await buildBrandBrainPromptBlock(user.id, brandMemory?.businessProfileId, {
+        maxMemoryExamples: REVISE_EXAMPLES,
+      })
     : ''
 
   if (process.env.OPENAI_API_KEY?.trim()) {
@@ -414,7 +418,7 @@ export async function reviseCaptionAction(
         messages: [
           {
             role: 'system',
-            content: `Revise the following ${platform} post caption based on the user's instruction. Return only the revised caption text, no quotes or markdown.${brandMemoryBlock}`,
+            content: `Revise the following ${platform} post caption based on the user's instruction. Return only the revised caption text, no quotes or markdown.${brandBrainBlock}`,
           },
           {
             role: 'user',

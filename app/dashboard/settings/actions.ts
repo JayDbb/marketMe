@@ -127,6 +127,7 @@ export async function getSettingsData(): Promise<SettingsData | null> {
       location: profile?.location ?? '',
       website: profile?.website ?? '',
       primaryGoal: profile?.primary_goal ?? '',
+      competitors: profile?.competitors ?? '',
       hasProfile: Boolean(profile?.business_name),
     },
     preferences: {
@@ -241,11 +242,43 @@ export async function updateWorkspaceAction(formData: FormData) {
     location: (formData.get('location') as string) || undefined,
     website: (formData.get('website') as string) || undefined,
     primary_goal: (formData.get('primaryGoal') as string) || undefined,
+    competitors: (formData.get('competitors') as string) || undefined,
   })
 
   if (result.error) return { error: result.error }
 
+  if (result.data) {
+    try {
+      const { parseCompetitorLines } = await import('@/lib/niche-presets')
+      const { replaceCompetitors, scheduleCompetitorAnalysis } = await import(
+        '@/lib/services/competitor-intelligence.service'
+      )
+      const text = String(formData.get('competitors') || '')
+      const entries = parseCompetitorLines(text).map((e) => ({
+        label: e.label,
+        instagramHandle: e.instagramHandle,
+        websiteUrl: e.websiteUrl,
+        source: 'settings' as const,
+      }))
+      await replaceCompetitors({
+        businessProfileId: result.data.id,
+        userId: result.data.user_id,
+        entries,
+        source: 'settings',
+      })
+      scheduleCompetitorAnalysis({
+        businessProfileId: result.data.id,
+        userId: result.data.user_id,
+      })
+    } catch (error) {
+      console.error('[settings] competitor save failed', {
+        message: error instanceof Error ? error.message : 'unknown',
+      })
+    }
+  }
+
   revalidatePath('/dashboard/settings')
+  revalidatePath('/dashboard/generate')
   return { success: true }
 }
 

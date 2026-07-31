@@ -9,6 +9,8 @@ import type {
   imageUpload,
   instagramPublishing,
   sendNotification,
+  refreshBrandIntelligence,
+  analyzeCompetitorsTask,
 } from "@/src/trigger/content-generator"
 
 /**
@@ -134,5 +136,39 @@ export async function triggerNotification(
     title,
     body,
   })
+  return { jobId: handle.id }
+}
+
+/**
+ * Rebuild brand brain (profile + Instagram + website → AI guidance).
+ */
+export async function triggerBrandIntelligenceRefresh(
+  businessProfileId: string,
+  userId: string
+): Promise<{ jobId: string }> {
+  const handle = await tasks.trigger<typeof refreshBrandIntelligence>(
+    "refresh-brand-intelligence",
+    {
+      businessProfileId,
+      userId,
+    }
+  )
+  return { jobId: handle.id }
+}
+
+/**
+ * Analyze declared competitors for brand brain opportunities.
+ */
+export async function triggerCompetitorAnalysis(
+  businessProfileId: string,
+  userId: string
+): Promise<{ jobId: string }> {
+  const handle = await tasks.trigger<typeof analyzeCompetitorsTask>(
+    "analyze-competitors",
+    {
+      businessProfileId,
+      userId,
+    }
+  )
   return { jobId: handle.id }
 }

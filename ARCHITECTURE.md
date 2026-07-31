@@ -112,6 +112,28 @@ Dashboard Generate and `/api/content-plans/generate` call `lib/services/creative
 
 Invisible style learning — no fine-tuning. On revise / approve / reject, MarketMe stores short style notes on `business_profiles` (`style_notes`, `preferred_ctas`, `avoid_phrases`) and loads the last few approved captions into Generate, Revise, and pipeline `additional_instructions`.
 
+### Brand intelligence (brand brain)
+
+Per-business strategy fuel in `brand_intelligence` (migration `028`):
+
+1. **Collect** — onboarding `business_profiles` fields
+2. **Enrich** — Instagram connection handle (mirror), optional website text fetch, AI synthesis (`OPENAI_API_KEY`)
+3. **Inject** — `buildBrandBrainPromptBlock()` merges brand intelligence + brand memory into Generate / content-plans / Trigger pipeline prompts
+4. **Refresh** — after Instagram OAuth confirm (`POST /api/social/connections`), or `POST /api/brand-intelligence`, or Trigger task `refresh-brand-intelligence`
+
+Stores content pillars, voice/visual guidelines, hashtag seeds, CTA patterns, posting windows, and niche trend hooks. Instagram Graph media/insights can later fill `ig_snapshot` when MarketMe AI publish API exposes them.
+
+Barber/salon niches get stronger fallback pillars and posting windows via `lib/niche-presets.ts` (product remains multi-niche).
+
+### Competitor intelligence
+
+Migration `029` adds `business_competitors` + `competitor_insights`:
+
+1. User declares competitors (Instagram handles and/or websites) in onboarding or Settings → Workspace
+2. `analyzeCompetitors()` fetches optional website text and synthesizes inferred posting patterns, content types, promo patterns, and opportunities (`OPENAI_API_KEY`)
+3. Findings inject into `buildBrandBrainPromptBlock()` alongside brand intelligence (not live IG scrape metrics)
+4. Refresh via onboarding/settings save, `POST /api/competitor-intelligence`, or Trigger `analyze-competitors`
+
 ### Instagram OAuth (Connections)
 
 Flow:

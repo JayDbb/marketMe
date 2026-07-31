@@ -190,6 +190,15 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Kick brand-brain enrich (profile + IG handle + website → strategy fuel).
+  const { scheduleBrandIntelligenceRefresh } = await import(
+    '@/lib/services/brand-intelligence.service'
+  )
+  scheduleBrandIntelligenceRefresh({
+    businessProfileId: profile.id,
+    userId: session.user.id,
+  })
+
   return NextResponse.json({
     success: true,
     connection,

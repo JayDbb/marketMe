@@ -16,11 +16,10 @@ import {
 } from '@/lib/services/marketing-ai.service'
 import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
 import {
-  formatBrandMemoryPromptBlock,
-  getBrandMemoryContext,
   recordReviseSignal,
   REVISE_EXAMPLES,
 } from '@/lib/services/brand-memory.service'
+import { buildBrandBrainPromptBlock } from '@/lib/services/brand-intelligence.service'
 import { resolveChatModel, resolveImageModel } from '@/lib/ai-models'
 import type {
   GenerateWeeklyContentPayload,
@@ -130,11 +129,10 @@ export const generateWeeklyContent = task({
     }
 
     const typed = profile as BusinessProfile
-    const brandMemory = await getBrandMemoryContext(
+    const brandBrainBlock = await buildBrandBrainPromptBlock(
       payload.userId,
       typed.id
     )
-    const brandMemoryBlock = formatBrandMemoryPromptBlock(brandMemory)
 
     const pipeline = await runCreativePipeline({
       business: profileToPipelineInput(typed),
@@ -147,7 +145,7 @@ export const generateWeeklyContent = task({
       numPosts: 5,
       weekStartDate: payload.startDate.slice(0, 10),
       includeCreativeBriefs: false,
-      brandMemoryInstructions: brandMemoryBlock || undefined,
+      brandMemoryInstructions: brandBrainBlock || undefined,
     })
 
     const startDate = new Date(payload.startDate)
@@ -225,13 +223,11 @@ export const regenerateCaption = task({
       (post.content_plans as { business_profile_id?: string } | null)
         ?.business_profile_id ?? null
 
-    const brandMemory = await getBrandMemoryContext(
+    const brandBrainBlock = await buildBrandBrainPromptBlock(
       post.user_id as string,
-      businessProfileId
+      businessProfileId,
+      { maxMemoryExamples: REVISE_EXAMPLES }
     )
-    const brandMemoryBlock = formatBrandMemoryPromptBlock(brandMemory, {
-      maxExamples: REVISE_EXAMPLES,
-    })
 
     const feedback =
       payload.feedback?.trim() || 'Make it more engaging and professional.'
@@ -244,7 +240,7 @@ export const regenerateCaption = task({
       messages: [
         {
           role: 'system',
-          content: `You are an expert social media copywriter. Rewrite the following social media post caption based on the user's feedback. Provide only the rewritten caption.${brandMemoryBlock}`,
+          content: `You are an expert social media copywriter. Rewrite the following social media post caption based on the user's feedback. Provide only the rewritten caption.${brandBrainBlock}`,
         },
         {
           role: 'user',
@@ -577,5 +573,48 @@ export const scheduledPublishing = schedules.task({
     }
 
     return { success: true, count }
+  },
+})
+
+/**
+ * Rebuild brand brain after Instagram connect / on demand.
+ * Uses profile + IG connection + website research + AI synthesis.
+ */
+export const refreshBrandIntelligence = task({
+  id: 'refresh-brand-intelligence',
+  run: async (payload: { businessProfileId: string; userId: string }) => {
+    const { enrichBrandIntelligence } = await import(
+      '@/lib/services/brand-intelligence.service'
+    )
+    const intelligence = await enrichBrandIntelligence(payload)
+    if (!intelligence) {
+      throw new Error('Brand intelligence enrichment returned null')
+    }
+    return {
+      success: true,
+      status: intelligence.status,
+      enrichedAt: intelligence.enrichedAt,
+    }
+  },
+})
+
+/**
+ * Analyze declared competitors → opportunities for brand brain.
+ */
+export const analyzeCompetitorsTask = task({
+  id: 'analyze-competitors',
+  run: async (payload: { businessProfileId: string; userId: string }) => {
+    const { analyzeCompetitors } = await import(
+      '@/lib/services/competitor-intelligence.service'
+    )
+    const insights = await analyzeCompetitors(payload)
+    if (!insights) {
+      throw new Error('Competitor analysis returned null')
+    }
+    return {
+      success: true,
+      status: insights.status,
+      analyzedAt: insights.analyzedAt,
+    }
   },
 })

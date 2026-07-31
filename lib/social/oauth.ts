@@ -112,19 +112,23 @@ export function mapRawConnection(acc: {
   platform?: string
   handle?: string | null
   account_url?: string | null
-  connected_status?: string
+  connected_status?: string | boolean
   instagram_user_id?: string | null
   facebook_page_id?: string | null
   created_at?: string
 }): SocialConnection {
   const platform = (acc.platform || 'instagram') as SocialPlatform
   const handle = (acc.handle || 'instagram_account').replace(/^@/, '')
-  const status =
-    acc.connected_status === 'connected' || !acc.connected_status
-      ? 'connected'
-      : acc.connected_status === 'expired'
-        ? 'expired'
-        : 'disconnected'
+  const connected =
+    acc.connected_status === true ||
+    acc.connected_status === 'connected' ||
+    acc.connected_status == null ||
+    acc.connected_status === ''
+  const status = connected
+    ? 'connected'
+    : acc.connected_status === 'expired'
+      ? 'expired'
+      : 'disconnected'
 
   return {
     id: String(acc.id || acc.instagram_user_id || acc.facebook_page_id || platform),

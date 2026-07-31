@@ -29,7 +29,15 @@ export type FetchConnectionsResult =
   | { ok: true; connections: SocialConnection[] }
   | { ok: false; error: string }
 
-export async function fetchConnections(): Promise<FetchConnectionsResult> {
+/**
+ * Fetch connected social accounts for the signed-in user's business.
+ * businessProfileId is accepted for API compatibility with the dashboard layout;
+ * the Next.js route scopes by session (and validates the profile).
+ */
+export async function fetchConnections(
+  _businessProfileId?: string
+): Promise<FetchConnectionsResult> {
+  void _businessProfileId
   try {
     const res = await fetch('/api/social/connections', {
       method: 'GET',
@@ -68,15 +76,16 @@ export async function fetchConnections(): Promise<FetchConnectionsResult> {
   }
 }
 
-
 /**
  * Start Instagram Meta OAuth. Redirects the browser to Facebook/Meta.
  * Does not return a connection row — the AI API callback persists the account,
  * then redirects back to /dashboard/connections.
  */
 export async function initiatePlatformConnect(
-  platform: SocialPlatform
+  platform: SocialPlatform,
+  _businessProfileId?: string
 ): Promise<{ redirected: true }> {
+  void _businessProfileId
   if (platform !== 'instagram') {
     throw new Error('Only Instagram is available right now')
   }
@@ -110,6 +119,10 @@ export async function initiatePlatformConnect(
  * Local-only disconnect until the backend exposes a revoke endpoint.
  * Tokens remain on the publish service; refresh will restore server truth.
  */
-export async function disconnectConnection(_connectionId: string): Promise<void> {
+export async function disconnectConnection(
+  _connectionId: string,
+  _businessProfileId?: string
+): Promise<void> {
   void _connectionId
+  void _businessProfileId
 }

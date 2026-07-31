@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/services/auth.service'
 import { getBusinessProfile } from '@/lib/services/business.service'
-import { toAiBusinessId } from '@/lib/ai-business-id'
 import {
   getSocialConnections,
   MarketingAIError,
@@ -15,7 +14,7 @@ export const runtime = 'nodejs'
 function mapConnections(raw: RawSocialConnection[]) {
   return raw.map((acc) =>
     mapRawConnection({
-      id: acc.id,
+      id: acc.account_id ?? acc.id,
       platform: acc.platform,
       handle: acc.handle,
       account_url: acc.account_url,
@@ -63,11 +62,11 @@ export async function GET() {
   }
 
   try {
-    const raw = await getSocialConnections(toAiBusinessId(profile.id))
+    // Publish/OAuth APIs expect the business_profiles.id UUID.
+    const raw = await getSocialConnections(profile.id)
     return NextResponse.json({
       connections: mapConnections(Array.isArray(raw) ? raw : []),
       businessProfileId: profile.id,
-      aiBusinessId: toAiBusinessId(profile.id),
     })
   } catch (error) {
     const message =

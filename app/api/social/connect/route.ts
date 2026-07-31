@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/services/auth.service'
 import { getBusinessProfile } from '@/lib/services/business.service'
-import { toAiBusinessId } from '@/lib/ai-business-id'
 import {
   getInstagramOAuthUrl,
   MarketingAIError,
@@ -25,7 +24,8 @@ async function startInstagramOAuth(userId: string) {
     }
   }
 
-  const authUrl = await getInstagramOAuthUrl(toAiBusinessId(profile.id))
+  // Meta OAuth must use business_profiles.id UUID (business_profile_id).
+  const authUrl = await getInstagramOAuthUrl(profile.id)
   if (!authUrl) {
     return { error: 'Auth URL was empty', status: 502 as const }
   }

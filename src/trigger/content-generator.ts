@@ -489,8 +489,9 @@ export const instagramPublishing = task({
       toAiBusinessId(payload.postId)
 
     const data = await publishToInstagram({
-      post_id: backendPostId,
-      business_id: toAiBusinessId(payload.businessId),
+      post_id: String(backendPostId),
+      // Publish API expects business_profiles.id UUID.
+      business_id: payload.businessId,
       image_url: payload.imageUrl,
     })
 

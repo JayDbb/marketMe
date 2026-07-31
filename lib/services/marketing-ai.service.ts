@@ -37,6 +37,44 @@ function backendAuthHeaders(): HeadersInit {
   return headers
 }
 
+/**
+ * Safely convert numeric strings, UUIDs, or numbers to a positive
+ * 32-bit integer. For older AI generation endpoints that still require
+ * numeric business_id. Do not use for Instagram OAuth / publish connections.
+ */
+export function toNumericId(
+  id: string | number | undefined | null
+): number {
+  if (typeof id === 'number' && Number.isInteger(id) && id > 0) {
+    return id
+  }
+
+  if (typeof id === 'string') {
+    const parsed = Number.parseInt(id, 10)
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      return parsed
+    }
+
+    let hash = 0
+    for (let index = 0; index < id.length; index++) {
+      hash = (hash << 5) - hash + id.charCodeAt(index)
+      hash |= 0
+    }
+    return Math.abs(hash) || 1
+  }
+
+  return 1
+}
+
+/** Validate and normalize a business-profile UUID for publish/OAuth APIs. */
+function normalizeBusinessProfileId(businessProfileId: string): string {
+  const normalized = businessProfileId.trim()
+  if (!normalized) {
+    throw new Error('A business profile ID is required.')
+  }
+  return normalized
+}
+
 // ---------------------------------------------------------------------------
 // Shared enums / context types (mirrors FastAPI Pydantic schemas)
 // ---------------------------------------------------------------------------
@@ -331,8 +369,9 @@ export interface GenerateCreativeBriefResponse {
 }
 
 export interface PublishRequest {
-  post_id: number
-  business_id: number
+  post_id: string | number
+  /** UUID from public.business_profiles.id */
+  business_id: string
   image_url: string
 }
 
@@ -344,12 +383,14 @@ export interface PublishResponse {
 }
 
 export interface RawSocialConnection {
+  account_id?: string | number
   id?: string | number
-  business_id: number | string
+  business_profile_id?: string
+  business_id?: number | string
   platform: string
   handle?: string
   account_url?: string
-  connected_status: string
+  connected_status: string | boolean
   instagram_user_id?: string
   facebook_page_id?: string
   created_at?: string
@@ -553,8 +594,15 @@ export async function generateCreative(input: {
   )
 }
 
-export async function getPublishAuthUrl(businessId: string | number): Promise<string> {
-  const params = new URLSearchParams({ business_id: String(businessId) })
+/**
+ * JSON auth-url helper (legacy). Prefer getMetaOAuthStartUrl / getInstagramOAuthUrl
+ * which pass business_profile_id (UUID).
+ */
+export async function getPublishAuthUrl(businessProfileId: string): Promise<string> {
+  const normalizedProfileId = normalizeBusinessProfileId(businessProfileId)
+  const params = new URLSearchParams({
+    business_profile_id: normalizedProfileId,
+  })
   const data = await fetchWithRetry<{ auth_url: string }>(
     `/api/v1/publish/auth-url?${params.toString()}`,
     { method: 'GET' }
@@ -565,9 +613,13 @@ export async function getPublishAuthUrl(businessId: string | number): Promise<st
 /**
  * Preferred Instagram OAuth entry: MarketMe AI `/auth/meta/login` issues a signed
  * `state` and 307s to Facebook. Redirect the browser here (do not server-fetch it).
+ * Must use business_profiles.id UUID — not a hashed numeric id.
  */
-export function getMetaOAuthStartUrl(businessId: string | number): string {
-  const params = new URLSearchParams({ business_id: String(businessId) })
+export function getMetaOAuthStartUrl(businessProfileId: string): string {
+  const normalizedProfileId = normalizeBusinessProfileId(businessProfileId)
+  const params = new URLSearchParams({
+    business_profile_id: normalizedProfileId,
+  })
   return `${getApiUrl()}/api/v1/auth/meta/login?${params.toString()}`
 }
 
@@ -575,8 +627,8 @@ export function getMetaOAuthStartUrl(businessId: string | number): string {
  * Resolve an Instagram OAuth URL. Prefer Meta login (signed state); fall back to
  * publish/auth-url JSON if meta login is unavailable.
  */
-export async function getInstagramOAuthUrl(businessId: string | number): Promise<string> {
-  const metaUrl = getMetaOAuthStartUrl(businessId)
+export async function getInstagramOAuthUrl(businessProfileId: string): Promise<string> {
+  const metaUrl = getMetaOAuthStartUrl(businessProfileId)
   try {
     // Probe that the backend is up; do not follow the 307 to Facebook from the server.
     const controller = new AbortController()
@@ -605,13 +657,19 @@ export async function getInstagramOAuthUrl(businessId: string | number): Promise
     console.warn('[marketing-ai] Meta login probe failed, falling back to auth-url:', err)
   }
 
-  return getPublishAuthUrl(businessId)
+  return getPublishAuthUrl(businessProfileId)
 }
 
+/**
+ * Fetch connected social accounts for a business profile UUID.
+ */
 export async function getSocialConnections(
-  businessId: string | number
+  businessProfileId: string
 ): Promise<RawSocialConnection[]> {
-  const params = new URLSearchParams({ business_id: String(businessId) })
+  const normalizedProfileId = normalizeBusinessProfileId(businessProfileId)
+  const params = new URLSearchParams({
+    business_profile_id: normalizedProfileId,
+  })
   return fetchWithRetry<RawSocialConnection[]>(
     `/api/v1/publish/connections?${params.toString()}`,
     { method: 'GET' }

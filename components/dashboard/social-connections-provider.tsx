@@ -16,10 +16,11 @@ import {
   disconnectConnection,
   fetchConnections,
   initiatePlatformConnect,
+  confirmInstagramOAuth,
 } from '@/lib/social/connection-api'
 
 export type RefreshConnectionsResult =
-  | { ok: true }
+  | { ok: true; warning?: string }
   | { ok: false; error: string }
 
 interface SocialConnectionsContextValue {
@@ -27,7 +28,9 @@ interface SocialConnectionsContextValue {
   isLoading: boolean
   connectingPlatform: SocialPlatform | null
   error: string | null
+  warning: string | null
   refresh: () => Promise<RefreshConnectionsResult>
+  confirmOAuthSuccess: (platform?: SocialPlatform) => Promise<RefreshConnectionsResult>
   connect: (platform: SocialPlatform) => Promise<void>
   disconnect: (connectionId: string) => Promise<void>
   getConnection: (platform: SocialPlatform) => SocialConnection | undefined
@@ -59,6 +62,7 @@ export function SocialConnectionsProvider({
   const [connectingPlatform, setConnectingPlatform] =
     useState<SocialPlatform | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
   const refresh = useCallback(async (): Promise<RefreshConnectionsResult> => {
     const normalizedProfileId = businessProfileId.trim()
@@ -66,26 +70,64 @@ export function SocialConnectionsProvider({
     if (!normalizedProfileId) {
       setConnections([])
       setError('No business profile is available.')
+      setWarning(null)
       setIsLoading(false)
       return { ok: false, error: 'No business profile is available.' }
     }
 
     setIsLoading(true)
     setError(null)
+    setWarning(null)
 
     try {
       const result = await fetchConnections(normalizedProfileId)
       if (!result.ok) {
-        setConnections([])
+        // Keep any previously shown connections if the list fails hard
+        if (result.connections?.length) {
+          setConnections(result.connections)
+        }
         setError(result.error)
         return { ok: false, error: result.error }
       }
       setConnections(result.connections)
-      return { ok: true }
+      if (result.warning) setWarning(result.warning)
+      return { ok: true, warning: result.warning }
     } finally {
       setIsLoading(false)
     }
   }, [businessProfileId])
+
+  const confirmOAuthSuccess = useCallback(
+    async (platform: SocialPlatform = 'instagram'): Promise<RefreshConnectionsResult> => {
+      if (platform !== 'instagram') {
+        return { ok: false, error: 'Only Instagram OAuth confirm is supported' }
+      }
+      setIsLoading(true)
+      setError(null)
+      try {
+        const saved = await confirmInstagramOAuth()
+        if (saved.ok && saved.connections.length > 0) {
+          setConnections(saved.connections)
+        }
+        const refreshed = await fetchConnections(businessProfileId.trim())
+        if (refreshed.ok) {
+          setConnections(refreshed.connections)
+          if (refreshed.warning) setWarning(refreshed.warning)
+          return { ok: true, warning: refreshed.warning }
+        }
+        if (saved.ok) {
+          if (refreshed.error) setWarning(refreshed.error)
+          return { ok: true, warning: refreshed.error }
+        }
+        setError(saved.error)
+        return { ok: false, error: saved.error }
+      } finally {
+        setIsLoading(false)
+        setConnectingPlatform(null)
+      }
+    },
+    [businessProfileId]
+  )
 
   useEffect(() => {
     startTransition(() => {
@@ -130,10 +172,7 @@ export function SocialConnectionsProvider({
       try {
         await disconnectConnection(connectionId, normalizedProfileId)
         setConnections((prev) => prev.filter((c) => c.id !== connectionId))
-        toast.message('Removed from this view', {
-          description:
-            'Revoke access in Meta Business settings to fully disconnect the publish service.',
-        })
+        toast.success('Instagram disconnected in MarketMe')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Disconnect failed')
       }
@@ -160,7 +199,9 @@ export function SocialConnectionsProvider({
       isLoading,
       connectingPlatform,
       error,
+      warning,
       refresh,
+      confirmOAuthSuccess,
       connect,
       disconnect,
       getConnection,
@@ -172,7 +213,9 @@ export function SocialConnectionsProvider({
       isLoading,
       connectingPlatform,
       error,
+      warning,
       refresh,
+      confirmOAuthSuccess,
       connect,
       disconnect,
       getConnection,

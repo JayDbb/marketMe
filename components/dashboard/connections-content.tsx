@@ -38,7 +38,7 @@ function OAuthReturnHandler() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { refresh } = useSocialConnections()
+  const { refresh, confirmOAuthSuccess } = useSocialConnections()
   const handled = useRef(false)
 
   useEffect(() => {
@@ -54,15 +54,27 @@ function OAuthReturnHandler() {
       if (result.kind === 'error') {
         toast.error(result.message)
       } else {
-        const refreshed = await refresh()
-        if (refreshed.ok) {
+        // Save in MarketMe first so the Connections page shows Instagram even if
+        // the publish API list endpoint is still broken (SecretStr / DB).
+        const confirmed = await confirmOAuthSuccess('instagram')
+        if (confirmed.ok) {
           toast.success(
             result.kind === 'success' && result.message
               ? result.message
-              : 'Instagram authorized with Meta'
+              : 'Instagram connected to MarketMe'
           )
+          if (confirmed.warning) {
+            toast.message('Saved in MarketMe', {
+              description: confirmed.warning,
+            })
+          }
         } else {
-          toast.error(refreshed.error)
+          const refreshed = await refresh()
+          if (refreshed.ok) {
+            toast.success('Instagram authorized with Meta')
+          } else {
+            toast.error(confirmed.error || refreshed.error)
+          }
         }
       }
 
@@ -70,7 +82,7 @@ function OAuthReturnHandler() {
         router.replace(`${pathname}${stripOAuthReturnParams(searchParams)}`)
       }
     })()
-  }, [searchParams, refresh, router, pathname])
+  }, [searchParams, refresh, confirmOAuthSuccess, router, pathname])
 
   return null
 }
@@ -81,6 +93,7 @@ export function ConnectionsContent() {
     isLoading,
     connectingPlatform,
     error,
+    warning,
     connect,
     disconnect,
     isConnected,
@@ -89,6 +102,7 @@ export function ConnectionsContent() {
   } = useSocialConnections()
 
   const connected = connections.filter((c) => c.status === 'connected')
+  const bannerTone = error ? 'error' : warning ? 'warning' : hasInstagram ? 'success' : 'info'
 
   return (
     <motion.div
@@ -103,32 +117,40 @@ export function ConnectionsContent() {
 
       <div
         className={`mb-6 rounded-xl border px-4 py-3 flex gap-3 ${
-          error
+          bannerTone === 'error'
             ? 'border-amber-500/25 bg-amber-500/8'
-            : hasInstagram
-              ? 'border-emerald-500/25 bg-emerald-500/8'
-              : 'border-blue-500/25 bg-blue-500/8'
+            : bannerTone === 'warning'
+              ? 'border-amber-500/25 bg-amber-500/8'
+              : bannerTone === 'success'
+                ? 'border-emerald-500/25 bg-emerald-500/8'
+                : 'border-blue-500/25 bg-blue-500/8'
         }`}
       >
         <Info
           className={`w-5 h-5 shrink-0 mt-0.5 ${
-            error ? 'text-amber-500' : hasInstagram ? 'text-emerald-500' : 'text-blue-500'
+            bannerTone === 'error' || bannerTone === 'warning'
+              ? 'text-amber-500'
+              : bannerTone === 'success'
+                ? 'text-emerald-500'
+                : 'text-blue-500'
           }`}
         />
         <div>
           <p className="text-sm font-medium text-zinc-900 dark:text-white">
-            {error
+            {error && !hasInstagram
               ? 'Meta may be connected, but MarketMe cannot load it yet'
               : hasInstagram
-                ? 'Instagram is connected'
+                ? 'Instagram is connected to MarketMe'
                 : 'Connect Instagram with Meta OAuth'}
           </p>
           <p className="text-xs text-zinc-500 dark:text-white/45 mt-0.5 leading-relaxed">
-            {error
-              ? 'Facebook showed “connected,” but the publish API is failing when saving or reading tokens. This is a backend fix on the MarketMe AI (Render) service — not your Connect button.'
-              : hasInstagram
-                ? 'You can schedule and publish through the MarketMe publish service. Reconnect anytime if the token expires.'
-                : 'Connect opens Meta Login for Instagram Business / Creator accounts linked to a Facebook Page. Tokens are stored on the MarketMe AI publish service.'}
+            {error && !hasInstagram
+              ? error
+              : warning
+                ? warning
+                : hasInstagram
+                  ? 'Shown from your MarketMe account. Publish tokens live on the MarketMe AI service — reconnect if publishing fails.'
+                  : 'Connect opens Meta Login for Instagram Business / Creator accounts linked to a Facebook Page. After Meta succeeds, MarketMe saves the connection so it shows here.'}
           </p>
         </div>
       </div>
@@ -145,7 +167,7 @@ export function ConnectionsContent() {
               Connected profiles
             </h2>
             <p className="text-xs text-zinc-400 dark:text-white/30">
-              Live from Meta via MarketMe AI
+              Saved in MarketMe
             </p>
           </div>
 

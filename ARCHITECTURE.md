@@ -117,10 +117,12 @@ Invisible style learning — no fine-tuning. On revise / approve / reject, Marke
 Flow:
 
 1. User clicks **Connect** on `/dashboard/connections`
-2. Next `POST /api/social/connect` resolves the user’s business → integer `business_id`
-3. Browser is sent to MarketMe AI `GET /api/v1/auth/meta/login?business_id=…` (signed state → Facebook)
+2. Next `POST /api/social/connect` resolves the user’s `business_profiles.id` (UUID)
+3. Browser is sent to MarketMe AI `GET /api/v1/auth/meta/login?business_profile_id=…` (signed state → Facebook)
 4. Meta redirects to the AI API callback (`/api/v1/auth/meta/callback`)
 5. AI API stores Instagram credentials and redirects to the frontend
+6. Frontend confirms OAuth success via `POST /api/social/connections` (local mirror in `business_social_connections`) so MarketMe shows the account even if publish list fails
+7. `GET /api/social/connections` merges MarketMe AI publish list + local mirror
 
 **Tristan / Render `FRONTEND_URL`** should send users back to:
 

@@ -26,8 +26,8 @@ export function humanizeConnectionsError(raw: string): string {
 }
 
 export type FetchConnectionsResult =
-  | { ok: true; connections: SocialConnection[] }
-  | { ok: false; error: string }
+  | { ok: true; connections: SocialConnection[]; warning?: string; source?: string }
+  | { ok: false; error: string; connections?: SocialConnection[] }
 
 /**
  * Fetch connected social accounts for the signed-in user's business.
@@ -48,23 +48,30 @@ export async function fetchConnections(
     const data = (await res.json().catch(() => ({}))) as {
       connections?: SocialConnection[]
       error?: string
+      warning?: string
+      source?: string
     }
 
     if (res.status === 404) {
-      // No business profile yet — empty list, not a hard failure for the UI.
       return { ok: true, connections: [] }
     }
 
-    if (!res.ok) {
+    const connections = Array.isArray(data.connections) ? data.connections : []
+
+    // 502 with mirrored rows still counts as usable for the Connections UI
+    if (!res.ok && connections.length === 0) {
       return {
         ok: false,
         error: humanizeConnectionsError(data.error || 'Failed to load connections'),
+        connections: [],
       }
     }
 
     return {
       ok: true,
-      connections: Array.isArray(data.connections) ? data.connections : [],
+      connections,
+      warning: data.warning,
+      source: data.source,
     }
   } catch (e) {
     return {
@@ -72,6 +79,48 @@ export async function fetchConnections(
       error: humanizeConnectionsError(
         e instanceof Error ? e.message : 'Failed to load connections'
       ),
+      connections: [],
+    }
+  }
+}
+
+/** Persist OAuth success in MarketMe so Connections shows Instagram immediately. */
+export async function confirmInstagramOAuth(handle?: string): Promise<FetchConnectionsResult> {
+  try {
+    const res = await fetch('/api/social/connections', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'confirm',
+        platform: 'instagram',
+        handle: handle || 'instagram_account',
+      }),
+    })
+    const data = (await res.json().catch(() => ({}))) as {
+      connections?: SocialConnection[]
+      connection?: SocialConnection
+      error?: string
+    }
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data.error || 'Failed to save Instagram connection',
+        connections: [],
+      }
+    }
+    const connections =
+      Array.isArray(data.connections) && data.connections.length > 0
+        ? data.connections
+        : data.connection
+          ? [data.connection]
+          : []
+    return { ok: true, connections, source: 'mirror' }
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Failed to save Instagram connection',
+      connections: [],
     }
   }
 }
@@ -116,13 +165,26 @@ export async function initiatePlatformConnect(
 }
 
 /**
- * Local-only disconnect until the backend exposes a revoke endpoint.
- * Tokens remain on the publish service; refresh will restore server truth.
+ * Mark disconnected in MarketMe mirror. Tokens may remain on the publish service
+ * until Meta revoke / AI API disconnect exists.
  */
 export async function disconnectConnection(
-  _connectionId: string,
+  connectionId: string,
   _businessProfileId?: string
 ): Promise<void> {
-  void _connectionId
   void _businessProfileId
+  const res = await fetch('/api/social/connections', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'disconnect',
+      platform: 'instagram',
+      connectionId,
+    }),
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(data.error || 'Failed to disconnect')
+  }
 }

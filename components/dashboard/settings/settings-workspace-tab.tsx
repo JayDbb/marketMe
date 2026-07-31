@@ -31,6 +31,7 @@ export function SettingsWorkspaceTab({
     fd.set('location', form.location)
     fd.set('website', form.website)
     fd.set('primaryGoal', form.primaryGoal)
+    fd.set('competitors', form.competitors)
 
     startTransition(async () => {
       const result = await updateWorkspaceAction(fd)
@@ -107,6 +108,23 @@ export function SettingsWorkspaceTab({
             placeholder="e.g. Increase brand awareness"
             className="h-11 rounded-xl bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10"
           />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs text-zinc-500">
+            Competitors{' '}
+            <span className="font-normal text-zinc-400">(Instagram handles or websites)</span>
+          </Label>
+          <textarea
+            value={form.competitors}
+            onChange={(e) => set('competitors', e.target.value)}
+            placeholder={'@rivalbarbershop\nhttps://competitor-salon.com'}
+            rows={4}
+            className="w-full rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 px-3 py-2.5 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 resize-y"
+          />
+          <p className="text-[11px] text-zinc-500">
+            Up to 5, one per line. We infer content opportunities for Generate — not live scrape
+            metrics.
+          </p>
         </div>
       </div>
 

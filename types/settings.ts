@@ -12,6 +12,7 @@ export interface SettingsData {
     location: string
     website: string
     primaryGoal: string
+    competitors: string
     hasProfile: boolean
   }
   preferences: {

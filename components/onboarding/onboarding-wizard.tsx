@@ -19,12 +19,14 @@ import {
   Loader2,
   CheckCircle2,
   Activity,
+  Scissors,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { completeOnboardingAction } from '@/app/onboarding/actions'
 import { toast } from 'sonner'
 import type { BusinessProfile } from '@/types/business-profile'
+import { BARBER_SALON_PRESET } from '@/lib/niche-presets'
 
 const steps = [
   {
@@ -35,13 +37,13 @@ const steps = [
   {
     id: 'marketing',
     title: 'Marketing focus',
-    description: 'Who you reach, how you sound, and where you publish.',
+    description: 'Who you reach, how you sound, where you publish, and who you compete with.',
   },
 ]
 
 const saveSteps = [
   'Saving your marketing profile…',
-  'Tuning AI to your brand voice…',
+  'Analyzing competitors & brand brain…',
   'Opening your dashboard…',
 ]
 
@@ -75,6 +77,7 @@ type OnboardingFormData = {
   targetCustomers: string
   tone: string
   channels: string[]
+  competitors: string
 }
 
 function profileToFormData(profile: BusinessProfile | null | undefined): OnboardingFormData {
@@ -88,6 +91,7 @@ function profileToFormData(profile: BusinessProfile | null | undefined): Onboard
       targetCustomers: '',
       tone: '',
       channels: [],
+      competitors: '',
     }
   }
 
@@ -100,6 +104,7 @@ function profileToFormData(profile: BusinessProfile | null | undefined): Onboard
     targetCustomers: profile.target_customers ?? '',
     tone: profile.tone ?? '',
     channels: profile.channels ?? [],
+    competitors: profile.competitors ?? '',
   }
 }
 
@@ -117,6 +122,7 @@ export function OnboardingWizard({
     profileToFormData(initialProfile)
   )
   const [direction, setDirection] = useState<1 | -1>(1)
+  const [salonPresetApplied, setSalonPresetApplied] = useState(false)
 
   const canContinue = useMemo(() => {
     if (currentStep === 0) {
@@ -134,6 +140,21 @@ export function OnboardingWizard({
     )
   }, [currentStep, formData])
 
+  const applySalonPreset = () => {
+    const p = BARBER_SALON_PRESET
+    setFormData((prev) => ({
+      ...prev,
+      industry: prev.industry.trim() || p.defaultIndustry,
+      services: prev.services.trim() || p.servicesExample,
+      primaryGoal: prev.primaryGoal || p.primaryGoal,
+      targetCustomers: prev.targetCustomers.trim() || p.targetCustomers,
+      tone: prev.tone || p.tone,
+      channels: prev.channels.length > 0 ? prev.channels : p.channels,
+    }))
+    setSalonPresetApplied(true)
+    toast.success('Barber / salon defaults applied — edit anything you like')
+  }
+
   const finishOnboarding = async () => {
     setIsSaving(true)
     setSaveError(null)
@@ -149,6 +170,7 @@ export function OnboardingWizard({
         target_customers: formData.targetCustomers.trim(),
         tone: formData.tone,
         channels: formData.channels,
+        competitors: formData.competitors.trim() || undefined,
       })
 
       if (result.error || !result.data?.business_name) {
@@ -319,6 +341,26 @@ export function OnboardingWizard({
 
             {currentStep === 0 && (
               <div className="space-y-5">
+                <button
+                  type="button"
+                  onClick={applySalonPreset}
+                  className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                    salonPresetApplied
+                      ? 'border-blue-500/50 bg-blue-500/12'
+                      : 'border-white/10 bg-white/4 hover:border-white/25'
+                  }`}
+                >
+                  <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+                    <Scissors className="w-4 h-4 text-blue-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white">{BARBER_SALON_PRESET.label}</p>
+                    <p className="text-xs text-white/40 truncate">
+                      Fills industry, services, bookings goal, voice & Instagram — still editable
+                    </p>
+                  </div>
+                </button>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label className={labelClass}>
@@ -328,7 +370,7 @@ export function OnboardingWizard({
                     <Input
                       value={formData.businessName}
                       onChange={(e) => updateFields({ businessName: e.target.value })}
-                      placeholder="e.g. Vanguard Atelier"
+                      placeholder={BARBER_SALON_PRESET.businessNameExample}
                       required
                       className={inputClass}
                     />
@@ -341,10 +383,26 @@ export function OnboardingWizard({
                     <Input
                       value={formData.industry}
                       onChange={(e) => updateFields({ industry: e.target.value })}
-                      placeholder="e.g. Luxury retail"
+                      placeholder="e.g. Barber & Salon or Food & Beverage"
                       required
                       className={inputClass}
                     />
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {BARBER_SALON_PRESET.industryOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => updateFields({ industry: opt })}
+                          className={`h-7 px-2.5 rounded-lg border text-[11px] transition-all ${
+                            formData.industry === opt
+                              ? 'border-blue-500/50 bg-blue-500/15 text-blue-300'
+                              : 'border-white/10 text-white/40 hover:border-white/25'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -356,7 +414,7 @@ export function OnboardingWizard({
                   <Textarea
                     value={formData.services}
                     onChange={(e) => updateFields({ services: e.target.value })}
-                    placeholder="One sentence is fine — e.g. Custom suits and personal styling for professionals."
+                    placeholder={BARBER_SALON_PRESET.servicesExample}
                     required
                     className="min-h-[88px] bg-white/5 border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/60 text-white placeholder:text-white/20 rounded-xl text-sm p-4 resize-y shadow-none"
                   />
@@ -411,7 +469,7 @@ export function OnboardingWizard({
                   <Input
                     value={formData.targetCustomers}
                     onChange={(e) => updateFields({ targetCustomers: e.target.value })}
-                    placeholder="e.g. Busy founders aged 30–45 in the US"
+                    placeholder={BARBER_SALON_PRESET.targetCustomers}
                     required
                     className={inputClass}
                   />
@@ -464,6 +522,25 @@ export function OnboardingWizard({
                     })}
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label className={labelClass}>
+                    Competitors{' '}
+                    <span className="text-white/25 normal-case tracking-normal">
+                      (optional — up to 5)
+                    </span>
+                  </Label>
+                  <Textarea
+                    value={formData.competitors}
+                    onChange={(e) => updateFields({ competitors: e.target.value })}
+                    placeholder={'@rivalbarbershop\nhttps://competitor-salon.com\n@anotherfade'}
+                    className="min-h-[88px] bg-white/5 border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/60 text-white placeholder:text-white/20 rounded-xl text-sm p-4 resize-y shadow-none"
+                  />
+                  <p className="text-[11px] text-white/30">
+                    Instagram handles or websites — one per line. We infer content opportunities (not
+                    live scrape metrics).
+                  </p>
+                </div>
               </div>
             )}
           </motion.div>
@@ -501,7 +578,7 @@ export function OnboardingWizard({
         </div>
 
         <p className="text-center text-[11px] text-white/25 mt-4">
-          You can add competitors, USP, and more later in Settings → Workspace.
+          Built for all small businesses — barbers & salons get smarter defaults first.
         </p>
       </form>
     </div>

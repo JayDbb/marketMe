@@ -178,8 +178,17 @@ export async function upsertBusinessProfile(
     }
   }
 
+  const profile = data as BusinessProfile
+  // Keep brand brain fresh when onboarding / settings change.
+  void import('@/lib/services/brand-intelligence.service').then(({ scheduleBrandIntelligenceRefresh }) => {
+    scheduleBrandIntelligenceRefresh({
+      businessProfileId: profile.id,
+      userId: normalizedUserId,
+    })
+  })
+
   return {
-    data: data as BusinessProfile,
+    data: profile,
     error: null,
   }
 }

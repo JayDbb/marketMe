@@ -5,10 +5,7 @@ import {
   profileToPipelineInput,
   runCreativePipeline,
 } from '@/lib/services/creative-pipeline.service'
-import {
-  formatBrandMemoryPromptBlock,
-  getBrandMemoryContext,
-} from '@/lib/services/brand-memory.service'
+import { buildBrandBrainPromptBlock } from '@/lib/services/brand-intelligence.service'
 import { isMarketingAiConfigured, MarketingAIError } from '@/lib/services/marketing-ai.service'
 import { isRateLimitError, rateLimitOrThrow } from '@/lib/rate-limit'
 import type { BusinessProfile } from '@/types/business-profile'
@@ -60,11 +57,10 @@ export async function POST(request: NextRequest) {
     }
 
     const typedProfile = profile as BusinessProfile
-    const brandMemory = await getBrandMemoryContext(
+    const brandBrainBlock = await buildBrandBrainPromptBlock(
       session.user.id,
       typedProfile.id
     )
-    const brandMemoryBlock = formatBrandMemoryPromptBlock(brandMemory)
 
     const pipeline = await runCreativePipeline({
       business: profileToPipelineInput(typedProfile),
@@ -77,7 +73,7 @@ export async function POST(request: NextRequest) {
       numPosts: Math.max(1, Math.min(14, Number(numPosts) || 3)),
       weekStartDate: String(startDate).slice(0, 10),
       includeCreativeBriefs: false,
-      brandMemoryInstructions: brandMemoryBlock || undefined,
+      brandMemoryInstructions: brandBrainBlock || undefined,
     })
 
     const start = new Date(startDate)

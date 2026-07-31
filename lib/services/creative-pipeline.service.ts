@@ -288,7 +288,7 @@ export async function runCreativePipeline(options: {
       target_audience_hint: options.business.targetCustomers ?? null,
       campaign_focus: options.goal ?? options.business.primaryGoal ?? null,
       posting_capacity_per_week: numPosts,
-      additional_instructions: `Brand tone: ${tone}. Generate a practical weekly content strategy.${memory}`,
+      additional_instructions: `Brand tone: ${tone}. Generate a practical weekly content strategy optimized for Instagram traction (hooks, clarity, niche relevance). Prefer the brand brain posting windows and pillars when present.${memory}`,
     },
   })
 
@@ -308,7 +308,7 @@ export async function runCreativePipeline(options: {
       primary_platform: platform,
       include_weekends: true,
       include_promotional_content: true,
-      additional_instructions: `Plan exactly ${numPosts} posts for the week.${memory}`,
+      additional_instructions: `Plan exactly ${numPosts} posts for the week. Schedule within preferred posting windows from the brand brain when provided; use local business-friendly times.${memory}`,
     },
   })
 
@@ -368,6 +368,8 @@ export async function runCreativePipeline(options: {
         call_to_action_hint: item.call_to_action_intent ?? null,
         additional_instructions: [
           `Tone: ${tone}`,
+          'Optimize caption + hashtags for Instagram traction while staying on-brand.',
+          'Use brand-brain hashtag seeds and CTA patterns when provided; avoid generic spam tags.',
           ...(item.post_generation_instructions ?? []),
           item.visual_direction_hint
             ? `Visual direction hint: ${item.visual_direction_hint}`

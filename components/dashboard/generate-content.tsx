@@ -22,15 +22,22 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { CanvasData } from '@/types/canvas'
+import type { CanvasData } from '@/types/canvas'
 import { CanvasEditor } from '@/components/dashboard/studio/canvas-editor'
 import { reviseCaptionAction, schedulePostsBatchAction, generatePostsAction } from '@/app/dashboard/generate/actions'
-import type { GenerateContext, GeneratedPostDraft } from '@/lib/generate-utils'
+import type { GenerateContext, GenerateSetupInput } from '@/lib/generate-utils'
 import { generateCanvasFromTemplate, matchTemplateToGoal } from '@/lib/generate-utils'
 import { formatScheduledPreview, getMinScheduleDatetime } from '@/lib/post-schedule-utils'
 import { imageToCanvas } from '@/lib/studio-utils'
 import type { StudioTemplate } from '@/app/dashboard/studio/actions'
 import { AiContentNotice } from '@/components/legal/ai-content-notice'
+import {
+  getContentGenerationStatus,
+  getPostsForGeneration,
+  type GeneratedPipelinePost,
+  type GenerationRunStatus,
+  type PipelineStage,
+} from '@/lib/services/marketing-ai.service'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type FlowState = 'setup' | 'generating' | 'review' | 'scheduled'
@@ -89,6 +96,167 @@ const PROGRESS_STEPS = [
   'Finalizing Review Package',
 ]
 
+const PIPELINE_STAGE_STEP_INDEX: Record<PipelineStage, number> = {
+  business_profile_intake: 0,
+  marketing_strategy_generation: 0,
+  content_schedule_generation: 1,
+  post_generation: 2,
+  creative_brief_generation: 3,
+  image_generation: 3,
+  publishing: 4,
+}
+
+const COMPLETED_GENERATION_STATUSES =
+  new Set<GenerationRunStatus>(['complete', 'completed'])
+
+function isCanvasData(value: unknown): value is CanvasData {
+  if (!value || typeof value !== 'object') return false
+
+  const candidate = value as {
+    canvas?: unknown
+    layers?: unknown
+  }
+
+  return Boolean(
+    candidate.canvas &&
+    typeof candidate.canvas === 'object' &&
+    Array.isArray(candidate.layers)
+  )
+}
+
+function normalizePipelineHashtags(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .filter((tag): tag is string => typeof tag === 'string')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`))
+      .join(' ')
+  }
+
+  if (typeof value === 'string') {
+    return value.trim()
+  }
+
+  return ''
+}
+
+function normalizePipelinePostStatus(value: string): PostStatus {
+  switch (value) {
+    case 'approved':
+    case 'rejected':
+    case 'scheduled':
+    case 'published':
+      return value
+
+    case 'draft':
+    default:
+      return 'needs_review'
+  }
+}
+
+function toDatetimeLocalValue(
+  value: string | null | undefined,
+  fallbackIndex: number
+): string {
+  const fallback = new Date()
+  fallback.setDate(fallback.getDate() + fallbackIndex + 1)
+  fallback.setHours(9, 0, 0, 0)
+
+  const parsed = value ? new Date(value) : fallback
+  const date = Number.isNaN(parsed.getTime()) ? fallback : parsed
+
+  const localDate = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60_000
+  )
+
+  return localDate.toISOString().slice(0, 16)
+}
+
+function buildFallbackCanvas(
+  post: GeneratedPipelinePost,
+  title: string,
+  caption: string,
+  fallbackTemplate: StudioTemplate | null
+): CanvasData {
+  if (isCanvasData(post.canvas_data)) {
+    return post.canvas_data
+  }
+
+  const generatedImageUrl =
+    post.image_url ??
+    post.generated_assets?.find((asset) => Boolean(asset.file_url))?.file_url ??
+    null
+
+  if (generatedImageUrl) {
+    return generateCanvasFromTemplate(
+      imageToCanvas(generatedImageUrl, title),
+      title,
+      caption
+    )
+  }
+
+  if (fallbackTemplate?.canvas_data && isCanvasData(fallbackTemplate.canvas_data)) {
+    return generateCanvasFromTemplate(
+      fallbackTemplate.canvas_data,
+      title,
+      caption
+    )
+  }
+
+  if (fallbackTemplate?.file_url) {
+    return generateCanvasFromTemplate(
+      imageToCanvas(fallbackTemplate.file_url, title),
+      title,
+      caption
+    )
+  }
+
+  return generateCanvasFromTemplate(
+    DUMMY_CANVAS_TEMPLATE,
+    title,
+    caption
+  )
+}
+
+function mapPipelinePostToReviewPost(
+  post: GeneratedPipelinePost,
+  index: number,
+  fallbackTemplate: StudioTemplate | null
+): GeneratedPost {
+  const title =
+    post.title?.trim() ||
+    post.post_type?.trim() ||
+    `Post ${index + 1}`
+
+  const caption =
+    post.caption?.trim() ||
+    post.content?.trim() ||
+    ''
+
+  return {
+    id: post.id,
+    title,
+    caption,
+    hashtags: normalizePipelineHashtags(post.hashtags),
+    canvasData: buildFallbackCanvas(
+      post,
+      title,
+      caption,
+      fallbackTemplate
+    ),
+    scheduledDate: toDatetimeLocalValue(
+      post.scheduled_at,
+      index
+    ),
+    status: normalizePipelinePostStatus(post.status),
+    templateId:
+      post.template_id ??
+      fallbackTemplate?.id ??
+      null,
+  }
+}
+
 // ─── Template Source Toggle ───────────────────────────────────────────────────
 function TemplateSourcePicker({
   value,
@@ -115,20 +283,18 @@ function TemplateSourcePicker({
         <button
           type="button"
           onClick={() => onChange('ai')}
-          className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all duration-200 text-left ${
-            value === 'ai'
+          className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all duration-200 text-left ${value === 'ai'
               ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
               : 'bg-zinc-50 dark:bg-black/30 border-black/5 dark:border-white/10 hover:border-blue-500/30'
-          }`}
+            }`}
         >
           {value === 'ai' && (
             <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
               <Check className="w-2.5 h-2.5 text-white" />
             </div>
           )}
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-            value === 'ai' ? 'bg-blue-500/20' : 'bg-zinc-100 dark:bg-white/5'
-          }`}>
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${value === 'ai' ? 'bg-blue-500/20' : 'bg-zinc-100 dark:bg-white/5'
+            }`}>
             <Bot className={`w-4.5 h-4.5 ${value === 'ai' ? 'text-blue-400' : 'text-zinc-400 dark:text-white/40'}`} />
           </div>
           <div>
@@ -145,20 +311,18 @@ function TemplateSourcePicker({
         <button
           type="button"
           onClick={() => onChange('user')}
-          className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all duration-200 text-left ${
-            value === 'user'
+          className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all duration-200 text-left ${value === 'user'
               ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
               : 'bg-zinc-50 dark:bg-black/30 border-black/5 dark:border-white/10 hover:border-blue-500/30'
-          }`}
+            }`}
         >
           {value === 'user' && (
             <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
               <Check className="w-2.5 h-2.5 text-white" />
             </div>
           )}
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-            value === 'user' ? 'bg-blue-500/20' : 'bg-zinc-100 dark:bg-white/5'
-          }`}>
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${value === 'user' ? 'bg-blue-500/20' : 'bg-zinc-100 dark:bg-white/5'
+            }`}>
             <FolderOpen className={`w-4.5 h-4.5 ${value === 'user' ? 'text-blue-400' : 'text-zinc-400 dark:text-white/40'}`} />
           </div>
           <div>
@@ -206,11 +370,10 @@ function TemplateSourcePicker({
                     key={tmpl.id}
                     type="button"
                     onClick={() => onSelectTemplate(tmpl.id)}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                      isSelected
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all duration-200 ${isSelected
                         ? 'border-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]'
                         : 'border-transparent hover:border-white/20'
-                    }`}
+                      }`}
                   >
                     <Image
                       src={tmpl.file_url}
@@ -259,7 +422,6 @@ export function GenerateContent({
   const [flowState, setFlowState] = useState<FlowState>('setup')
   const [posts, setPosts] = useState<GeneratedPost[]>([])
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
-  const [serverDrafts, setServerDrafts] = useState<GeneratedPostDraft[] | null>(null)
   const [scheduledCount, setScheduledCount] = useState(0)
 
   // Template selection state
@@ -279,49 +441,92 @@ export function GenerateContent({
     startTransition(() => {
       const prompt = searchParams.get('prompt')?.trim()
       const templateId = searchParams.get('templateId')
+
       if (prompt) {
         setSetupData((prev) => ({ ...prev, tone: prompt }))
       }
-      if (templateId && initialTemplates.some((t) => t.id === templateId)) {
+
+      if (templateId && initialTemplates.some((template) => template.id === templateId)) {
         setTemplateSource('user')
         setSelectedTemplateId(templateId)
       }
     })
   }, [searchParams, initialTemplates])
 
-  // Generating State
+  const fallbackTemplate = useMemo<StudioTemplate | null>(() => {
+    if (templateSource === 'user' && selectedTemplateId) {
+      return initialTemplates.find((template) => template.id === selectedTemplateId) ?? null
+    }
+
+    if (templateSource === 'ai') {
+      const editableTemplates = initialTemplates.filter(
+        (template) => template.canvas_data !== null
+      )
+
+      return matchTemplateToGoal(
+        editableTemplates.length > 0 ? editableTemplates : initialTemplates,
+        setupData.goal
+      )
+    }
+
+    return null
+  }, [initialTemplates, selectedTemplateId, setupData.goal, templateSource])
+
+  // Real pipeline generation state
+  const [generationId, setGenerationId] = useState<string | null>(null)
+  const [generationStatus, setGenerationStatus] =
+    useState<GenerationRunStatus | null>(null)
+  const [generationStage, setGenerationStage] =
+    useState<PipelineStage>('business_profile_intake')
+  const [generationProgress, setGenerationProgress] = useState(0)
+  const [generationMessage, setGenerationMessage] = useState<string | null>(null)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
-  const [progressPulse, setProgressPulse] = useState(0)
+
   const generationComplete =
     flowState === 'generating' &&
-    currentStepIndex >= PROGRESS_STEPS.length &&
-    Boolean(serverDrafts?.length)
+    generationStatus !== null &&
+    COMPLETED_GENERATION_STATUSES.has(generationStatus) &&
+    posts.length > 0
 
   const handleStartGeneration = async () => {
     if (templateSource === 'user' && !selectedTemplateId) {
       toast.error('Select a Studio template or switch to AI template matching.')
       return
     }
+
     if (setupData.numPosts < 1 || setupData.numPosts > 14) {
       toast.error('Number of posts must be between 1 and 14.')
       return
     }
 
-    setFlowState('generating')
+    setPosts([])
+    setSelectedPostId(null)
+    setGenerationId(null)
+    setGenerationStatus('queued')
+    setGenerationStage('business_profile_intake')
+    setGenerationProgress(0)
+    setGenerationMessage('Preparing your business context…')
     setCurrentStepIndex(0)
-    setProgressPulse(0)
-    setServerDrafts(null)
+    setFlowState('generating')
 
-    const result = await generatePostsAction({
+    const actionInput: GenerateSetupInput & {
+      templateSource: TemplateSource
+      templateId?: string | null
+    } = {
       businessName: setupData.business,
       goal: setupData.goal,
       platform: setupData.platform,
       numPosts: setupData.numPosts,
       tone: setupData.tone,
-    })
+      templateSource,
+      templateId: templateSource === 'user' ? selectedTemplateId : null,
+    }
 
-    if (!result.success || !result.posts?.length) {
-      const message = result.error ?? 'Failed to generate posts'
+    const result = await generatePostsAction(actionInput)
+
+    if (!result.success || !result.generationId) {
+      const message = result.error ?? 'Failed to start content generation'
+
       if (message.toLowerCase().includes('insufficient credits')) {
         toast.error(message, {
           description: 'Upgrade your plan or wait for your monthly credit reset.',
@@ -329,100 +534,149 @@ export function GenerateContent({
       } else {
         toast.error(message)
       }
+
+      setGenerationStatus(null)
+      setGenerationMessage(null)
       setFlowState('setup')
-      setCurrentStepIndex(0)
       return
     }
 
-    setServerDrafts(result.posts)
+    setGenerationId(result.generationId)
+    setGenerationStatus(result.status ?? 'queued')
+    setGenerationStage(result.stage ?? 'business_profile_intake')
+    setGenerationMessage(result.message ?? 'Content generation started.')
   }
 
-  // Smooth progress: advance through early steps on a timer, hold the last step
-  // until the server responds, then finish quickly.
   useEffect(() => {
-    if (flowState !== 'generating') return
+    if (flowState !== 'generating' || !generationId) return
 
-    const lastStep = PROGRESS_STEPS.length - 1
-    const draftsReady = Boolean(serverDrafts?.length)
+    let cancelled = false
+    let timer: number | undefined
+    let consecutiveErrors = 0
+    const startedAt = Date.now()
+    const timeoutMs = 15 * 60_000
 
-    // Continuous soft progress pulse (0→100 looping feel while waiting)
-    const pulse = window.setInterval(() => {
-      setProgressPulse((p) => (p >= 96 ? 72 : p + 1.5))
-    }, 120)
-
-    if (currentStepIndex >= PROGRESS_STEPS.length) {
-      window.clearInterval(pulse)
-      return () => window.clearInterval(pulse)
+    const scheduleNextPoll = () => {
+      if (cancelled) return
+      timer = window.setTimeout(() => {
+        void pollGeneration()
+      }, 2_000)
     }
 
-    // Hold on the final labeled step until drafts arrive
-    if (currentStepIndex === lastStep && !draftsReady) {
-      return () => window.clearInterval(pulse)
+    const failGeneration = (message: string) => {
+      if (cancelled) return
+
+      toast.error(message)
+      setGenerationStatus('failed')
+      setGenerationMessage(message)
+      setFlowState('setup')
     }
 
-    // Once drafts are ready, finish remaining steps quickly
-    const delay =
-      draftsReady
-        ? 280
-        : currentStepIndex === lastStep - 1
-          ? 900
-          : 700 + currentStepIndex * 80
+    const pollGeneration = async (): Promise<void> => {
+      if (cancelled) return
 
-    const timer = window.setTimeout(() => {
-      setCurrentStepIndex((prev) => {
-        if (prev >= PROGRESS_STEPS.length) return prev
-        if (prev === lastStep && !draftsReady) return prev
-        return prev + 1
-      })
-    }, delay)
+      if (Date.now() - startedAt > timeoutMs) {
+        failGeneration(
+          'Content generation timed out. Check the generation record and backend logs.'
+        )
+        return
+      }
+
+      try {
+        const status = await getContentGenerationStatus(generationId)
+
+        if (cancelled) return
+
+        consecutiveErrors = 0
+
+        setGenerationStatus(status.status)
+        setGenerationStage(status.stage)
+        setGenerationProgress(status.progress)
+        setGenerationMessage(
+          status.status_message ??
+          status.message ??
+          'MarketMe is generating your content…'
+        )
+
+        if (status.status === 'failed') {
+          failGeneration(
+            status.error_message ??
+            status.error ??
+            'The content generation pipeline failed.'
+          )
+          return
+        }
+
+        if (COMPLETED_GENERATION_STATUSES.has(status.status)) {
+          const generatedPosts = await getPostsForGeneration(generationId)
+
+          if (cancelled) return
+
+          if (generatedPosts.length === 0) {
+            throw new Error(
+              'The pipeline completed, but no generated posts were returned.'
+            )
+          }
+
+          const reviewPosts = generatedPosts.map((post, index) =>
+            mapPipelinePostToReviewPost(
+              post,
+              index,
+              fallbackTemplate
+            )
+          )
+
+          setPosts(reviewPosts)
+          setGenerationProgress(100)
+          setGenerationMessage('Your review package is ready.')
+          setCurrentStepIndex(PROGRESS_STEPS.length)
+          return
+        }
+
+        setCurrentStepIndex(
+          PIPELINE_STAGE_STEP_INDEX[status.stage] ?? 0
+        )
+
+        scheduleNextPoll()
+      } catch (error) {
+        consecutiveErrors += 1
+
+        console.error(
+          'Failed to poll content generation:',
+          error
+        )
+
+        if (consecutiveErrors >= 5) {
+          failGeneration(
+            error instanceof Error
+              ? error.message
+              : 'Unable to read generation status.'
+          )
+          return
+        }
+
+        scheduleNextPoll()
+      }
+    }
+
+    void pollGeneration()
 
     return () => {
-      window.clearTimeout(timer)
-      window.clearInterval(pulse)
+      cancelled = true
+
+      if (timer !== undefined) {
+        window.clearTimeout(timer)
+      }
     }
-  }, [flowState, currentStepIndex, serverDrafts])
+  }, [fallbackTemplate, flowState, generationId])
 
   const handleGoToReview = () => {
-    if (!serverDrafts?.length) {
+    if (!generationComplete || posts.length === 0) {
       toast.error('Generation is still in progress. Please wait.')
       return
     }
 
-    let resolvedTemplate: StudioTemplate | null = null
-
-    if (templateSource === 'user' && selectedTemplateId) {
-      resolvedTemplate = initialTemplates.find((t) => t.id === selectedTemplateId) ?? null
-    } else if (templateSource === 'ai') {
-      const canvasTemplates = initialTemplates.filter((t) => t.canvas_data !== null)
-      resolvedTemplate = matchTemplateToGoal(
-        canvasTemplates.length ? canvasTemplates : initialTemplates,
-        setupData.goal
-      )
-    }
-
-    const generated: GeneratedPost[] = serverDrafts.map((p) => {
-      let canvasData: CanvasData
-      if (resolvedTemplate?.canvas_data) {
-        canvasData = generateCanvasFromTemplate(resolvedTemplate.canvas_data, p.title, p.caption)
-      } else if (resolvedTemplate) {
-        canvasData = generateCanvasFromTemplate(
-          imageToCanvas(resolvedTemplate.file_url, p.title),
-          p.title,
-          p.caption
-        )
-      } else {
-        canvasData = generateCanvasFromTemplate(DUMMY_CANVAS_TEMPLATE, p.title, p.caption)
-      }
-      return {
-        ...p,
-        canvasData,
-        templateId: resolvedTemplate?.id ?? null,
-        status: 'needs_review' as PostStatus,
-      }
-    })
-
-    setPosts(generated)
-    setSelectedPostId(generated[0].id)
+    setSelectedPostId(posts[0].id)
     setFlowState('review')
   }
 
@@ -455,7 +709,7 @@ export function GenerateContent({
   const handleApplyAiEdit = async () => {
     if (!aiPrompt.trim() || !selectedPost) return
     setIsApplyingAi(true)
-    
+
     try {
       // Call the API Contract Stub
       const newCaption = await reviseCaptionAction(editCaption, aiPrompt, setupData.platform)
@@ -536,7 +790,7 @@ export function GenerateContent({
 
   return (
     <div className="relative w-full min-h-[calc(100vh-2rem)] flex flex-col items-center pt-8 pb-12 overflow-hidden">
-      
+
       {/* Ambient Backgrounds for Setup/Generating/Scheduled */}
       {flowState !== 'review' && (
         <>
@@ -547,7 +801,7 @@ export function GenerateContent({
       )}
 
       <AnimatePresence mode="wait">
-        
+
         {/* ────────────────────────────────────────────────────────────────────────
             STATE: SETUP
         ──────────────────────────────────────────────────────────────────────── */}
@@ -587,8 +841,8 @@ export function GenerateContent({
                 <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-900 dark:text-amber-100/90">
                   <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <p>
-                    AI providers are not connected yet — generation uses sample templates from your
-                    business profile. Add <code className="text-xs">OPENAI_API_KEY</code> for live AI copy.
+                    The MarketMe AI pipeline is currently unavailable. Confirm that the FastAPI
+                    backend is online and that its AI providers are configured.
                     {ctx.templateCount > 0
                       ? ` ${ctx.templateCount} Studio template${ctx.templateCount === 1 ? '' : 's'} available.`
                       : ''}
@@ -599,16 +853,16 @@ export function GenerateContent({
 
             <div className="bg-white dark:bg-[#0a0a14]/60 backdrop-blur-2xl border border-black/5 dark:border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-blue-500/30 to-transparent" />
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Form Group */}
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
                     <Briefcase className="w-3.5 h-3.5" /> Business Profile
                   </label>
-                  <Input 
-                    value={setupData.business} onChange={e => setSetupData({...setupData, business: e.target.value})}
-                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 transition-all shadow-inner" 
+                  <Input
+                    value={setupData.business} onChange={e => setSetupData({ ...setupData, business: e.target.value })}
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -627,12 +881,11 @@ export function GenerateContent({
                         {['Increase Brand Awareness', 'Lead Generation', 'Community Engagement', 'Product Launch'].map((goal) => (
                           <DropdownMenuItem
                             key={goal}
-                            onClick={() => setSetupData({...setupData, goal})}
-                            className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${
-                              setupData.goal === goal 
-                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300' 
+                            onClick={() => setSetupData({ ...setupData, goal })}
+                            className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${setupData.goal === goal
+                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                            }`}
+                              }`}
                           >
                             {goal}
                             {setupData.goal === goal && <Check className="w-4 h-4 text-blue-400" />}
@@ -642,7 +895,7 @@ export function GenerateContent({
                     </DropdownMenu>
                   </div>
                 </div>
-                
+
                 {/* Form Group */}
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -658,12 +911,11 @@ export function GenerateContent({
                         {['Instagram', 'LinkedIn', 'Twitter', 'Facebook'].map((platform) => (
                           <DropdownMenuItem
                             key={platform}
-                            onClick={() => setSetupData({...setupData, platform})}
-                            className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${
-                              setupData.platform === platform 
-                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300' 
+                            onClick={() => setSetupData({ ...setupData, platform })}
+                            className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${setupData.platform === platform
+                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                            }`}
+                              }`}
                           >
                             {platform}
                             {setupData.platform === platform && <Check className="w-4 h-4 text-blue-400" />}
@@ -673,16 +925,16 @@ export function GenerateContent({
                     </DropdownMenu>
                   </div>
                 </div>
-                
+
                 {/* Form Group */}
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
                     Number of Posts
                   </label>
-                  <Input 
+                  <Input
                     type="number" min={1} max={14}
-                    value={setupData.numPosts} onChange={e => setSetupData({...setupData, numPosts: parseInt(e.target.value)})}
-                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 transition-all shadow-inner" 
+                    value={setupData.numPosts} onChange={e => setSetupData({ ...setupData, numPosts: parseInt(e.target.value) })}
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 transition-all shadow-inner"
                   />
                 </div>
 
@@ -703,20 +955,20 @@ export function GenerateContent({
                   <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] flex items-center gap-2">
                     <Tag className="w-3.5 h-3.5" /> Tone (Optional)
                   </label>
-                  <Input 
+                  <Input
                     placeholder="e.g. Professional, Witty, Casual, Urgent..."
-                    value={setupData.tone} onChange={e => setSetupData({...setupData, tone: e.target.value})}
-                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 transition-all shadow-inner" 
+                    value={setupData.tone} onChange={e => setSetupData({ ...setupData, tone: e.target.value })}
+                    className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/20 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 transition-all shadow-inner"
                   />
                 </div>
               </div>
 
               <div className="mt-10">
-                <Button 
+                <Button
                   onClick={handleStartGeneration}
                   className="w-full h-14 bg-white text-black hover:bg-zinc-100 dark:hover:bg-white/90 font-bold rounded-xl text-base transition-all gap-2 group shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.25)]"
                 >
-                  <Sparkles className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" /> 
+                  <Sparkles className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
                   Generate {setupData.numPosts} Posts
                 </Button>
               </div>
@@ -739,9 +991,8 @@ export function GenerateContent({
             <div className="text-center mb-10">
               <div className="relative w-28 h-28 mx-auto mb-8 flex items-center justify-center">
                 <div
-                  className={`absolute inset-0 bg-blue-500/20 blur-2xl rounded-full transition-opacity duration-700 ${
-                    generationComplete ? 'opacity-0' : 'opacity-100'
-                  }`}
+                  className={`absolute inset-0 bg-blue-500/20 blur-2xl rounded-full transition-opacity duration-700 ${generationComplete ? 'opacity-0' : 'opacity-100'
+                    }`}
                 />
                 {!generationComplete && (
                   <>
@@ -785,21 +1036,30 @@ export function GenerateContent({
               <p className="text-zinc-500 dark:text-white/40 text-lg">
                 {generationComplete
                   ? 'Your strategy has been executed successfully.'
-                  : 'Hold tight while the AI builds your weekly strategy.'}
+                  : generationMessage ?? 'Hold tight while the AI builds your weekly strategy.'}
               </p>
+              {!generationComplete && (
+                <p className="mt-2 text-[11px] font-mono uppercase tracking-[0.18em] text-blue-500/80">
+                  {generationStage.replaceAll('_', ' ')}
+                </p>
+              )}
 
               {!generationComplete && (
                 <div className="mt-6 mx-auto max-w-sm h-1.5 rounded-full bg-zinc-200 dark:bg-white/10 overflow-hidden">
                   <motion.div
                     className="h-full rounded-full bg-linear-to-r from-blue-500 via-sky-400 to-blue-500"
                     animate={{
-                      width: `${Math.min(
-                        98,
-                        (Math.min(currentStepIndex, PROGRESS_STEPS.length - 1) /
-                          PROGRESS_STEPS.length) *
-                          100 +
-                          progressPulse * 0.18
-                      )}%`,
+                      width: `${generationComplete
+                        ? 100
+                        : Math.min(
+                          98,
+                          Math.max(
+                            generationProgress,
+                            (Math.min(currentStepIndex, PROGRESS_STEPS.length - 1) /
+                              PROGRESS_STEPS.length) *
+                            100
+                          )
+                        )}%`,
                     }}
                     transition={{ type: 'spring', stiffness: 80, damping: 22 }}
                   />
@@ -831,20 +1091,18 @@ export function GenerateContent({
                       opacity: { duration: 0.35 },
                       delay: index * 0.04,
                     }}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-colors duration-500 ${
-                      isCurrent
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-colors duration-500 ${isCurrent
                         ? 'bg-white dark:bg-white/10 border-blue-500/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
                         : isPast
                           ? 'dark:bg-white/5 border-black/5 dark:border-white/10'
                           : 'bg-transparent border-transparent'
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`text-sm font-medium transition-colors duration-300 ${
-                        isPast || isCurrent
+                      className={`text-sm font-medium transition-colors duration-300 ${isPast || isCurrent
                           ? 'text-zinc-900 dark:text-white'
                           : 'text-zinc-500 dark:text-white/25'
-                      }`}
+                        }`}
                     >
                       {step}
                     </span>
@@ -891,7 +1149,7 @@ export function GenerateContent({
             </div>
 
             <AnimatePresence mode="wait">
-              {generationComplete && serverDrafts && (
+              {generationComplete && (
                 <motion.div
                   key="cta"
                   initial={{ opacity: 0, y: 16 }}
@@ -908,7 +1166,7 @@ export function GenerateContent({
                   </Button>
                 </motion.div>
               )}
-              {!generationComplete && currentStepIndex >= PROGRESS_STEPS.length - 1 && !serverDrafts && (
+              {!generationComplete && currentStepIndex >= PROGRESS_STEPS.length - 1 && (
                 <motion.p
                   key="finalizing"
                   initial={{ opacity: 0 }}
@@ -948,28 +1206,26 @@ export function GenerateContent({
                 {posts.map((post, idx) => {
                   const isActive = post.id === selectedPostId
                   return (
-                    <div 
+                    <div
                       key={post.id}
                       onClick={() => setSelectedPostId(post.id)}
-                      className={`relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 group overflow-hidden ${
-                        isActive 
-                          ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]' 
+                      className={`relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 group overflow-hidden ${isActive
+                          ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]'
                           : 'bg-white dark:bg-white/4 border-zinc-200 dark:border-white/8 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/8'
-                      }`}
+                        }`}
                     >
                       {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-2xl" />}
-                      
+
                       <div className="flex justify-between items-start mb-3">
                         <span className={`text-[10px] font-mono font-bold tracking-[0.2em] uppercase ${isActive ? 'text-blue-400' : 'text-zinc-500 dark:text-white/30'}`}>
                           Post 0{idx + 1}
                         </span>
-                        <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider ${
-                          post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
-                          post.status === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
-                          post.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
-                          post.status === 'draft' ? 'bg-white dark:bg-white/5 border-zinc-200 text-zinc-500 dark:text-white/40  dark:border-white/10' :
-                          'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                        }`}>
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider ${post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                            post.status === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                              post.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                post.status === 'draft' ? 'bg-white dark:bg-white/5 border-zinc-200 text-zinc-500 dark:text-white/40  dark:border-white/10' :
+                                  'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                          }`}>
                           {post.status.replace('_', ' ')}
                         </span>
                       </div>
@@ -1006,7 +1262,7 @@ export function GenerateContent({
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     {selectedPost.status !== 'rejected' && selectedPost.status !== 'scheduled' && (
                       <Button onClick={() => updatePostStatus(selectedPost.id, 'rejected')} variant="outline" className="h-10 px-5 rounded-xl border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-white/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all">
@@ -1029,8 +1285,8 @@ export function GenerateContent({
                         <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                           <AlignLeft className="w-3.5 h-3.5" /> Post Caption
                         </label>
-                        <Textarea 
-                          value={editCaption} 
+                        <Textarea
+                          value={editCaption}
                           onChange={(e) => setEditCaption(e.target.value)}
                           className="min-h-[220px] bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white/90 text-sm leading-relaxed p-4 rounded-2xl resize-y focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
                         />
@@ -1039,8 +1295,8 @@ export function GenerateContent({
                         <label className="text-[11px] font-bold text-zinc-500 dark:text-white/40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                           <Hash className="w-3.5 h-3.5" /> Hashtags
                         </label>
-                        <Input 
-                          value={editHashtags} 
+                        <Input
+                          value={editHashtags}
                           onChange={(e) => setEditHashtags(e.target.value)}
                           className="h-12 bg-zinc-50 dark:bg-black/40 border border-black/5 dark:border-white/10 text-zinc-900 dark:text-white/80 rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500/50 shadow-inner"
                         />
@@ -1050,7 +1306,7 @@ export function GenerateContent({
                     {/* AI Revisions Box */}
                     <div className="mt-10 p-1 rounded-2xl bg-linear-to-r from-blue-500/30 via-blue-500/30 to-blue-500/30 relative">
                       <div className="absolute inset-0 bg-linear-to-r from-blue-500/20 via-blue-500/20 to-blue-500/20 rounded-2xl blur-md" />
-                      
+
                       <div className="relative bg-white dark:bg-[#161b22] p-6 rounded-xl overflow-hidden">
                         <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none"><Wand2 className="w-32 h-32" /></div>
                         <label className="text-[11px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
@@ -1058,12 +1314,12 @@ export function GenerateContent({
                         </label>
                         <p className="text-sm text-zinc-500 dark:text-white/40 mb-4 leading-relaxed">Describe how you want to tweak the caption above. The AI will instantly rewrite it.</p>
                         <div className="flex gap-3">
-                          <Input 
+                          <Input
                             placeholder='e.g. "Make it punchier and add a call to action at the end"'
                             value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
                             className="h-12 bg-zinc-50 dark:bg-black/60 border border-blue-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/40 focus-visible:ring-1 focus-visible:ring-blue-500 rounded-xl"
                           />
-                          <Button 
+                          <Button
                             onClick={handleApplyAiEdit} disabled={!aiPrompt.trim() || isApplyingAi}
                             className="h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] disabled:shadow-none"
                           >
@@ -1107,9 +1363,9 @@ export function GenerateContent({
                             : `${approvedCount} approved posts will be scheduled with their individual dates.`}
                       </p>
                       <div className="space-y-3">
-                        <Button 
+                        <Button
                           onClick={handleSchedulePost}
-                          disabled={approvedCount === 0 || isScheduling} 
+                          disabled={approvedCount === 0 || isScheduling}
                           className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-zinc-900 dark:text-white font-bold rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)] disabled:opacity-50 disabled:shadow-none"
                         >
                           {isScheduling ? (
@@ -1202,8 +1458,12 @@ export function GenerateContent({
               onClick={() => {
                 setScheduledCount(0)
                 setPosts([])
-                setServerDrafts(null)
                 setSelectedPostId(null)
+                setGenerationId(null)
+                setGenerationStatus(null)
+                setGenerationStage('business_profile_intake')
+                setGenerationProgress(0)
+                setGenerationMessage(null)
                 setCurrentStepIndex(0)
                 setFlowState('setup')
               }}

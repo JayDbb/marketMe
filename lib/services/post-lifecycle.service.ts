@@ -36,6 +36,7 @@ async function getOwnedPost(userId: string, postId: string): Promise<Post> {
   if (error) {
     throw new PostLifecycleError(error.message, 500)
   }
+
   if (!data) {
     throw new PostLifecycleError('Post not found', 404)
   }
@@ -43,7 +44,10 @@ async function getOwnedPost(userId: string, postId: string): Promise<Post> {
   return data as Post
 }
 
-export async function verifyPostOwnership(userId: string, postId: string): Promise<Post> {
+export async function verifyPostOwnership(
+  userId: string,
+  postId: string
+): Promise<Post> {
   return getOwnedPost(userId, postId)
 }
 
@@ -67,40 +71,42 @@ export async function transitionPostStatus(
       )
     }
 
-    if (nextStatus === 'approved') {
-      if (!options?.skipModeration) {
-        const moderation = await moderatePost({
-          id: post.id,
-          user_id: post.user_id,
-          content: post.content,
-          image_url: post.image_url,
-        })
-        if (!moderation.passed) {
-          throw new PostLifecycleError(
-            moderation.blockingMessages[0] ?? 'Post failed moderation review',
-            422
-          )
-        }
+    if (nextStatus === 'approved' && !options?.skipModeration) {
+      const moderation = await moderatePost({
+        id: post.id,
+        user_id: post.user_id,
+        content: post.content,
+        image_url: post.image_url,
+      })
+
+      if (!moderation.passed) {
+        throw new PostLifecycleError(
+          moderation.blockingMessages[0] ?? 'Post failed moderation review',
+          422
+        )
       }
     }
 
     if (nextStatus === 'scheduled') {
       const scheduledAt = options?.scheduledAt ?? post.scheduled_at
-      if (!scheduledAt) {
-        throw new PostLifecycleError('A scheduled date is required before queuing a post')
-      }
-    }
 
-    if (nextStatus === 'published') {
-      if (process.env.ENABLE_AUTO_PUBLISH !== 'true') {
+      if (!scheduledAt) {
         throw new PostLifecycleError(
-          'Publishing is not enabled yet. Connect Instagram to publish posts.',
-          503
+          'A scheduled date is required before queuing a post'
         )
       }
     }
 
-    const updateData: Record<string, unknown> = { status: nextStatus }
+    if (nextStatus === 'published' && process.env.ENABLE_AUTO_PUBLISH !== 'true') {
+      throw new PostLifecycleError(
+        'Publishing is not enabled yet. Connect Instagram to publish posts.',
+        503
+      )
+    }
+
+    const updateData: Record<string, unknown> = {
+      status: nextStatus,
+    }
 
     if (options?.scheduledAt) {
       updateData.scheduled_at = options.scheduledAt
@@ -129,12 +135,15 @@ export async function transitionPostStatus(
     }
 
     return { data: data as Post, error: null }
-  } catch (err) {
-    if (err instanceof PostLifecycleError) {
-      return { data: null, error: err.message }
+  } catch (error) {
+    if (error instanceof PostLifecycleError) {
+      return { data: null, error: error.message }
     }
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return { data: null, error: message }
+
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
   }
 }
 
@@ -152,12 +161,89 @@ export async function approveAndSchedulePost(
 
   if (post.status === 'draft' || post.status === 'rejected') {
     const approved = await transitionPostStatus(userId, postId, 'approved')
+
     if (approved.error || !approved.data) {
-      return { data: null, error: approved.error ?? 'Approval failed' }
+      return {
+        data: null,
+        error: approved.error ?? 'Approval failed',
+      }
     }
   }
 
   return transitionPostStatus(userId, postId, 'scheduled', {
     scheduledAt: scheduledAt ?? post.scheduled_at ?? undefined,
   })
+}
+
+export type UpdateExistingPostForScheduleInput = {
+  platform: string
+  content: string
+  scheduledAt: string
+  canvasData?: unknown
+  templateId?: string | null
+  imageUrl?: string | null
+}
+
+/**
+ * Update a post that already exists in the canonical `posts` table, then
+ * approve and schedule that same row.
+ *
+ * This is used for pipeline-generated posts so scheduling does not create a
+ * duplicate post record.
+ */
+export async function updateExistingPostForSchedule(
+  userId: string,
+  postId: string,
+  input: UpdateExistingPostForScheduleInput
+): Promise<{ data: Post | null; error: string | null }> {
+  try {
+    const existingPost = await getOwnedPost(userId, postId)
+    const content = input.content.trim()
+    const platform = input.platform.trim()
+
+    if (!content) {
+      throw new PostLifecycleError('Post content cannot be empty')
+    }
+
+    if (!platform) {
+      throw new PostLifecycleError('A platform is required')
+    }
+
+    if (!input.scheduledAt) {
+      throw new PostLifecycleError('A scheduled date is required')
+    }
+
+    const updateData: Record<string, unknown> = {
+      platform,
+      content,
+      scheduled_at: input.scheduledAt,
+      canvas_data: input.canvasData ?? existingPost.canvas_data ?? null,
+      template_id: input.templateId ?? null,
+    }
+
+    if (input.imageUrl !== undefined) {
+      updateData.image_url = input.imageUrl
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('posts')
+      .update(updateData)
+      .eq('id', postId)
+      .eq('user_id', userId)
+
+    if (updateError) {
+      throw new PostLifecycleError(updateError.message, 500)
+    }
+
+    return approveAndSchedulePost(userId, postId, input.scheduledAt)
+  } catch (error) {
+    if (error instanceof PostLifecycleError) {
+      return { data: null, error: error.message }
+    }
+
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
 }

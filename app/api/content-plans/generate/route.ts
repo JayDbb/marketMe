@@ -1,126 +1,458 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, AuthError } from "@/lib/services/auth.service";
-import { supabaseAdmin } from "@/lib/supabase/admin";
-import { generateStrategy, generatePosts } from "@/lib/services/marketing-ai.service";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server"
 
-export async function POST(request: NextRequest) {
+import {
+  AuthError,
+  requireAuth,
+} from "@/lib/services/auth.service"
+
+import { supabaseAdmin } from "@/lib/supabase/admin"
+
+import {
+  startContentGeneration,
+  type SocialPlatform,
+  type TemplateSource,
+} from "@/lib/services/marketing-ai.service"
+
+
+interface GenerateContentPlanBody {
+  businessProfileId?: string
+
+  startDate?: string
+  endDate?: string
+
+  goal?: string
+  platform?: string
+  tone?: string
+  topic?: string
+
+  numberOfPosts?: number
+  numPosts?: number
+
+  templateSource?: string
+  studioTemplateId?: string | null
+}
+
+
+interface BusinessProfileRow {
+  id: string
+  user_id: string
+  business_name: string | null
+  industry: string | null
+  primary_goal: string | null
+  target_customers: string | null
+  tone: string | null
+  channels: string[] | null
+}
+
+
+function normalizePlatform(
+  value?: string
+): SocialPlatform {
+  const normalized =
+    value?.trim().toLowerCase()
+
+  switch (normalized) {
+    case "facebook":
+      return "facebook"
+
+    case "linkedin":
+      return "linkedin"
+
+    case "twitter":
+    case "twitter / x":
+    case "x":
+      return "x"
+
+    case "tiktok":
+      return "tiktok"
+
+    case "instagram":
+    default:
+      return "instagram"
+  }
+}
+
+
+function normalizeTemplateSource(
+  value?: string
+): TemplateSource {
+  const normalized =
+    value?.trim().toLowerCase()
+
+  if (
+    normalized === "studio" ||
+    normalized === "user" ||
+    normalized === "manual" ||
+    normalized === "choose"
+  ) {
+    return "studio"
+  }
+
+  return "ai"
+}
+
+
+function normalizeDate(
+  value?: string
+): string | undefined {
+  if (!value?.trim()) {
+    return undefined
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(
+      `Invalid date: ${value}`
+    )
+  }
+
+  return date
+    .toISOString()
+    .split("T")[0]
+}
+
+
+export async function POST(
+  request: NextRequest
+) {
   let session
+
   try {
     session = await requireAuth()
-  } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status })
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+        },
+        {
+          status: error.status,
+        }
+      )
     }
-    return NextResponse.json({ error: "Authentication error" }, { status: 401 })
+
+    return NextResponse.json(
+      {
+        error: "Authentication error",
+      },
+      {
+        status: 401,
+      }
+    )
   }
 
   try {
-    const body = await request.json();
-    const { businessProfileId, startDate } = body;
+    const body =
+      await request.json() as
+      GenerateContentPlanBody
 
-    if (!businessProfileId || !startDate) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const businessProfileId =
+      body.businessProfileId?.trim()
+
+    if (!businessProfileId) {
+      return NextResponse.json(
+        {
+          error:
+            "businessProfileId is required",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    // Verify ownership of the business profile
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('business_profiles')
-      .select('*')
-      .eq('id', businessProfileId)
-      .eq('user_id', session.user.id)
-      .single();
+    /*
+     * Verify that the authenticated user owns the selected
+     * business profile.
+     *
+     * Keep this select string literal so Supabase can infer
+     * the returned columns correctly.
+     */
+    const {
+      data: profileData,
+      error: profileError,
+    } = await supabaseAdmin
+      .from("business_profiles")
+      .select(
+        "id, user_id, business_name, industry, primary_goal, target_customers, tone, channels"
+      )
+      .eq(
+        "id",
+        businessProfileId
+      )
+      .eq(
+        "user_id",
+        session.user.id
+      )
+      .maybeSingle()
 
-    if (profileError || !profile) {
-      return NextResponse.json({ error: "Profile not found or unauthorized" }, { status: 403 });
+    const profile =
+      profileData as
+      BusinessProfileRow | null
+
+    if (
+      profileError ||
+      !profile
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Business profile not found or unauthorized",
+        },
+        {
+          status: 403,
+        }
+      )
     }
 
-    // 1. Generate Strategy
-    const strategyData = await generateStrategy({
-      business_id: profile.id,
-      business_name: profile.business_name || 'My Business',
-      industry: profile.industry || 'General',
-      target_audience: profile.target_customers || 'Everyone',
-      goals: profile.primary_goal || 'Growth',
-      platforms: Array.isArray(profile.channels) && profile.channels.length > 0
-        ? profile.channels.map((c: string) => c.toLowerCase())
-        : ['instagram'],
-    });
+    const numberOfPosts =
+      body.numberOfPosts ??
+      body.numPosts ??
+      3
 
-    if (!strategyData.strategy_id) {
-      throw new Error('No strategy_id returned from AI service');
+    if (
+      !Number.isInteger(numberOfPosts) ||
+      numberOfPosts < 1 ||
+      numberOfPosts > 14
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Number of posts must be between 1 and 14",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    // 2. Generate Posts from strategy
-    const postsData = await generatePosts({
-      strategy_id: strategyData.strategy_id,
-      business_id: profile.id,
-      business_name: profile.business_name || 'My Business',
-      industry: profile.industry || 'General',
-      target_audience: profile.target_customers || 'Everyone',
-      goal: profile.primary_goal || 'Growth',
-      topic: 'Weekly social media content plan post',
-      platform: 'instagram',
-      num_posts: 3
-    });
+    const templateSource =
+      normalizeTemplateSource(
+        body.templateSource
+      )
 
-    // 3. Save Content Plan to DB
-    const start = new Date(startDate);
-    const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
-    
-    const { data: planData, error: planError } = await supabaseAdmin
-      .from('content_plans')
-      .insert({
-        user_id: session.user.id,
-        business_profile_id: businessProfileId,
-        start_date: start.toISOString().split('T')[0],
-        end_date: end.toISOString().split('T')[0],
-        target_audience: profile.target_customers || null,
-        strategy_summary: strategyData.strategy?.overview || 'Weekly generated content strategy',
-        status: 'draft',
-      })
-      .select()
-      .single();
+    const studioTemplateId =
+      body.studioTemplateId?.trim() ||
+      undefined
 
-    if (planError || !planData) {
-      throw new Error(`Failed to save content plan: ${planError?.message}`);
+    if (
+      templateSource === "studio" &&
+      !studioTemplateId
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "A Studio template must be selected",
+        },
+        {
+          status: 400,
+        }
+      )
     }
 
-    // 4. Save Posts to DB
-    if (postsData.posts && postsData.posts.length > 0) {
-      const postsToInsert = postsData.posts.map((post: {
-        caption?: string
-        hashtags?: string[]
-        suggested_media_prompt?: string
-      }, index: number) => {
-        const scheduledDate = new Date(start);
-        scheduledDate.setDate(scheduledDate.getDate() + (index % 7));
+    /*
+     * Confirm that a manually selected Studio template belongs
+     * to the authenticated user.
+     */
+    if (
+      templateSource === "studio" &&
+      studioTemplateId
+    ) {
+      const {
+        data: template,
+        error: templateError,
+      } = await supabaseAdmin
+        .from("studio_templates")
+        .select("id")
+        .eq(
+          "id",
+          studioTemplateId
+        )
+        .eq(
+          "user_id",
+          session.user.id
+        )
+        .maybeSingle()
 
-        const hashtagsStr = Array.isArray(post.hashtags)
-          ? post.hashtags.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ')
-          : '';
-
-        return {
-          content_plan_id: planData.id,
-          user_id: session.user.id,
-          platform: 'instagram',
-          post_type: 'image',
-          content: post.caption + (hashtagsStr ? '\n\n' + hashtagsStr : ''),
-          image_prompt: post.suggested_media_prompt || null,
-          scheduled_at: scheduledDate.toISOString(),
-          status: 'draft',
-        };
-      });
-
-      const { error: postsError } = await supabaseAdmin.from('posts').insert(postsToInsert);
-      if (postsError) {
-        throw new Error(`Failed to save posts: ${postsError.message}`);
+      if (
+        templateError ||
+        !template
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Studio template not found or unauthorized",
+          },
+          {
+            status: 403,
+          }
+        )
       }
     }
 
-    return NextResponse.json({ success: true, contentPlanId: planData.id });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    console.error("Generate API Error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const channels =
+      Array.isArray(
+        profile.channels
+      )
+        ? profile.channels.filter(
+          (
+            channel: string
+          ) =>
+            channel
+              .trim()
+              .length > 0
+        )
+        : []
+
+    const platform =
+      normalizePlatform(
+        body.platform ??
+        channels[0] ??
+        "instagram"
+      )
+
+    const startDate =
+      normalizeDate(
+        body.startDate
+      )
+
+    let endDate =
+      normalizeDate(
+        body.endDate
+      )
+
+    /*
+     * Preserve the previous route's one-week content-plan
+     * behavior when only a start date is supplied.
+     */
+    if (
+      startDate &&
+      !endDate
+    ) {
+      const calculatedEnd =
+        new Date(
+          `${startDate}T00:00:00.000Z`
+        )
+
+      calculatedEnd.setUTCDate(
+        calculatedEnd.getUTCDate() +
+        7
+      )
+
+      endDate =
+        calculatedEnd
+          .toISOString()
+          .split("T")[0]
+    }
+
+    /*
+     * The FastAPI pipeline is responsible for creating:
+     *
+     * marketing_strategy
+     * content_plans
+     * generations
+     * posts
+     * creative_brief
+     * generated_asset
+     *
+     * This route must not insert those records separately.
+     */
+    const generation =
+      await startContentGeneration({
+        business_profile_id:
+          profile.id,
+
+        goal:
+          body.goal?.trim() ||
+          profile.primary_goal
+            ?.trim() ||
+          "Increase Brand Awareness",
+
+        platform,
+
+        number_of_posts:
+          numberOfPosts,
+
+        tone:
+          body.tone?.trim() ||
+          profile.tone?.trim() ||
+          "Professional",
+
+        template_source:
+          templateSource,
+
+        ...(body.topic?.trim()
+          ? {
+            topic:
+              body.topic.trim(),
+          }
+          : {}),
+
+        ...(startDate
+          ? {
+            start_date:
+              startDate,
+          }
+          : {}),
+
+        ...(endDate
+          ? {
+            end_date:
+              endDate,
+          }
+          : {}),
+
+        ...(studioTemplateId
+          ? {
+            studio_template_id:
+              studioTemplateId,
+          }
+          : {}),
+      })
+
+    return NextResponse.json(
+      {
+        success: true,
+
+        generationId:
+          generation.generation_id,
+
+        status:
+          generation.status,
+
+        stage:
+          generation.stage,
+
+        message:
+          generation.message ??
+          "Content generation started",
+      },
+      {
+        status: 202,
+      }
+    )
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unknown error"
+
+    console.error(
+      "Content-plan generation API error:",
+      error
+    )
+
+    return NextResponse.json(
+      {
+        error: message,
+      },
+      {
+        status: 500,
+      }
+    )
   }
 }

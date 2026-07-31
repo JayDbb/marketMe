@@ -2,46 +2,178 @@
 
 import { revalidatePath } from 'next/cache'
 import type { CanvasData } from '@/types/canvas'
+import type { PlanId } from '@/types/billing'
+import type { GenerateContext, GenerateSetupInput, GeneratedPostDraft } from '@/lib/generate-utils'
+import type {
+  GenerationRunStatus,
+  PipelineStage,
+  SocialPlatform,
+  TemplateSource,
+} from '@/lib/services/marketing-ai.service'
+
 import { getBusinessProfileAction } from '@/app/api/business-profile/_actions'
-import { resolveDisplayName, PLANS } from '@/lib/billing-utils'
 import { getUserTemplatesResult } from '@/app/dashboard/studio/actions'
+import { resolveDisplayName, PLANS } from '@/lib/billing-utils'
 import { ensureContentPlanForUser } from '@/lib/ensure-content-plan'
 import { insertScheduledPost } from '@/lib/insert-scheduled-post'
 import { rateLimitOrThrow } from '@/lib/rate-limit'
+import { normalizePlatform, toIsoScheduledDate } from '@/lib/generate-utils'
 import { getAuthenticatedUser, isValidUuid } from '@/lib/supabase/server-auth'
 import {
   assertCreditsAvailable,
-  InsufficientCreditsError,
-  spendCredits,
+  getCreditsBalance,
 } from '@/lib/services/credits.service'
-import { completeGeneration, startGeneration } from '@/lib/services/generation.service'
-import { approveAndSchedulePost } from '@/lib/services/post-lifecycle.service'
 import {
-  buildMarketingSystemPrompt,
+  approveAndSchedulePost,
+  updateExistingPostForSchedule,
+} from '@/lib/services/post-lifecycle.service'
+import {
   mapProfileGoalToGenerateGoal,
   primaryChannelFromProfile,
 } from '@/lib/marketing-profile-prompt'
 import {
-  buildFallbackPosts,
-  buildScheduleDates,
-  normalizePlatform,
-  toIsoScheduledDate,
-  type GenerateContext,
-  type GenerateSetupInput,
-  type GeneratedPostDraft,
-} from '@/lib/generate-utils'
+  healthCheck,
+  startContentGeneration,
+} from '@/lib/services/marketing-ai.service'
 import { openai } from '@/lib/openai'
-import { getCreditsBalance } from '@/lib/services/credits.service'
 import { PIPELINE_CREDIT_COSTS } from '@/types/pipeline'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import type { PlanId } from '@/types/billing'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type PipelineGenerateSetupInput = GenerateSetupInput & {
+  topic?: string
+  templateSource?: string
+  template_source?: string
+  templateId?: string | null
+  studioTemplateId?: string | null
+  studio_template_id?: string | null
+  startDate?: string
+  start_date?: string
+  endDate?: string
+  end_date?: string
+}
+
+export interface GeneratePostsActionResult {
+  success: boolean
+  generationId?: string
+  status?: GenerationRunStatus
+  stage?: PipelineStage
+  message?: string
+
+  /** Temporary compatibility field for old callers. */
+  posts?: GeneratedPostDraft[]
+
+  error?: string
+}
+
+export type SchedulePostPayload = {
+  /** Canonical posts.id UUID returned by the pipeline. */
+  postId?: string
+  caption: string
+  hashtags: string
+  canvasData: CanvasData
+  scheduledDate: string
+  templateId?: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function normalizePipelinePlatform(platform: string): SocialPlatform {
+  const normalized = platform.trim().toLowerCase()
+
+  switch (normalized) {
+    case 'facebook':
+      return 'facebook'
+    case 'linkedin':
+      return 'linkedin'
+    case 'x':
+    case 'twitter':
+    case 'twitter / x':
+      return 'x'
+    case 'tiktok':
+      return 'tiktok'
+    case 'instagram':
+    default:
+      return 'instagram'
+  }
+}
+
+function normalizeTemplateSource(source?: string): TemplateSource {
+  const normalized = source?.trim().toLowerCase()
+
+  if (
+    normalized === 'studio' ||
+    normalized === 'user' ||
+    normalized === 'manual' ||
+    normalized === 'choose' ||
+    normalized === "i'll choose" ||
+    normalized === 'ill choose'
+  ) {
+    return 'studio'
+  }
+
+  return 'ai'
+}
+
+function resolveTemplateSelection(input: PipelineGenerateSetupInput): {
+  templateSource: TemplateSource
+  studioTemplateId?: string
+} {
+  const templateSource = normalizeTemplateSource(
+    input.templateSource ?? input.template_source
+  )
+
+  const selectedTemplateId =
+    input.studioTemplateId ??
+    input.studio_template_id ??
+    input.templateId ??
+    undefined
+
+  if (templateSource === 'studio') {
+    if (!selectedTemplateId || !isValidUuid(selectedTemplateId)) {
+      throw new Error('Select a valid Studio template before generating content.')
+    }
+
+    return {
+      templateSource,
+      studioTemplateId: selectedTemplateId,
+    }
+  }
+
+  return { templateSource }
+}
+
+function combinePostContent(caption: string, hashtags: string): string {
+  return [caption.trim(), hashtags.trim()].filter(Boolean).join('\n\n')
+}
+
+function revalidatePostViews(): void {
+  revalidatePath('/dashboard/calendar')
+  revalidatePath('/dashboard/posts')
+  revalidatePath('/dashboard/generate')
+}
+
+// ---------------------------------------------------------------------------
+// Generation context
+// ---------------------------------------------------------------------------
 
 export async function getGenerateContextAction(): Promise<GenerateContext | null> {
   const user = await getAuthenticatedUser()
 
   if (!user) return null
 
-  const [{ data: profile }, { templates }, creditsBalance, subRes] = await Promise.all([
+  const [
+    { data: profile },
+    { templates },
+    creditsBalance,
+    subscriptionResult,
+    pipelineAvailable,
+  ] = await Promise.all([
     getBusinessProfileAction(),
     getUserTemplatesResult(),
     getCreditsBalance(user.id),
@@ -50,10 +182,16 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
       .select('plan')
       .eq('user_id', user.id)
       .maybeSingle(),
+    healthCheck()
+      .then(() => true)
+      .catch((error) => {
+        console.warn('MarketMe pipeline health check failed:', error)
+        return false
+      }),
   ])
 
   const businessName = resolveDisplayName(user, profile)
-  const plan = ((subRes.data?.plan as PlanId) ?? 'free') as PlanId
+  const plan = ((subscriptionResult.data?.plan as PlanId) ?? 'free') as PlanId
   const creditsLimit = PLANS[plan]?.limits.aiCredits ?? null
 
   return {
@@ -63,7 +201,7 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
     defaultTone: profile?.tone?.trim() || 'Professional',
     defaultGoal: mapProfileGoalToGenerateGoal(profile?.primary_goal),
     defaultPlatform: primaryChannelFromProfile(profile?.channels),
-    hasOpenAI: Boolean(process.env.OPENAI_API_KEY?.trim()),
+    hasOpenAI: pipelineAvailable,
     templateCount: templates.length,
     creditsBalance,
     creditsLimit,
@@ -71,163 +209,124 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
   }
 }
 
+// ---------------------------------------------------------------------------
+// Start complete AI pipeline
+// ---------------------------------------------------------------------------
+
 export async function generatePostsAction(
   input: GenerateSetupInput
-): Promise<{ success: boolean; posts?: GeneratedPostDraft[]; error?: string }> {
+): Promise<GeneratePostsActionResult> {
   const user = await getAuthenticatedUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+
+  if (!user) {
+    return { success: false, error: 'Unauthorized' }
+  }
 
   try {
     rateLimitOrThrow(`generate:${user.id}`, 10, 60_000)
     await assertCreditsAvailable(user.id, 'post_generation')
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Request blocked'
-    return { success: false, error: message }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Request blocked',
+    }
   }
 
+  const { data: businessProfile } = await getBusinessProfileAction()
+
+  if (!businessProfile?.id || !isValidUuid(businessProfile.id)) {
+    return {
+      success: false,
+      error: 'Complete your business profile before generating content.',
+    }
+  }
+
+  const pipelineInput = input as PipelineGenerateSetupInput
   const numPosts = Math.max(1, Math.min(14, input.numPosts || 3))
 
-  const setup: GenerateSetupInput = {
-    ...input,
-    numPosts,
-    businessName: input.businessName.trim() || 'My Business',
-    platform: input.platform.trim() || 'Instagram',
-    goal: input.goal.trim() || 'Increase Brand Awareness',
-    tone: input.tone.trim(),
-  }
+  let templateSelection: ReturnType<typeof resolveTemplateSelection>
 
-  if (process.env.OPENAI_API_KEY?.trim()) {
-    try {
-      const { data: profile } = await getBusinessProfileAction()
-      const aiPosts = await generateWithOpenAI(setup, {
-        industry: profile?.industry?.trim(),
-        services: profile?.services?.trim(),
-      })
-      if (aiPosts.length > 0) {
-        await recordPostGeneration(user.id, profile?.id, setup, 'openai')
-        return { success: true, posts: aiPosts }
-      }
-    } catch (error) {
-      console.error('OpenAI generation failed, using fallback:', error)
+  try {
+    templateSelection = resolveTemplateSelection(pipelineInput)
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Invalid template selection.',
     }
   }
 
-  const fallbackPosts = buildFallbackPosts(setup)
+  const goal =
+    input.goal.trim() ||
+    businessProfile.primary_goal?.trim() ||
+    'Increase Brand Awareness'
+
+  const tone =
+    input.tone.trim() ||
+    businessProfile.tone?.trim() ||
+    'Professional'
+
+  const platform = normalizePipelinePlatform(
+    input.platform.trim() || businessProfile.channels?.[0] || 'Instagram'
+  )
+
   try {
-    const { data: profile } = await getBusinessProfileAction()
-    await recordPostGeneration(user.id, profile?.id, setup, 'fallback')
-    return { success: true, posts: fallbackPosts }
-  } catch (err) {
-    if (err instanceof InsufficientCreditsError) {
-      return { success: false, error: err.message }
+    const result = await startContentGeneration({
+      business_profile_id: businessProfile.id,
+      goal,
+      platform,
+      number_of_posts: numPosts,
+      tone,
+      template_source: templateSelection.templateSource,
+      ...(templateSelection.studioTemplateId
+        ? { studio_template_id: templateSelection.studioTemplateId }
+        : {}),
+      ...(pipelineInput.topic?.trim()
+        ? { topic: pipelineInput.topic.trim() }
+        : {}),
+      ...(pipelineInput.startDate || pipelineInput.start_date
+        ? { start_date: pipelineInput.startDate ?? pipelineInput.start_date }
+        : {}),
+      ...(pipelineInput.endDate || pipelineInput.end_date
+        ? { end_date: pipelineInput.endDate ?? pipelineInput.end_date }
+        : {}),
+    })
+
+    return {
+      success: true,
+      generationId: result.generation_id,
+      status: result.status,
+      stage: result.stage,
+      message: result.message ?? 'Content generation started.',
     }
-    throw err
+  } catch (error) {
+    console.error('Failed to start MarketMe content pipeline:', error)
+
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to start content generation.',
+    }
   }
 }
 
-async function recordPostGeneration(
-  userId: string,
-  businessProfileId: string | undefined,
-  setup: GenerateSetupInput,
-  source: 'openai' | 'fallback'
-): Promise<void> {
-  const generation = await startGeneration({
-    userId,
-    stage: 'post_generation',
-    businessProfileId,
-    modelUsed: source === 'openai' ? 'openai' : 'template-fallback',
-    inputRef: {
-      businessName: setup.businessName,
-      platform: setup.platform,
-      goal: setup.goal,
-      numPosts: setup.numPosts,
-    },
-  })
-
-  try {
-    await spendCredits(userId, 'post_generation', {
-      businessProfileId,
-      generationId: generation.id,
-      metadata: { source, numPosts: setup.numPosts },
-    })
-    await completeGeneration(generation.id, 'completed', {
-      source,
-      postCount: setup.numPosts,
-    })
-  } catch (err) {
-    await completeGeneration(
-      generation.id,
-      'failed',
-      undefined,
-      err instanceof Error ? err.message : 'Credit deduction failed'
-    )
-    throw err
-  }
-}
-
-async function generateWithOpenAI(
-  input: GenerateSetupInput,
-  profileContext?: { industry?: string; services?: string }
-): Promise<GeneratedPostDraft[]> {
-  const dates = buildScheduleDates(input.numPosts)
-
-  const systemPrompt = profileContext?.services || profileContext?.industry
-    ? buildMarketingSystemPrompt({
-        business_name: input.businessName,
-        industry: profileContext.industry ?? null,
-        location: null,
-        website: null,
-        services: profileContext.services ?? null,
-        usp: null,
-        primary_goal: input.goal,
-        target_customers: null,
-        tone: input.tone,
-        competitors: null,
-        channels: [input.platform],
-      })
-    : `You are a social media strategist. Write ${input.numPosts} ${input.platform} posts for "${input.businessName}".
-Goal: ${input.goal}
-Tone: ${input.tone || 'Professional and approachable'}`
-
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      {
-        role: 'system',
-        content: `${systemPrompt}
-Return JSON: { "posts": [{ "title": string, "caption": string, "hashtags": string }] }
-Captions should be ready to publish (no placeholder brackets). Hashtags as a single space-separated string starting with #.`,
-      },
-      {
-        role: 'user',
-        content: `Generate exactly ${input.numPosts} unique posts.`,
-      },
-    ],
-    response_format: { type: 'json_object' },
-  })
-
-  const raw = completion.choices[0]?.message?.content ?? '{}'
-  const parsed = JSON.parse(raw) as {
-    posts?: { title?: string; caption?: string; hashtags?: string }[]
-  }
-
-  const items = parsed.posts ?? []
-
-  return items.slice(0, input.numPosts).map((post, i) => ({
-    id: `gen-${Date.now()}-${i}`,
-    title: post.title?.trim() || `Post ${i + 1}`,
-    caption: post.caption?.trim() || '',
-    hashtags: post.hashtags?.trim() || `#${normalizePlatform(input.platform)}`,
-    scheduledDate: dates[i] ?? dates[dates.length - 1],
-    status: 'needs_review' as const,
-  }))
-}
+// ---------------------------------------------------------------------------
+// Caption revision
+// ---------------------------------------------------------------------------
 
 export async function reviseCaptionAction(
   currentCaption: string,
   prompt: string,
   platform: string
 ): Promise<string> {
+  const normalizedCaption = currentCaption.trim()
+  const normalizedPrompt = prompt.trim()
+
+  if (!normalizedPrompt) {
+    throw new Error('Enter an instruction for the caption revision.')
+  }
+
   if (process.env.OPENAI_API_KEY?.trim()) {
     try {
       const completion = await openai.chat.completions.create({
@@ -235,24 +334,36 @@ export async function reviseCaptionAction(
         messages: [
           {
             role: 'system',
-            content: `Revise the following ${platform} post caption based on the user's instruction. Return only the revised caption text, no quotes or markdown.`,
+            content:
+              `Revise the following ${platform} post caption based on the user's ` +
+              'instruction. Return only the revised caption text, without quotes or Markdown.',
           },
           {
             role: 'user',
-            content: `Caption:\n${currentCaption}\n\nInstruction: ${prompt}`,
+            content:
+              `Caption:\n${normalizedCaption}\n\nInstruction: ${normalizedPrompt}`,
           },
         ],
       })
+
       const revised = completion.choices[0]?.message?.content?.trim()
+
       if (revised) return revised
     } catch (error) {
-      console.error('OpenAI revise failed:', error)
+      console.error('OpenAI caption revision failed:', error)
     }
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 800))
-  return `${currentCaption}\n\n(Revised: ${prompt})`
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 800)
+  })
+
+  return `${normalizedCaption}\n\n(Revision requested: ${normalizedPrompt})`
 }
+
+// ---------------------------------------------------------------------------
+// Single post scheduling
+// ---------------------------------------------------------------------------
 
 export async function schedulePostAction(payload: {
   postId?: string
@@ -265,31 +376,56 @@ export async function schedulePostAction(payload: {
 }): Promise<{ success: boolean; error?: string; postId?: string }> {
   const user = await getAuthenticatedUser()
 
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user) {
+    return { success: false, error: 'Unauthorized' }
+  }
 
   try {
     const scheduledAt = toIsoScheduledDate(payload.scheduledDate)
     const platform = normalizePlatform(payload.platform)
-    const content = [payload.caption.trim(), payload.hashtags.trim()]
-      .filter(Boolean)
-      .join('\n\n')
+    const content = combinePostContent(payload.caption, payload.hashtags)
 
     if (!content) {
       return { success: false, error: 'Post content cannot be empty' }
-    }
-
-    const planResult = await ensureContentPlanForUser(
-      user.id,
-      user.user_metadata?.full_name ?? user.user_metadata?.name
-    )
-    if (!planResult.ok) {
-      return { success: false, error: planResult.error }
     }
 
     const templateId =
       payload.templateId && isValidUuid(payload.templateId)
         ? payload.templateId
         : null
+
+    if (payload.postId && isValidUuid(payload.postId)) {
+      const updateResult = await updateExistingPostForSchedule(
+        user.id,
+        payload.postId,
+        {
+          platform,
+          content,
+          scheduledAt,
+          canvasData: payload.canvasData,
+          templateId,
+        }
+      )
+
+      if (updateResult.error || !updateResult.data) {
+        return {
+          success: false,
+          error: updateResult.error ?? 'Failed to schedule post',
+        }
+      }
+
+      revalidatePostViews()
+      return { success: true, postId: payload.postId }
+    }
+
+    const planResult = await ensureContentPlanForUser(
+      user.id,
+      user.user_metadata?.full_name ?? user.user_metadata?.name
+    )
+
+    if (!planResult.ok) {
+      return { success: false, error: planResult.error }
+    }
 
     const insertResult = await insertScheduledPost(user.id, {
       contentPlanId: planResult.planId,
@@ -298,30 +434,41 @@ export async function schedulePostAction(payload: {
       scheduledAt,
       canvasData: payload.canvasData,
       templateId,
+      status: 'draft',
     })
 
     if (!insertResult.ok) {
       return { success: false, error: insertResult.error }
     }
 
-    revalidatePath('/dashboard/calendar')
-    revalidatePath('/dashboard/posts')
-    revalidatePath('/dashboard/generate')
+    const scheduleResult = await approveAndSchedulePost(
+      user.id,
+      insertResult.postId,
+      scheduledAt
+    )
+
+    if (scheduleResult.error || !scheduleResult.data) {
+      return {
+        success: false,
+        error: scheduleResult.error ?? 'Failed to schedule post',
+      }
+    }
+
+    revalidatePostViews()
     return { success: true, postId: insertResult.postId }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to schedule post'
-    console.error('Scheduling Error:', error)
-    return { success: false, error: message }
+    console.error('Scheduling error:', error)
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to schedule post',
+    }
   }
 }
 
-export type SchedulePostPayload = {
-  caption: string
-  hashtags: string
-  canvasData: CanvasData
-  scheduledDate: string
-  templateId?: string | null
-}
+// ---------------------------------------------------------------------------
+// Batch scheduling
+// ---------------------------------------------------------------------------
 
 export async function schedulePostsBatchAction(payload: {
   platform: string
@@ -334,7 +481,9 @@ export async function schedulePostsBatchAction(payload: {
 }> {
   const user = await getAuthenticatedUser()
 
-  if (!user) return { success: false, scheduledCount: 0, error: 'Unauthorized' }
+  if (!user) {
+    return { success: false, scheduledCount: 0, error: 'Unauthorized' }
+  }
 
   if (payload.posts.length === 0) {
     return { success: false, scheduledCount: 0, error: 'No posts to schedule' }
@@ -342,38 +491,70 @@ export async function schedulePostsBatchAction(payload: {
 
   try {
     const platform = normalizePlatform(payload.platform)
-
-    const planResult = await ensureContentPlanForUser(
-      user.id,
-      user.user_metadata?.full_name ?? user.user_metadata?.name
-    )
-    if (!planResult.ok) {
-      return { success: false, scheduledCount: 0, error: planResult.error }
-    }
-
     const postIds: string[] = []
     const errors: string[] = []
+    let fallbackPlanId: string | null = null
 
     for (const post of payload.posts) {
-      const content = [post.caption.trim(), post.hashtags.trim()].filter(Boolean).join('\n\n')
+      const content = combinePostContent(post.caption, post.hashtags)
+
       if (!content) {
         errors.push('One post had empty content and was skipped')
         continue
       }
 
       let scheduledAt: string
+
       try {
         scheduledAt = toIsoScheduledDate(post.scheduledDate)
-      } catch (err) {
-        errors.push(err instanceof Error ? err.message : 'Invalid scheduled date')
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : 'Invalid scheduled date')
         continue
       }
 
       const templateId =
-        post.templateId && isValidUuid(post.templateId) ? post.templateId : null
+        post.templateId && isValidUuid(post.templateId)
+          ? post.templateId
+          : null
+
+      if (post.postId && isValidUuid(post.postId)) {
+        const updateResult = await updateExistingPostForSchedule(
+          user.id,
+          post.postId,
+          {
+            platform,
+            content,
+            scheduledAt,
+            canvasData: post.canvasData,
+            templateId,
+          }
+        )
+
+        if (updateResult.error || !updateResult.data) {
+          errors.push(updateResult.error ?? 'Failed to update and schedule post')
+          continue
+        }
+
+        postIds.push(post.postId)
+        continue
+      }
+
+      if (!fallbackPlanId) {
+        const planResult = await ensureContentPlanForUser(
+          user.id,
+          user.user_metadata?.full_name ?? user.user_metadata?.name
+        )
+
+        if (!planResult.ok) {
+          errors.push(planResult.error)
+          continue
+        }
+
+        fallbackPlanId = planResult.planId
+      }
 
       const insertResult = await insertScheduledPost(user.id, {
-        contentPlanId: planResult.planId,
+        contentPlanId: fallbackPlanId,
         platform,
         content,
         scheduledAt,
@@ -409,9 +590,7 @@ export async function schedulePostsBatchAction(payload: {
       }
     }
 
-    revalidatePath('/dashboard/calendar')
-    revalidatePath('/dashboard/posts')
-    revalidatePath('/dashboard/generate')
+    revalidatePostViews()
 
     return {
       success: true,
@@ -423,8 +602,12 @@ export async function schedulePostsBatchAction(payload: {
           : undefined,
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to schedule posts'
     console.error('Batch scheduling error:', error)
-    return { success: false, scheduledCount: 0, error: message }
+
+    return {
+      success: false,
+      scheduledCount: 0,
+      error: error instanceof Error ? error.message : 'Failed to schedule posts',
+    }
   }
 }

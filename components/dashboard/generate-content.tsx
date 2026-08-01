@@ -284,8 +284,8 @@ function TemplateSourcePicker({
           type="button"
           onClick={() => onChange('ai')}
           className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all duration-200 text-left ${value === 'ai'
-              ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
-              : 'bg-zinc-50 dark:bg-black/30 border-black/5 dark:border-white/10 hover:border-blue-500/30'
+            ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
+            : 'bg-zinc-50 dark:bg-black/30 border-black/5 dark:border-white/10 hover:border-blue-500/30'
             }`}
         >
           {value === 'ai' && (
@@ -312,8 +312,8 @@ function TemplateSourcePicker({
           type="button"
           onClick={() => onChange('user')}
           className={`relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all duration-200 text-left ${value === 'user'
-              ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
-              : 'bg-zinc-50 dark:bg-black/30 border-black/5 dark:border-white/10 hover:border-blue-500/30'
+            ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
+            : 'bg-zinc-50 dark:bg-black/30 border-black/5 dark:border-white/10 hover:border-blue-500/30'
             }`}
         >
           {value === 'user' && (
@@ -371,8 +371,8 @@ function TemplateSourcePicker({
                     type="button"
                     onClick={() => onSelectTemplate(tmpl.id)}
                     className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all duration-200 ${isSelected
-                        ? 'border-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]'
-                        : 'border-transparent hover:border-white/20'
+                      ? 'border-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]'
+                      : 'border-transparent hover:border-white/20'
                       }`}
                   >
                     <Image
@@ -584,6 +584,7 @@ export function GenerateContent({
 
       try {
         const status = await getContentGenerationStatus(generationId)
+        console.log('Generation status response:', status)
 
         if (cancelled) return
 
@@ -609,6 +610,7 @@ export function GenerateContent({
 
         if (COMPLETED_GENERATION_STATUSES.has(status.status)) {
           const generatedPosts = await getPostsForGeneration(generationId)
+          console.log('Generated posts response:', generatedPosts)
 
           if (cancelled) return
 
@@ -625,6 +627,7 @@ export function GenerateContent({
               fallbackTemplate
             )
           )
+          console.log('Mapped review posts:', reviewPosts)
 
           setPosts(reviewPosts)
           setGenerationProgress(100)
@@ -883,8 +886,8 @@ export function GenerateContent({
                             key={goal}
                             onClick={() => setSetupData({ ...setupData, goal })}
                             className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${setupData.goal === goal
-                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                               }`}
                           >
                             {goal}
@@ -913,8 +916,8 @@ export function GenerateContent({
                             key={platform}
                             onClick={() => setSetupData({ ...setupData, platform })}
                             className={`cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none flex items-center justify-between transition-colors ${setupData.platform === platform
-                                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-300'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                               }`}
                           >
                             {platform}
@@ -1092,16 +1095,16 @@ export function GenerateContent({
                       delay: index * 0.04,
                     }}
                     className={`flex items-center justify-between p-4 rounded-xl border transition-colors duration-500 ${isCurrent
-                        ? 'bg-white dark:bg-white/10 border-blue-500/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
-                        : isPast
-                          ? 'dark:bg-white/5 border-black/5 dark:border-white/10'
-                          : 'bg-transparent border-transparent'
+                      ? 'bg-white dark:bg-white/10 border-blue-500/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.08)]'
+                      : isPast
+                        ? 'dark:bg-white/5 border-black/5 dark:border-white/10'
+                        : 'bg-transparent border-transparent'
                       }`}
                   >
                     <span
                       className={`text-sm font-medium transition-colors duration-300 ${isPast || isCurrent
-                          ? 'text-zinc-900 dark:text-white'
-                          : 'text-zinc-500 dark:text-white/25'
+                        ? 'text-zinc-900 dark:text-white'
+                        : 'text-zinc-500 dark:text-white/25'
                         }`}
                     >
                       {step}
@@ -1210,8 +1213,8 @@ export function GenerateContent({
                       key={post.id}
                       onClick={() => setSelectedPostId(post.id)}
                       className={`relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 group overflow-hidden ${isActive
-                          ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]'
-                          : 'bg-white dark:bg-white/4 border-zinc-200 dark:border-white/8 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/8'
+                        ? 'bg-blue-500/10 border-blue-500/40 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]'
+                        : 'bg-white dark:bg-white/4 border-zinc-200 dark:border-white/8 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/8'
                         }`}
                     >
                       {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-2xl" />}
@@ -1221,10 +1224,10 @@ export function GenerateContent({
                           Post 0{idx + 1}
                         </span>
                         <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider ${post.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                            post.status === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                              post.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                post.status === 'draft' ? 'bg-white dark:bg-white/5 border-zinc-200 text-zinc-500 dark:text-white/40  dark:border-white/10' :
-                                  'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                          post.status === 'approved' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                            post.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                              post.status === 'draft' ? 'bg-white dark:bg-white/5 border-zinc-200 text-zinc-500 dark:text-white/40  dark:border-white/10' :
+                                'bg-orange-500/10 text-orange-400 border-orange-500/20'
                           }`}>
                           {post.status.replace('_', ' ')}
                         </span>

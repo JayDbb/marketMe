@@ -566,10 +566,15 @@ export function GenerateContent({
     const failGeneration = (message: string) => {
       if (cancelled) return
 
+      console.error('Generation UI failed:', {
+        generationId,
+        consecutiveErrors,
+        message,
+      })
+
       toast.error(message)
       setGenerationStatus('failed')
       setGenerationMessage(message)
-      setFlowState('setup')
     }
 
     const pollGeneration = async (): Promise<void> => {
@@ -650,11 +655,22 @@ export function GenerateContent({
         )
 
         if (consecutiveErrors >= 5) {
-          failGeneration(
+          const message =
             error instanceof Error
               ? error.message
               : 'Unable to read generation status.'
-          )
+
+          console.error('Generation polling stopped after 5 errors:', {
+            generationId,
+            consecutiveErrors,
+            message,
+            error,
+          })
+
+          toast.error(message)
+          setGenerationStatus('failed')
+          setGenerationMessage(message)
+
           return
         }
 

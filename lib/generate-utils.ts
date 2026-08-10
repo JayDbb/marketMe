@@ -22,11 +22,21 @@ export interface GenerateContext {
   businessName: string
   industry: string
   services: string
+  location: string
   defaultTone: string
   defaultGoal: string
   defaultPlatform: string
+  /** True when MarketMe AI API and/or OpenAI/OpenRouter is configured. */
+  hasLiveAi: boolean
+  /** @deprecated Use hasLiveAi */
   hasOpenAI: boolean
+  aiProvider: 'marketme-api' | 'openai' | 'none'
+  preferredAiProvider: 'auto' | 'marketme-api' | 'openai'
+  captionModel: string
+  captionModelLabel: string
   templateCount: number
+  /** Studio template id → times used on approved/scheduled/published posts */
+  templateUsageCounts: Record<string, number>
   creditsBalance: number
   creditsLimit: number | null
   creditCostPerGeneration: number
@@ -206,31 +216,121 @@ export function generateCanvasFromTemplate(
   return cloned
 }
 
-/** Scores templates against the content goal using category keyword affinity. */
-export function matchTemplateToGoal<
-  T extends { id: string; category: string | null },
->(templates: T[], goal: string): T | null {
-  if (!templates.length) return null
+/** Replace the background photo layer only — keeps layout, overlays, and text. */
+export function setCanvasBackgroundImage(
+  canvas: CanvasData,
+  imageUrl: string
+): CanvasData {
+  const cloned: CanvasData = JSON.parse(JSON.stringify(canvas))
+  const imageLayers = cloned.layers.filter((l) => l.type === 'image')
+  if (!imageLayers.length) return cloned
 
-  const goalLower = goal.toLowerCase()
+  const preferred =
+    imageLayers.find((l) => l.id === 'bg-image' || l.id === 'photo') ??
+    [...imageLayers].sort((a, b) => {
+      const areaA = (a.width || 0) * (a.height || 0)
+      const areaB = (b.width || 0) * (b.height || 0)
+      return areaB - areaA
+    })[0]
 
-  const affinityMap: Record<string, string[]> = {
-    Events: ['launch', 'event', 'announce', 'promotion', 'promo'],
-    Tech: ['tech', 'digital', 'innovation', 'software', 'app', 'saas'],
-    Retail: ['sale', 'offer', 'discount', 'product', 'shop', 'retail'],
-    Fashion: ['fashion', 'style', 'brand', 'aesthetic', 'lookbook'],
-    Food: ['food', 'restaurant', 'drink', 'recipe', 'eat'],
-    Fitness: ['fitness', 'gym', 'health', 'workout', 'wellness'],
-    Interior: ['interior', 'design', 'home', 'decor', 'space'],
-    Sports: ['sports', 'team', 'game', 'athlete', 'compete'],
+  ;(preferred as { src?: string }).src = imageUrl
+  return cloned
+}
+
+const STOP_WORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'but', 'for', 'with', 'from', 'this', 'that',
+  'your', 'our', 'you', 'we', 'are', 'is', 'was', 'were', 'been', 'here',
+  'what', 'when', 'where', 'who', 'how', 'into', 'onto', 'about', 'just',
+  'more', 'than', 'then', 'them', 'they', 'have', 'has', 'had', 'will',
+  'can', 'could', 'should', 'would', 'make', 'made', 'get', 'got', 'also',
+  'very', 'really', 'today', 'week', 'every', 'each', 'all', 'any', 'not',
+  'out', 'new', 'now', 'link', 'bio', 'comment', 'share', 'like', 'follow',
+])
+
+const CATEGORY_AFFINITY: Record<string, string[]> = {
+  Events: ['launch', 'event', 'announce', 'promotion', 'promo', 'party', 'conference'],
+  Tech: ['tech', 'digital', 'innovation', 'software', 'app', 'saas', 'ai', 'startup'],
+  Retail: ['sale', 'offer', 'discount', 'product', 'shop', 'retail', 'store', 'buy'],
+  Fashion: ['fashion', 'style', 'brand', 'aesthetic', 'lookbook', 'outfit', 'wear'],
+  Food: ['food', 'restaurant', 'drink', 'recipe', 'eat', 'cafe', 'kitchen', 'dining'],
+  Fitness: ['fitness', 'gym', 'health', 'workout', 'wellness', 'training', 'run'],
+  Interior: ['interior', 'design', 'home', 'decor', 'space', 'room', 'furniture'],
+  Sports: ['sports', 'team', 'game', 'athlete', 'compete', 'match', 'league'],
+}
+
+const GOAL_VISUALS: Record<string, string[]> = {
+  'increase brand awareness': ['brand', 'lifestyle', 'people', 'authentic'],
+  'lead generation': ['professional', 'office', 'handshake', 'meeting'],
+  'community engagement': ['community', 'people', 'gathering', 'smile'],
+  'product launch': ['product', 'showcase', 'modern', 'launch'],
+}
+
+function tokenize(...parts: Array<string | null | undefined>): string[] {
+  const out: string[] = []
+  for (const part of parts) {
+    if (!part?.trim()) continue
+    for (const raw of part.toLowerCase().split(/[^a-z0-9]+/)) {
+      if (raw.length < 3 || STOP_WORDS.has(raw)) continue
+      out.push(raw)
+    }
+  }
+  return out
+}
+
+export type TemplateMatchContext = {
+  goal: string
+  industry?: string
+  services?: string
+  caption?: string
+  title?: string
+  usageCounts?: Record<string, number>
+}
+
+/** Scores Studio templates from goal, industry, caption, name, and past usage. Free — no vision API. */
+export function scoreTemplateMatch<
+  T extends { id: string; category: string | null; name?: string | null },
+>(tmpl: T, ctx: TemplateMatchContext): number {
+  const corpus = tokenize(
+    ctx.goal,
+    ctx.industry,
+    ctx.services,
+    ctx.title,
+    ctx.caption
+  )
+  const corpusSet = new Set(corpus)
+  const goalLower = ctx.goal.toLowerCase()
+
+  const categoryKeys = CATEGORY_AFFINITY[tmpl.category || ''] || []
+  let score = 0
+
+  for (const kw of categoryKeys) {
+    if (goalLower.includes(kw) || corpusSet.has(kw)) score += 3
   }
 
+  const nameTokens = tokenize(tmpl.name ?? '', tmpl.category ?? '')
+  for (const token of nameTokens) {
+    if (corpusSet.has(token)) score += 2
+  }
+
+  const usage = ctx.usageCounts?.[tmpl.id] ?? 0
+  if (usage > 0) score += Math.min(usage, 5) * 2
+
+  return score
+}
+
+export function matchTemplateToGoal<
+  T extends { id: string; category: string | null; name?: string | null },
+>(templates: T[], goalOrContext: string | TemplateMatchContext): T | null {
+  if (!templates.length) return null
+
+  const ctx: TemplateMatchContext =
+    typeof goalOrContext === 'string' ? { goal: goalOrContext } : goalOrContext
+
   let best = templates[0]
-  let bestScore = 0
+  let bestScore = -1
 
   for (const tmpl of templates) {
-    const keywords = affinityMap[tmpl.category || ''] || []
-    const score = keywords.filter((kw) => goalLower.includes(kw)).length
+    const score = scoreTemplateMatch(tmpl, ctx)
     if (score > bestScore) {
       bestScore = score
       best = tmpl
@@ -238,4 +338,70 @@ export function matchTemplateToGoal<
   }
 
   return best
+}
+
+/** Score a Pexels photo alt/description against the same keyword corpus. */
+export function scorePexelsAlt(
+  alt: string | null | undefined,
+  ctx: TemplateMatchContext
+): number {
+  const corpus = new Set(
+    tokenize(ctx.goal, ctx.industry, ctx.services, ctx.title, ctx.caption)
+  )
+  const altTokens = tokenize(alt ?? '')
+  let score = 1 // base for appearing in search results
+  for (const token of altTokens) {
+    if (corpus.has(token)) score += 2
+  }
+  return score
+}
+
+/**
+ * Build a free Pexels search query from profile + post text (no LLM).
+ * Keeps 3–6 concrete visual keywords.
+ */
+export function buildPexelsSearchQuery(ctx: {
+  industry?: string
+  services?: string
+  location?: string
+  goal?: string
+  title?: string
+  caption?: string
+  businessName?: string
+}): string {
+  const tokens: string[] = []
+  const pushUnique = (word: string | undefined | null) => {
+    const w = word?.toLowerCase().trim()
+    if (!w || w.length < 3 || STOP_WORDS.has(w)) return
+    if (tokens.includes(w)) return
+    tokens.push(w)
+  }
+
+  const industryWords = tokenize(ctx.industry).slice(0, 2)
+  industryWords.forEach(pushUnique)
+
+  const serviceWords = tokenize(ctx.services).slice(0, 2)
+  serviceWords.forEach(pushUnique)
+
+  const goalKey = (ctx.goal ?? '').toLowerCase().trim()
+  const goalVisuals =
+    GOAL_VISUALS[goalKey] ||
+    Object.entries(GOAL_VISUALS).find(([k]) => goalKey.includes(k))?.[1] ||
+    []
+  goalVisuals.slice(0, 2).forEach(pushUnique)
+
+  tokenize(ctx.title, ctx.caption)
+    .slice(0, 4)
+    .forEach(pushUnique)
+
+  const locationWord = tokenize(ctx.location)[0]
+  pushUnique(locationWord)
+
+  if (tokens.length < 2) {
+    pushUnique('business')
+    pushUnique('marketing')
+    pushUnique('lifestyle')
+  }
+
+  return tokens.slice(0, 6).join(' ')
 }

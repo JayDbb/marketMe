@@ -41,8 +41,7 @@ export default function CustomersPage() {
         </p>
         <div className="grid gap-8 border-b border-white/8 pb-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
           <h1 className="max-w-xl font-serif text-4xl font-light tracking-tighter text-white md:text-6xl">
-            Built for people who{' '}
-            <span className="italic font-medium text-sky-400">ship the week</span>
+            Built for people who ship the week
           </h1>
           <p className="max-w-md text-base leading-relaxed text-white/50 md:text-lg">
             We are early. We will not invent logos or testimonials we do not have. Here is who

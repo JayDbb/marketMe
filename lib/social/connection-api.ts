@@ -1,326 +1,190 @@
 /**
- * Social connections — Meta OAuth integration with the FastAPI backend
- * and Supabase.
+ * Client-safe social connection helpers.
+ * Talks only to authenticated Next.js API routes — never to the AI/publish backend directly.
  */
 
-import type {
-  SocialConnection,
-  SocialPlatform,
-} from "@/types/social"
+import type { SocialConnection, SocialPlatform } from '@/types/social'
+import { markInstagramOAuthPending } from '@/lib/social/oauth'
 
-import {
-  getPublishAuthUrl,
-  getSocialConnections,
-} from "@/lib/services/marketing-ai.service"
-
-
-const STORAGE_KEY_PREFIX =
-  "marketme_social_connections"
-
-
-function normalizeBusinessProfileId(
-  businessProfileId: string
-): string {
-  const normalized = businessProfileId.trim()
-
-  if (!normalized) {
-    throw new Error(
-      "A business profile ID is required."
+/** Make MarketMe AI / publish backend failures readable in the UI. */
+export function humanizeConnectionsError(raw: string): string {
+  const text = raw.trim()
+  if (/SecretStr/i.test(text)) {
+    return (
+      'Meta authorized your account, but the publish API cannot save or load Instagram tokens ' +
+      '(backend SecretStr bug). The MarketMe AI service needs to call .get_secret_value() on secrets ' +
+      'before database or HTTP use. After that deploy, reconnect Instagram.'
     )
   }
-
-  return normalized
-}
-
-
-function getStorageKey(
-  businessProfileId: string
-): string {
-  return (
-    `${STORAGE_KEY_PREFIX}:` +
-    normalizeBusinessProfileId(
-      businessProfileId
-    )
-  )
-}
-
-
-function readStored(
-  businessProfileId: string
-): SocialConnection[] {
-  if (typeof window === "undefined") {
-    return []
+  if (/Database error/i.test(text)) {
+    return `Publish service database error: ${text.replace(/^MarketMe-AI error:\s*/i, '')}`
   }
-
-  try {
-    const raw = window.localStorage.getItem(
-      getStorageKey(businessProfileId)
-    )
-
-    if (!raw) {
-      return []
-    }
-
-    const parsed: unknown = JSON.parse(raw)
-
-    return Array.isArray(parsed)
-      ? (parsed as SocialConnection[])
-      : []
-  } catch {
-    return []
+  if (/MARKETME_AI_API_URL/i.test(text) || /Failed to fetch/i.test(text)) {
+    return 'Cannot reach the MarketMe AI publish service. Check MARKETME_AI_API_URL and that Render is up.'
   }
+  return text.replace(/^MarketMe-AI error:\s*\d+\s*/i, '') || 'Failed to load connections'
 }
 
-
-function writeStored(
-  businessProfileId: string,
-  connections: SocialConnection[]
-): void {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  window.localStorage.setItem(
-    getStorageKey(businessProfileId),
-    JSON.stringify(connections)
-  )
-}
-
-
-function isConnectedStatus(
-  value: string | boolean | undefined
-): boolean {
-  return (
-    value === true ||
-    value === "connected"
-  )
-}
-
+export type FetchConnectionsResult =
+  | { ok: true; connections: SocialConnection[]; warning?: string; source?: string }
+  | { ok: false; error: string; connections?: SocialConnection[] }
 
 /**
- * Fetch connected social accounts for one business profile.
- *
- * businessProfileId must be the UUID from:
- * public.business_profiles.id
+ * Fetch connected social accounts for the signed-in user's business.
+ * businessProfileId is accepted for API compatibility with the dashboard layout;
+ * the Next.js route scopes by session (and validates the profile).
  */
 export async function fetchConnections(
-  businessProfileId: string
-): Promise<SocialConnection[]> {
-  const normalizedProfileId =
-    normalizeBusinessProfileId(
-      businessProfileId
-    )
-
+  _businessProfileId?: string
+): Promise<FetchConnectionsResult> {
+  void _businessProfileId
   try {
-    const rawAccounts =
-      await getSocialConnections(
-        normalizedProfileId
-      )
+    const res = await fetch('/api/social/connections', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    })
 
-    const apiConnections: SocialConnection[] =
-      rawAccounts.map((account) => ({
-        id: String(
-          account.account_id ??
-          account.id ??
-          account.instagram_user_id ??
-          account.platform
-        ),
+    const data = (await res.json().catch(() => ({}))) as {
+      connections?: SocialConnection[]
+      error?: string
+      warning?: string
+      source?: string
+    }
 
-        platform: (
-          account.platform || "instagram"
-        ) as SocialPlatform,
+    if (res.status === 404) {
+      return { ok: true, connections: [] }
+    }
 
-        handle:
-          account.handle ||
-          "connected_account",
+    const connections = Array.isArray(data.connections) ? data.connections : []
 
-        displayName:
-          account.handle ||
-          "Connected Account",
+    // 502 with mirrored rows still counts as usable for the Connections UI
+    if (!res.ok && connections.length === 0) {
+      return {
+        ok: false,
+        error: humanizeConnectionsError(data.error || 'Failed to load connections'),
+        connections: [],
+      }
+    }
 
-        status: isConnectedStatus(
-          account.connected_status
-        )
-          ? "connected"
-          : "disconnected",
-
-        connectedAt:
-          account.created_at ||
-          new Date().toISOString(),
-      }))
-
-    /*
-     * The backend responded successfully, so its result is the
-     * source of truth—even when it returns an empty array.
-     */
-    writeStored(
-      normalizedProfileId,
-      apiConnections
-    )
-
-    return apiConnections
-  } catch (error) {
-    console.warn(
-      "Failed to fetch connections from backend API; " +
-      "using the local cache instead:",
-      error
-    )
-
-    return readStored(
-      normalizedProfileId
-    )
+    return {
+      ok: true,
+      connections,
+      warning: data.warning,
+      source: data.source,
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      error: humanizeConnectionsError(
+        e instanceof Error ? e.message : 'Failed to load connections'
+      ),
+      connections: [],
+    }
   }
 }
 
+/** Persist OAuth success in MarketMe so Connections shows Instagram immediately. */
+export async function confirmInstagramOAuth(handle?: string): Promise<FetchConnectionsResult> {
+  try {
+    const res = await fetch('/api/social/connections', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'confirm',
+        platform: 'instagram',
+        handle: handle || 'instagram_account',
+      }),
+    })
+    const data = (await res.json().catch(() => ({}))) as {
+      connections?: SocialConnection[]
+      connection?: SocialConnection
+      error?: string
+    }
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data.error || 'Failed to save Instagram connection',
+        connections: [],
+      }
+    }
+    const connections =
+      Array.isArray(data.connections) && data.connections.length > 0
+        ? data.connections
+        : data.connection
+          ? [data.connection]
+          : []
+    return { ok: true, connections, source: 'mirror' }
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Failed to save Instagram connection',
+      connections: [],
+    }
+  }
+}
 
 /**
- * Start the OAuth connection process for a platform.
- *
- * For Instagram, the browser is redirected to the FastAPI
- * /api/v1/auth/meta/login endpoint.
+ * Start Instagram Meta OAuth. Redirects the browser to Facebook/Meta.
+ * Does not return a connection row — the AI API callback persists the account,
+ * then redirects back to /dashboard/connections.
  */
 export async function initiatePlatformConnect(
   platform: SocialPlatform,
-  businessProfileId: string
-): Promise<SocialConnection> {
-  const normalizedProfileId =
-    normalizeBusinessProfileId(
-      businessProfileId
-    )
-
-  if (platform === "instagram") {
-    const authUrl =
-      await getPublishAuthUrl(
-        normalizedProfileId
-      )
-
-    if (
-      typeof window === "undefined"
-    ) {
-      throw new Error(
-        "Instagram OAuth must be started in the browser."
-      )
-    }
-
-    window.location.assign(authUrl)
-
-    /*
-     * This value is only a temporary UI state. The browser normally
-     * navigates away before it is used.
-     */
-    return {
-      id: `${platform}-pending`,
-      platform,
-      handle: "connecting...",
-      displayName:
-        "Connecting Instagram...",
-      status: "disconnected",
-    }
+  _businessProfileId?: string
+): Promise<{ redirected: true }> {
+  void _businessProfileId
+  if (platform !== 'instagram') {
+    throw new Error('Only Instagram is available right now')
   }
 
-  /*
-   * Temporary local fallback for platforms that do not yet have a
-   * real backend OAuth implementation.
-   */
-  await delay(600)
+  const res = await fetch('/api/social/connect', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ platform }),
+  })
 
-  const connection: SocialConnection = {
-    id: `${platform}-${Date.now()}`,
-    platform,
-    handle: platform,
-    displayName: platform,
-    status: "connected",
-    connectedAt:
-      new Date().toISOString(),
+  const data = (await res.json().catch(() => ({}))) as {
+    authUrl?: string
+    error?: string
   }
 
-  const existing = readStored(
-    normalizedProfileId
-  ).filter(
-    (item) =>
-      item.platform !== platform
-  )
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to start Instagram connection')
+  }
 
-  writeStored(
-    normalizedProfileId,
-    [...existing, connection]
-  )
+  if (!data.authUrl) {
+    throw new Error('Missing OAuth URL from server')
+  }
 
-  return connection
+  markInstagramOAuthPending()
+  window.location.assign(data.authUrl)
+  return { redirected: true }
 }
 
-
 /**
- * Remove a connection from the local cache.
- *
- * This currently does not delete the record from Supabase. A backend
- * disconnect endpoint should eventually be called here.
+ * Mark disconnected in MarketMe mirror. Tokens may remain on the publish service
+ * until Meta revoke / AI API disconnect exists.
  */
 export async function disconnectConnection(
   connectionId: string,
-  businessProfileId: string
+  _businessProfileId?: string
 ): Promise<void> {
-  const normalizedProfileId =
-    normalizeBusinessProfileId(
-      businessProfileId
-    )
-
-  await delay(200)
-
-  const remainingConnections =
-    readStored(
-      normalizedProfileId
-    ).filter(
-      (connection) =>
-        connection.id !== connectionId
-    )
-
-  writeStored(
-    normalizedProfileId,
-    remainingConnections
-  )
-}
-
-
-/**
- * Store a connection returned after OAuth.
- *
- * The normal Instagram flow should reload connections from the
- * backend after the callback redirects to the frontend.
- */
-export async function saveConnectionFromOAuth(
-  connection: SocialConnection,
-  businessProfileId: string
-): Promise<SocialConnection> {
-  const normalizedProfileId =
-    normalizeBusinessProfileId(
-      businessProfileId
-    )
-
-  const existing = readStored(
-    normalizedProfileId
-  ).filter(
-    (item) =>
-      item.platform !==
-      connection.platform
-  )
-
-  writeStored(
-    normalizedProfileId,
-    [...existing, connection]
-  )
-
-  return connection
-}
-
-
-function delay(
-  milliseconds: number
-): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(
-      resolve,
-      milliseconds
-    )
+  void _businessProfileId
+  const res = await fetch('/api/social/connections', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'disconnect',
+      platform: 'instagram',
+      connectionId,
+    }),
   })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(data.error || 'Failed to disconnect')
+  }
 }

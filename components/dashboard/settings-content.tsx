@@ -2,6 +2,7 @@
 
 import { BillingContent } from "@/components/dashboard/billing-content";
 import { useAccount } from "@/components/dashboard/account-provider";
+import { SettingsAiTab } from "@/components/dashboard/settings/settings-ai-tab";
 import { SettingsCalendarTab } from "@/components/dashboard/settings/settings-calendar-tab";
 import { SettingsProfileTab } from "@/components/dashboard/settings/settings-profile-tab";
 import { SettingsTeamTab } from "@/components/dashboard/settings/settings-team-tab";
@@ -16,6 +17,7 @@ import {
   CreditCard,
   LayoutDashboard,
   Settings,
+  Sparkles,
   Users,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -27,6 +29,7 @@ const TABS = [
   "Billing",
   "Workspace",
   "Calendar",
+  "AI",
   "API",
 ] as const;
 
@@ -64,6 +67,7 @@ const navSections = [
     items: [
       { label: "Workspace" as TabId, icon: LayoutDashboard },
       { label: "Calendar" as TabId, icon: Calendar },
+      { label: "AI" as TabId, icon: Sparkles },
     ],
   },
   {
@@ -217,6 +221,13 @@ function SettingsContentInner({
               onSaved={(preferences) =>
                 setSettings((s) => ({ ...s, preferences }))
               }
+            />
+          )}
+
+          {activeTab === "AI" && (
+            <SettingsAiTab
+              settings={settings}
+              onSaved={(ai) => setSettings((s) => ({ ...s, ai }))}
             />
           )}
 

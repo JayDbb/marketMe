@@ -49,8 +49,7 @@ export function HomeCapabilities() {
               id="home-capabilities-heading"
               className="max-w-md font-serif text-3xl font-light tracking-tighter text-white md:text-4xl"
             >
-              Everything you need to ship the{' '}
-              <span className="italic font-medium text-sky-400">week</span>
+              Everything you need to ship the week
             </h2>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-white/45 md:text-base md:justify-self-end">

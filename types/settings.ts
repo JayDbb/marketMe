@@ -1,3 +1,5 @@
+import type { AiProviderPreference } from '@/lib/ai-models'
+
 export type WeekStartsOn = 'sunday' | 'monday'
 
 export interface SettingsData {
@@ -15,5 +17,10 @@ export interface SettingsData {
   preferences: {
     timezone: string
     weekStartsOn: WeekStartsOn
+  }
+  ai: {
+    aiProvider: AiProviderPreference
+    captionModel: string
+    imageModel: string
   }
 }

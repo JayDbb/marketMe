@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, AuthError } from "@/lib/services/auth.service";
-import { rateLimitOrThrow } from "@/lib/rate-limit";
+import { isRateLimitError, rateLimitOrThrow } from "@/lib/rate-limit";
 import { transitionPostStatus } from "@/lib/services/post-lifecycle.service";
 import type { PostStatus } from "@/types/content-plan";
 
@@ -33,7 +33,7 @@ export async function PATCH(
     rateLimitOrThrow(`post-status:${session.user.id}`, 30, 60_000)
 
     const body = await request.json();
-    const { status, scheduled_at } = body;
+    const { status, scheduled_at, feedback } = body;
 
     if (!ALLOWED_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
@@ -43,7 +43,12 @@ export async function PATCH(
       session.user.id,
       id,
       status,
-      scheduled_at ? { scheduledAt: scheduled_at } : undefined
+      {
+        ...(scheduled_at ? { scheduledAt: scheduled_at } : {}),
+        ...(typeof feedback === 'string' && feedback.trim()
+          ? { feedback: feedback.trim() }
+          : {}),
+      }
     )
 
     if (error) {
@@ -52,6 +57,9 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, post });
   } catch (error: unknown) {
+    if (isRateLimitError(error)) {
+      return NextResponse.json({ error: error.message }, { status: 429 })
+    }
     const message = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json({ error: message }, { status: 500 });
   }

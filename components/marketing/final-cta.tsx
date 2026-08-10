@@ -13,8 +13,7 @@ export function FinalCta() {
 
       <div className="relative z-10 mx-auto max-w-4xl space-y-8 px-6 text-center">
         <h2 className="font-serif text-4xl font-medium tracking-tight text-white md:text-6xl">
-          Start scheduling{' '}
-          <span className="font-serif italic font-medium text-sky-400">smarter today.</span>
+          Start scheduling smarter today.
         </h2>
 
         <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-medium tracking-wide text-white/35 md:text-sm">

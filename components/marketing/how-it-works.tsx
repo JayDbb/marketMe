@@ -46,7 +46,7 @@ export function HowItWorks() {
       <div className="mx-auto max-w-5xl space-y-16 px-6">
         <div className="text-center">
           <h2 className="font-serif text-3xl font-light leading-tight tracking-tight text-white md:text-5xl">
-            How it <span className="font-serif italic font-medium text-sky-400">works</span>
+            How it works
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-sm text-white/45 md:text-base">
             Three steps. Generation is a draft step — you stay in the loop.

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/services/auth.service'
 import { getBusinessProfile, upsertBusinessProfile } from '@/lib/services/business.service'
+import { isRateLimitError, rateLimitOrThrow } from '@/lib/rate-limit'
 import type { BusinessProfileInput } from '@/types/business-profile'
 
 /**
@@ -17,6 +18,15 @@ export async function GET() {
       return NextResponse.json({ error: e.message }, { status: e.status })
     }
     return NextResponse.json({ error: 'Authentication error' }, { status: 401 })
+  }
+
+  try {
+    rateLimitOrThrow(`business-profile:get:${session.user.id}`, 60, 60_000)
+  } catch (e) {
+    if (isRateLimitError(e)) {
+      return NextResponse.json({ error: e.message }, { status: 429 })
+    }
+    throw e
   }
 
   const { data, error } = await getBusinessProfile(session.user.id)
@@ -45,6 +55,15 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: e.message }, { status: e.status })
     }
     return NextResponse.json({ error: 'Authentication error' }, { status: 401 })
+  }
+
+  try {
+    rateLimitOrThrow(`business-profile:put:${session.user.id}`, 20, 60_000)
+  } catch (e) {
+    if (isRateLimitError(e)) {
+      return NextResponse.json({ error: e.message }, { status: 429 })
+    }
+    throw e
   }
 
   let body: BusinessProfileInput

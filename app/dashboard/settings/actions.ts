@@ -7,9 +7,16 @@ import { getSession } from '@/lib/services/auth.service'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { upsertBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import { getBusinessProfile } from '@/lib/services/business.service'
-import { DEFAULT_PREFERENCES } from '@/lib/settings-utils'
-import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import { DEFAULT_PREFERENCES, DEFAULT_AI_PREFERENCES } from '@/lib/settings-utils'
+import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
+import {
+  isAiProviderPreference,
+  isAllowedCaptionModel,
+  isAllowedImageModel,
+  type AiProviderPreference,
+} from '@/lib/ai-models'
 import type { SettingsData, WeekStartsOn } from '@/types/settings'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import {
   AVATAR_ALLOWED_TYPES,
   isWithinAvatarUploadLimit,
@@ -100,13 +107,14 @@ export async function getSettingsData(): Promise<SettingsData | null> {
   if (!session) return null
 
   const user = session.user
-  const [{ data: profile }, { data: prefs }] = await Promise.all([
+  const [{ data: profile }, { data: prefs }, ai] = await Promise.all([
     getBusinessProfile(user.id),
     supabaseAdmin
       .from('user_preferences')
-      .select('timezone, week_starts_on')
+      .select('timezone, week_starts_on, ai_provider, caption_model, image_model')
       .eq('user_id', user.id)
       .maybeSingle(),
+    getUserAiPreferences(user.id),
   ])
 
   return {
@@ -126,6 +134,22 @@ export async function getSettingsData(): Promise<SettingsData | null> {
       weekStartsOn:
         (prefs?.week_starts_on as WeekStartsOn) ?? DEFAULT_PREFERENCES.weekStartsOn,
     },
+    ai: prefs
+      ? {
+          aiProvider:
+            prefs.ai_provider && isAiProviderPreference(prefs.ai_provider)
+              ? prefs.ai_provider
+              : DEFAULT_AI_PREFERENCES.aiProvider,
+          captionModel:
+            prefs.caption_model && isAllowedCaptionModel(prefs.caption_model)
+              ? prefs.caption_model
+              : DEFAULT_AI_PREFERENCES.captionModel,
+          imageModel:
+            prefs.image_model && isAllowedImageModel(prefs.image_model)
+              ? prefs.image_model
+              : DEFAULT_AI_PREFERENCES.imageModel,
+        }
+      : ai,
   }
 }
 
@@ -185,12 +209,16 @@ export async function updateCalendarPreferencesAction(formData: FormData) {
 
   const timezone = formData.get('timezone') as string
   const weekStartsOn = formData.get('weekStartsOn') as WeekStartsOn
+  const ai = await getUserAiPreferences(user.id)
 
   const { error } = await supabaseAdmin.from('user_preferences').upsert(
     {
       user_id: user.id,
       timezone,
       week_starts_on: weekStartsOn,
+      ai_provider: ai.aiProvider,
+      caption_model: ai.captionModel,
+      image_model: ai.imageModel,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' }
@@ -219,4 +247,66 @@ export async function updateWorkspaceAction(formData: FormData) {
 
   revalidatePath('/dashboard/settings')
   return { success: true }
+}
+
+export async function updateAiPreferencesAction(formData: FormData): Promise<
+  | { success: true; ai: SettingsData['ai'] }
+  | { error: string }
+> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const providerRaw = String(formData.get('aiProvider') || '')
+  const captionRaw = String(formData.get('captionModel') || '')
+  const imageRaw = String(formData.get('imageModel') || '')
+
+  if (!isAiProviderPreference(providerRaw)) {
+    return { error: 'Invalid AI provider' }
+  }
+  if (!isAllowedCaptionModel(captionRaw)) {
+    return { error: 'Invalid caption model' }
+  }
+  if (!isAllowedImageModel(imageRaw)) {
+    return { error: 'Invalid image model' }
+  }
+
+  const aiProvider = providerRaw as AiProviderPreference
+
+  // Preserve calendar prefs when upserting
+  const existing = await getUserPreferencesAction()
+
+  const { error } = await supabaseAdmin.from('user_preferences').upsert(
+    {
+      user_id: user.id,
+      timezone: existing.timezone,
+      week_starts_on: existing.weekStartsOn,
+      ai_provider: aiProvider,
+      caption_model: captionRaw,
+      image_model: imageRaw,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' }
+  )
+
+  if (error) {
+    // Columns may not exist until migration 025 is applied
+    if (/ai_provider|caption_model|image_model/i.test(error.message)) {
+      return {
+        error:
+          'AI preference columns are missing in the database. Run migration 025_user_ai_preferences.sql.',
+      }
+    }
+    return { error: error.message }
+  }
+
+  revalidatePath('/dashboard/settings')
+  revalidatePath('/dashboard/generate')
+  return {
+    success: true,
+    ai: {
+      aiProvider,
+      captionModel: captionRaw,
+      imageModel: imageRaw,
+    },
+  }
 }

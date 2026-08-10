@@ -1627,6 +1627,12 @@ export async function getPublishAuthUrl(
   )
 }
 
+export async function getInstagramOAuthUrl(
+  businessProfileId: string
+): Promise<string> {
+  return getPublishAuthUrl(businessProfileId)
+}
+
 
 /**
  * Fetch connected accounts belonging to one business profile.

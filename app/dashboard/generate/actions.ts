@@ -198,14 +198,29 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
     businessName,
     industry: profile?.industry?.trim() ?? '',
     services: profile?.services?.trim() ?? '',
+    location: profile?.location?.trim() ?? '',
     defaultTone: profile?.tone?.trim() || 'Professional',
     defaultGoal: mapProfileGoalToGenerateGoal(profile?.primary_goal),
     defaultPlatform: primaryChannelFromProfile(profile?.channels),
+
+    hasLiveAi: pipelineAvailable,
     hasOpenAI: pipelineAvailable,
+    aiProvider: pipelineAvailable ? 'marketme-api' : 'none',
+    preferredAiProvider: 'auto',
+
+    captionModel: 'openai/gpt-4o-mini',
+    captionModelLabel: 'GPT-4o mini',
+
     templateCount: templates.length,
+    templateUsageCounts: {},
+
     creditsBalance,
     creditsLimit,
-    creditCostPerGeneration: PIPELINE_CREDIT_COSTS.post_generation,
+
+    creditCostPerGeneration:
+      PIPELINE_CREDIT_COSTS.marketing_strategy_generation +
+      PIPELINE_CREDIT_COSTS.content_schedule_generation +
+      PIPELINE_CREDIT_COSTS.post_generation,
   }
 }
 

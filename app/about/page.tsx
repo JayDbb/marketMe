@@ -38,8 +38,7 @@ export default function AboutPage() {
         </p>
         <div className="grid gap-8 border-b border-white/8 pb-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
           <h1 className="max-w-xl font-serif text-4xl font-light tracking-tighter text-white md:text-6xl">
-            Built in Jamaica for teams who{' '}
-            <span className="italic font-medium text-sky-400">actually post</span>
+            Built in Jamaica for teams who actually post
           </h1>
           <p className="max-w-md text-base leading-relaxed text-white/50 md:text-lg">
             Marketme helps small businesses and lean marketing teams draft with AI, design

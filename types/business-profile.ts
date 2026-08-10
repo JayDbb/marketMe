@@ -13,6 +13,10 @@ export interface BusinessProfile {
   target_customers: string | null
   competitors: string | null
   channels: string[]
+  /** Learned revise/approve style preferences for AI prompt context */
+  style_notes?: string | null
+  preferred_ctas?: string | null
+  avoid_phrases?: string | null
   created_at: string
   updated_at: string
   /**

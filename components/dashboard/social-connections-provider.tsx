@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import {
   createContext,
@@ -7,48 +7,36 @@ import {
   useEffect,
   useMemo,
   useState,
+  startTransition,
   type ReactNode,
-} from "react"
-
-import type {
-  SocialConnection,
-  SocialPlatform,
-} from "@/types/social"
-
+} from 'react'
+import { toast } from 'sonner'
+import type { SocialConnection, SocialPlatform } from '@/types/social'
 import {
   disconnectConnection,
   fetchConnections,
   initiatePlatformConnect,
-} from "@/lib/social/connection-api"
+  confirmInstagramOAuth,
+} from '@/lib/social/connection-api'
 
+export type RefreshConnectionsResult =
+  | { ok: true; warning?: string }
+  | { ok: false; error: string }
 
 interface SocialConnectionsContextValue {
   connections: SocialConnection[]
   isLoading: boolean
   connectingPlatform: SocialPlatform | null
   error: string | null
-
-  refresh: () => Promise<void>
-
-  connect: (
-    platform: SocialPlatform
-  ) => Promise<void>
-
-  disconnect: (
-    connectionId: string
-  ) => Promise<void>
-
-  getConnection: (
-    platform: SocialPlatform
-  ) => SocialConnection | undefined
-
-  isConnected: (
-    platform: SocialPlatform
-  ) => boolean
-
+  warning: string | null
+  refresh: () => Promise<RefreshConnectionsResult>
+  confirmOAuthSuccess: (platform?: SocialPlatform) => Promise<RefreshConnectionsResult>
+  connect: (platform: SocialPlatform) => Promise<void>
+  disconnect: (connectionId: string) => Promise<void>
+  getConnection: (platform: SocialPlatform) => SocialConnection | undefined
+  isConnected: (platform: SocialPlatform) => boolean
   hasInstagram: boolean
 }
-
 
 interface SocialConnectionsProviderProps {
   children: ReactNode
@@ -62,249 +50,193 @@ interface SocialConnectionsProviderProps {
   businessProfileId: string
 }
 
-
 const SocialConnectionsContext =
-  createContext<SocialConnectionsContextValue | null>(
-    null
-  )
-
+  createContext<SocialConnectionsContextValue | null>(null)
 
 export function SocialConnectionsProvider({
   children,
   businessProfileId,
 }: SocialConnectionsProviderProps) {
-  const [connections, setConnections] =
-    useState<SocialConnection[]>([])
+  const [connections, setConnections] = useState<SocialConnection[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [connectingPlatform, setConnectingPlatform] =
+    useState<SocialPlatform | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
-  const [isLoading, setIsLoading] =
-    useState(true)
-
-  const [
-    connectingPlatform,
-    setConnectingPlatform,
-  ] = useState<SocialPlatform | null>(null)
-
-  const [error, setError] =
-    useState<string | null>(null)
-
-
-  const refresh = useCallback(async (): Promise<void> => {
-    const normalizedProfileId =
-      businessProfileId.trim()
+  const refresh = useCallback(async (): Promise<RefreshConnectionsResult> => {
+    const normalizedProfileId = businessProfileId.trim()
 
     if (!normalizedProfileId) {
       setConnections([])
-      setError(
-        "No business profile is available."
-      )
+      setError('No business profile is available.')
+      setWarning(null)
       setIsLoading(false)
-      return
+      return { ok: false, error: 'No business profile is available.' }
     }
 
     setIsLoading(true)
     setError(null)
+    setWarning(null)
 
     try {
-      const data = await fetchConnections(
-        normalizedProfileId
-      )
-
-      setConnections(data)
-    } catch (caughtError) {
-      setConnections([])
-
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Failed to load connections."
-      )
+      const result = await fetchConnections(normalizedProfileId)
+      if (!result.ok) {
+        // Keep any previously shown connections if the list fails hard
+        if (result.connections?.length) {
+          setConnections(result.connections)
+        }
+        setError(result.error)
+        return { ok: false, error: result.error }
+      }
+      setConnections(result.connections)
+      if (result.warning) setWarning(result.warning)
+      return { ok: true, warning: result.warning }
     } finally {
       setIsLoading(false)
     }
   }, [businessProfileId])
 
-
-  useEffect(() => {
-    void refresh()
-  }, [refresh])
-
-
-  const connect = useCallback(
-    async (
-      platform: SocialPlatform
-    ): Promise<void> => {
-      const normalizedProfileId =
-        businessProfileId.trim()
-
-      if (!normalizedProfileId) {
-        setError(
-          "A business profile is required before connecting an account."
-        )
-        return
+  const confirmOAuthSuccess = useCallback(
+    async (platform: SocialPlatform = 'instagram'): Promise<RefreshConnectionsResult> => {
+      if (platform !== 'instagram') {
+        return { ok: false, error: 'Only Instagram OAuth confirm is supported' }
       }
-
-      setConnectingPlatform(platform)
+      setIsLoading(true)
       setError(null)
-
       try {
-        const connection =
-          await initiatePlatformConnect(
-            platform,
-            normalizedProfileId
-          )
-
-        /*
-         * Instagram normally redirects the browser immediately.
-         * This temporary connection is primarily useful for platforms
-         * that do not redirect.
-         */
-        setConnections((previous) => {
-          const remaining =
-            previous.filter(
-              (item) =>
-                item.platform !== platform
-            )
-
-          return [
-            ...remaining,
-            connection,
-          ]
-        })
-      } catch (caughtError) {
-        setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : "Connection failed."
-        )
+        const saved = await confirmInstagramOAuth()
+        if (saved.ok && saved.connections.length > 0) {
+          setConnections(saved.connections)
+        }
+        const refreshed = await fetchConnections(businessProfileId.trim())
+        if (refreshed.ok) {
+          setConnections(refreshed.connections)
+          if (refreshed.warning) setWarning(refreshed.warning)
+          return { ok: true, warning: refreshed.warning }
+        }
+        if (saved.ok) {
+          if (refreshed.error) setWarning(refreshed.error)
+          return { ok: true, warning: refreshed.error }
+        }
+        setError(saved.error)
+        return { ok: false, error: saved.error }
       } finally {
+        setIsLoading(false)
         setConnectingPlatform(null)
       }
     },
     [businessProfileId]
   )
 
+  useEffect(() => {
+    startTransition(() => {
+      void refresh()
+    })
+  }, [refresh])
 
-  const disconnect = useCallback(
-    async (
-      connectionId: string
-    ): Promise<void> => {
-      const normalizedProfileId =
-        businessProfileId.trim()
+  const connect = useCallback(
+    async (platform: SocialPlatform) => {
+      const normalizedProfileId = businessProfileId.trim()
 
       if (!normalizedProfileId) {
-        setError(
-          "A business profile is required."
-        )
+        setError('A business profile is required before connecting an account.')
         return
       }
 
+      setConnectingPlatform(platform)
       setError(null)
-
       try {
-        await disconnectConnection(
-          connectionId,
-          normalizedProfileId
-        )
-
-        setConnections((previous) =>
-          previous.filter(
-            (connection) =>
-              connection.id !== connectionId
-          )
-        )
-      } catch (caughtError) {
-        setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : "Disconnect failed."
-        )
+        await initiatePlatformConnect(platform, normalizedProfileId)
+        // Browser navigates away to Meta; no local state update needed.
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Connection failed'
+        setError(message)
+        toast.error(message)
+        setConnectingPlatform(null)
       }
     },
     [businessProfileId]
   )
 
+  const disconnect = useCallback(
+    async (connectionId: string) => {
+      const normalizedProfileId = businessProfileId.trim()
+
+      if (!normalizedProfileId) {
+        setError('A business profile is required.')
+        return
+      }
+
+      setError(null)
+      try {
+        await disconnectConnection(connectionId, normalizedProfileId)
+        setConnections((prev) => prev.filter((c) => c.id !== connectionId))
+        toast.success('Instagram disconnected in MarketMe')
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Disconnect failed')
+      }
+    },
+    [businessProfileId]
+  )
 
   const getConnection = useCallback(
-    (
-      platform: SocialPlatform
-    ): SocialConnection | undefined => {
-      return connections.find(
-        (connection) =>
-          connection.platform === platform &&
-          connection.status === "connected"
-      )
-    },
+    (platform: SocialPlatform) =>
+      connections.find((c) => c.platform === platform && c.status === 'connected'),
     [connections]
   )
 
-
   const isConnected = useCallback(
-    (
-      platform: SocialPlatform
-    ): boolean => {
-      return Boolean(
-        getConnection(platform)
-      )
-    },
+    (platform: SocialPlatform) => !!getConnection(platform),
     [getConnection]
   )
 
+  const hasInstagram = isConnected('instagram')
 
-  const hasInstagram =
-    isConnected("instagram")
-
-
-  const value =
-    useMemo<SocialConnectionsContextValue>(
-      () => ({
-        connections,
-        isLoading,
-        connectingPlatform,
-        error,
-        refresh,
-        connect,
-        disconnect,
-        getConnection,
-        isConnected,
-        hasInstagram,
-      }),
-      [
-        connections,
-        isLoading,
-        connectingPlatform,
-        error,
-        refresh,
-        connect,
-        disconnect,
-        getConnection,
-        isConnected,
-        hasInstagram,
-      ]
-    )
-
+  const value = useMemo<SocialConnectionsContextValue>(
+    () => ({
+      connections,
+      isLoading,
+      connectingPlatform,
+      error,
+      warning,
+      refresh,
+      confirmOAuthSuccess,
+      connect,
+      disconnect,
+      getConnection,
+      isConnected,
+      hasInstagram,
+    }),
+    [
+      connections,
+      isLoading,
+      connectingPlatform,
+      error,
+      warning,
+      refresh,
+      confirmOAuthSuccess,
+      connect,
+      disconnect,
+      getConnection,
+      isConnected,
+      hasInstagram,
+    ]
+  )
 
   return (
-    <SocialConnectionsContext.Provider
-      value={value}
-    >
+    <SocialConnectionsContext.Provider value={value}>
       {children}
     </SocialConnectionsContext.Provider>
   )
 }
 
-
-export function useSocialConnections():
-  SocialConnectionsContextValue {
-  const context = useContext(
-    SocialConnectionsContext
-  )
-
+export function useSocialConnections(): SocialConnectionsContextValue {
+  const context = useContext(SocialConnectionsContext)
   if (!context) {
     throw new Error(
-      "useSocialConnections must be used within " +
-      "SocialConnectionsProvider."
+      'useSocialConnections must be used within SocialConnectionsProvider.'
     )
   }
-
   return context
 }

@@ -20,7 +20,7 @@ export async function login(
 ): Promise<AuthActionState> {
   const ip = await getClientIp()
   try {
-    rateLimitOrThrow(`auth:login:${ip}`, 10, 15 * 60_000)
+    await rateLimitOrThrow(`auth:login:${ip}`, 10, 15 * 60_000)
   } catch {
     return { error: 'Too many login attempts. Please wait and try again.' }
   }
@@ -48,7 +48,7 @@ export async function signInWithMagicLink(
 ): Promise<AuthActionState> {
   const ip = await getClientIp()
   try {
-    rateLimitOrThrow(`auth:magic:${ip}`, 5, 15 * 60_000)
+    await rateLimitOrThrow(`auth:magic:${ip}`, 5, 15 * 60_000)
   } catch {
     return { error: 'Too many magic link requests. Please wait and try again.' }
   }
@@ -90,7 +90,7 @@ export async function signup(
 ): Promise<AuthActionState> {
   const ip = await getClientIp()
   try {
-    rateLimitOrThrow(`auth:signup:${ip}`, 5, 60 * 60_000)
+    await rateLimitOrThrow(`auth:signup:${ip}`, 5, 60 * 60_000)
   } catch {
     return { error: 'Too many sign-up attempts. Please wait and try again.' }
   }

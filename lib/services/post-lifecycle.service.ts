@@ -1,5 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { moderatePost } from '@/lib/services/moderation.service'
+import {
+  recordApprovalSignal,
+  recordRejectFeedback,
+} from '@/lib/services/brand-memory.service'
 import type { Post, PostStatus } from '@/types/content-plan'
 
 export class PostLifecycleError extends Error {
@@ -55,7 +59,12 @@ export async function transitionPostStatus(
   userId: string,
   postId: string,
   nextStatus: PostStatus,
-  options?: { scheduledAt?: string; skipModeration?: boolean }
+  options?: {
+    scheduledAt?: string
+    skipModeration?: boolean
+    /** Optional “why” when rejecting — stored as brand memory */
+    feedback?: string
+  }
 ): Promise<{ data: Post | null; error: string | null }> {
   try {
     const post = await getOwnedPost(userId, postId)
@@ -134,15 +143,45 @@ export async function transitionPostStatus(
       throw new PostLifecycleError(error.message, 500)
     }
 
-    return { data: data as Post, error: null }
+    const updated = data as Post
+
+    try {
+      if (nextStatus === 'approved' || nextStatus === 'scheduled') {
+        await recordApprovalSignal({
+          userId,
+          finalCaption: updated.content ?? '',
+        })
+      }
+
+      if (nextStatus === 'rejected') {
+        await recordRejectFeedback({
+          userId,
+          feedback: options?.feedback,
+          caption: updated.content,
+        })
+      }
+    } catch (memoryErr) {
+      console.error('Brand memory signal failed:', memoryErr)
+    }
+
+    return {
+      data: updated,
+      error: null,
+    }
   } catch (error) {
     if (error instanceof PostLifecycleError) {
-      return { data: null, error: error.message }
+      return {
+        data: null,
+        error: error.message,
+      }
     }
 
     return {
       data: null,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Unknown error',
     }
   }
 }

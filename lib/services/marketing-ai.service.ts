@@ -27,6 +27,7 @@ const API_URL = (
 const DEFAULT_TIMEOUT = 60_000
 const MAX_RETRIES = 3
 const RETRY_BASE_DELAY = 1_000
+const GENERATION_TIMEOUT = 180_000
 
 
 // ---------------------------------------------------------------------------
@@ -67,6 +68,300 @@ export type PostStatus =
   | "published"
   | "failed"
   | "rejected"
+
+
+
+export type ContentObjective =
+  | "awareness"
+  | "engagement"
+  | "education"
+  | "leads"
+  | "sales"
+  | "retention"
+
+export type ContentType =
+  | "promotional"
+  | "educational"
+  | "engagement"
+  | "announcement"
+  | "testimonial"
+  | "behind_the_scenes"
+  | "product_showcase"
+  | "service_showcase"
+  | "event"
+  | "brand_story"
+
+export interface BusinessStrategyContext {
+  business_id: number
+  business_name: string
+  business_type: string
+  location?: string | null
+  description?: string | null
+  summary?: string | null
+  tone?: string
+  products_or_services?: string[]
+  existing_audience?: string | null
+  current_marketing_channels?: SocialPlatform[]
+  business_strengths?: string[]
+  business_challenges?: string[]
+  unique_selling_points?: string[]
+  preferred_keywords?: string[]
+  prohibited_keywords?: string[]
+  prohibited_claims?: string[]
+}
+
+export type BusinessPostContext = Omit<
+  BusinessStrategyContext,
+  | "current_marketing_channels"
+  | "business_strengths"
+  | "business_challenges"
+  | "existing_audience"
+> & {
+  target_audience?: string | null
+}
+
+export type BusinessCreativeContext = BusinessPostContext & {
+  brand_colours?: string[]
+  preferred_visual_styles?: string[]
+  prohibited_visual_elements?: string[]
+}
+
+export interface StrategyGenerationOptions {
+  primary_platform?: SocialPlatform
+  supporting_platforms?: SocialPlatform[]
+  timeframe?: "weekly" | "monthly" | "quarterly" | "annual"
+  primary_objective?: ContentObjective
+  secondary_objectives?: ContentObjective[]
+  target_audience_hint?: string | null
+  campaign_focus?: string | null
+  posting_capacity_per_week?: number
+  additional_instructions?: string | null
+}
+
+export interface ScheduleGenerationOptions {
+  week_start_date: string
+  number_of_weeks?: number
+  posts_per_week?: number
+  primary_platform?: SocialPlatform
+  supporting_platforms?: SocialPlatform[]
+  preferred_posting_days?: string[]
+  include_weekends?: boolean
+  include_event_content?: boolean
+  include_promotional_content?: boolean
+  additional_instructions?: string | null
+}
+
+export interface PostGenerationOptions {
+  platform?: SocialPlatform
+  objective?: ContentObjective
+  topic: string
+  language?: string
+  desired_length?: "short" | "medium" | "long"
+  include_emojis?: boolean
+  include_hashtags?: boolean
+  maximum_hashtags?: number
+  include_call_to_action?: boolean
+  call_to_action_hint?: string | null
+  campaign_name?: string | null
+  additional_instructions?: string | null
+}
+
+export interface CreativeBriefGenerationOptions {
+  style_hint?: string | null
+  additional_instructions?: string | null
+}
+
+export interface AIRequestMetadata {
+  request_id: string
+  prompt_version: string
+  business_id?: number | null
+  strategy_id?: number | null
+  content_idea_id?: number | null
+}
+
+export interface StrategyPostContext {
+  strategy_id: number
+  strategy_name: string
+  strategy_type?: string | null
+  description?: string | null
+  goal: string
+  status?: string | null
+  content_pillars?: string[]
+  key_messages?: string[]
+}
+
+export interface ContentSchedulePostContext {
+  schedule_id?: number | null
+  week_start_date?: string | null
+  week_end_date?: string | null
+  schedule_status?: string | null
+}
+
+export interface ContentIdeaPostContext {
+  idea_id?: number | null
+  title?: string | null
+  description?: string | null
+  content_type?: ContentType | null
+}
+
+export interface SocialAccountPostContext {
+  account_id?: number | null
+  platform?: SocialPlatform | null
+  handle?: string | null
+}
+
+export interface PostCreativeContext {
+  post_id: number
+  business_id: number
+  caption: string
+  call_to_action?: string | null
+  hashtags?: string[]
+  image_prompt: string
+  content_type: ContentType
+  platform?: SocialPlatform
+}
+
+export interface ScheduledContentItem {
+  sequence_number: number
+  scheduled_date: string
+  platform: SocialPlatform
+  content_pillar: string
+  objective: ContentObjective
+  content_type: ContentType
+  title: string
+  description: string
+  key_message: string
+  target_audience: string
+  call_to_action_intent?: string | null
+  campaign_name?: string | null
+  event_id?: number | null
+  post_generation_instructions?: string[]
+  visual_direction_hint?: string | null
+}
+
+export interface GeneratedContentWeek {
+  week_number: number
+  week_start_date: string
+  week_end_date: string
+  weekly_theme: string
+  weekly_goal: string
+  content_items: ScheduledContentItem[]
+}
+
+export interface GeneratedContentSchedule {
+  schedule_name: string
+  schedule_summary: string
+  week_start_date: string
+  week_end_date: string
+  total_planned_posts: number
+  weeks: GeneratedContentWeek[]
+  scheduling_notes?: string[]
+  assumptions?: string[]
+  compliance_notes?: string[]
+}
+
+export interface GeneratedHashtag {
+  tag?: string
+  hashtag?: string
+  [key: string]: unknown
+}
+
+export interface GeneratedPostContent {
+  caption: string
+  call_to_action?: string | null
+  hashtags?: GeneratedHashtag[] | string[]
+  content_type: ContentType
+  post_goal: string
+  target_audience_summary: string
+  image_prompt: string
+  compliance_notes?: string[]
+}
+
+export interface GeneratedCreativeBrief {
+  creative_concept: string
+  design_objective: string
+  platform: SocialPlatform
+  content_type: ContentType
+  canvas_width: number
+  canvas_height: number
+  aspect_ratio: string
+  visual_style: string
+  image_generation: {
+    prompt: string
+    negative_prompt?: string | null
+    subject_description: string
+    environment_description: string
+    lighting_direction: string
+    camera_and_composition: string
+    mood: string
+    realism_level: string
+    text_rendering_instruction: string
+  }
+  [key: string]: unknown
+}
+
+export interface MarketingStrategyCreateData {
+  business_id: number
+  strategy_name: string
+  strategy_type: string
+  description: string
+  goal: string
+  status?: string
+  ai_model: string
+  strategy_json?: Record<string, unknown>
+}
+
+export interface ContentScheduleCreateData {
+  business_id: number
+  strategy_id: number
+  week_start_date: string
+  week_end_date: string
+  schedule_status?: string
+  schedule_json?: Record<string, unknown>
+}
+
+export interface PostCreateData {
+  business_id: number
+  account_id?: number | null
+  idea_id?: number | null
+  schedule_id?: number | null
+  caption: string
+  hashtags?: string[]
+  media_url?: string | null
+  scheduled_date?: string | null
+  image_prompt?: string | null
+  status?: string
+  ai_model: string
+}
+
+export interface GenerateStrategyResponse {
+  strategy_id: number | null
+  generated: Record<string, unknown>
+  strategy_data: MarketingStrategyCreateData
+  metadata: Record<string, unknown>
+}
+
+export interface GenerateScheduleResponse {
+  success?: boolean
+  message?: string
+  schedule: GeneratedContentSchedule
+  database_data: ContentScheduleCreateData
+  content_ideas?: Record<string, unknown>[]
+}
+
+export interface GeneratePostResponse {
+  post_id: number | null
+  generated: GeneratedPostContent
+  post_data: PostCreateData
+  metadata: Record<string, unknown>
+}
+
+export interface GenerateCreativeBriefResponse {
+  success?: boolean
+  message?: string
+  creative_brief: GeneratedCreativeBrief
+  database_data: Record<string, unknown>
+}
 
 
 // ---------------------------------------------------------------------------
@@ -545,39 +840,31 @@ export function toNumericId(
   return 1
 }
 
-function getLegacyBusinessReference(
-  input: {
-    business_profile_id?: string
-    business_id?: string | number
-  }
-): string | number {
-  const reference =
-    input.business_profile_id ??
-    input.business_id
-
-  if (
-    reference === undefined ||
-    reference === null ||
-    String(reference).trim() === ""
-  ) {
-    throw new Error(
-      "A business profile ID is required."
-    )
-  }
-
-  return reference
+type FetchRetryOptions = {
+  retries?: number
+  timeoutMs?: number
 }
 
 async function fetchWithRetry<T>(
   path: string,
   options: RequestInit = {},
-  retries = MAX_RETRIES
+  retryOptions: number | FetchRetryOptions = MAX_RETRIES
 ): Promise<T> {
   const normalizedPath = path.startsWith("/")
     ? path
     : `/${path}`
 
   const url = `${API_URL}${normalizedPath}`
+
+  const retries =
+    typeof retryOptions === "number"
+      ? retryOptions
+      : retryOptions.retries ?? MAX_RETRIES
+
+  const timeoutMs =
+    typeof retryOptions === "number"
+      ? DEFAULT_TIMEOUT
+      : retryOptions.timeoutMs ?? DEFAULT_TIMEOUT
 
   let lastError: Error | null = null
 
@@ -591,7 +878,7 @@ async function fetchWithRetry<T>(
 
     const timeout = setTimeout(() => {
       controller.abort()
-    }, DEFAULT_TIMEOUT)
+    }, timeoutMs)
 
     try {
       const response = await fetch(url, {
@@ -674,7 +961,6 @@ async function fetchWithRetry<T>(
   )
 }
 
-
 // ---------------------------------------------------------------------------
 // Health
 // ---------------------------------------------------------------------------
@@ -688,6 +974,19 @@ export async function healthCheck():
     },
     1
   )
+}
+
+
+export function newAiRequestMetadata(
+  partial?: Partial<AIRequestMetadata>
+): AIRequestMetadata {
+  return {
+    request_id: createRequestId(),
+    prompt_version: partial?.prompt_version ?? "v1",
+    business_id: partial?.business_id ?? null,
+    strategy_id: partial?.strategy_id ?? null,
+    content_idea_id: partial?.content_idea_id ?? null,
+  }
 }
 
 
@@ -1035,352 +1334,146 @@ export async function reviseGeneratedPost(
 
 
 // ---------------------------------------------------------------------------
-// Legacy direct AI methods
+// Direct AI compatibility methods
 // ---------------------------------------------------------------------------
 
-/**
- * @deprecated The dashboard generation flow should use
- * startContentGeneration instead.
- */
-export async function generateStrategy(
-  input: StrategyRequest
-): Promise<StrategyResponse> {
-  const businessReference =
-    getLegacyBusinessReference(
-      input
-    )
-
-  const numericBusinessId =
-    toNumericId(
-      businessReference
-    )
-
-  const payload = {
-    business: {
-      business_id:
-        numericBusinessId,
-
-      business_name:
-        input.business_name ||
-        "My Business",
-
-      business_type:
-        input.industry ||
-        input.business_type ||
-        "General",
-
-      tone:
-        input.tone ||
-        "friendly and professional",
-
-      products_or_services:
-        input.products_or_services ||
-        [],
-
-      ...(input.location
-        ? {
-          location:
-            input.location,
-        }
-        : {}),
-
-      ...(input.description
-        ? {
-          description:
-            input.description,
-        }
-        : {}),
-
-      ...(input.summary
-        ? {
-          summary:
-            input.summary,
-        }
-        : {}),
-
-      ...(input.target_audience
-        ? {
-          target_audience:
-            input.target_audience,
-        }
-        : {}),
+export async function generateStrategy(input: {
+  business: BusinessStrategyContext
+  options?: StrategyGenerationOptions
+}): Promise<GenerateStrategyResponse> {
+  return fetchWithRetry(
+    "/api/v1/strategy/generate",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        business: input.business,
+        options: input.options ?? {},
+      }),
     },
-
-    options: {
-      primary_platform:
-        normalizePlatform(
-          input.platforms?.[0]
-        ),
-
-      supporting_platforms:
-        input.platforms
-          ?.slice(1)
-          .map(
-            normalizePlatform
-          ) || [],
-
-      timeframe: "monthly",
-      primary_objective:
-        "awareness",
-
-      target_audience_hint:
-        input.target_audience ||
-        undefined,
-
-      posting_capacity_per_week:
-        5,
-    },
-  }
-
-  const rawResponse =
-    await fetchWithRetry<
-      Record<string, unknown>
-    >(
-      "/api/v1/strategy/generate",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify(
-          payload
-        ),
-      }
-    )
-
-  const strategyId =
-    rawResponse.strategy_id as
-    | number
-    | string
-    | null
-    | undefined
-
-  const generated =
-    (
-      rawResponse.generated as
-      | Record<
-        string,
-        unknown
-      >
-      | undefined
-    ) || {}
-
-  return {
-    strategy_id:
-      strategyId ?? null,
-
-    strategy:
-      generated,
-
-    generated,
-
-    raw_ai_output:
-      JSON.stringify(
-        generated
-      ),
-  }
+    {
+      timeoutMs: GENERATION_TIMEOUT,
+    }
+  )
 }
 
-
-/**
- * @deprecated The dashboard generation flow should use
- * startContentGeneration instead.
- */
-export async function generatePosts(
-  input: PostGenerateRequest
-): Promise<PostGenerateResponse> {
-  const businessReference =
-    getLegacyBusinessReference(
-      input
-    )
-
-  const numericBusinessId =
-    toNumericId(
-      businessReference
-    )
-
-  const numericStrategyId =
-    toNumericId(
-      input.strategy_id
-    )
-
-  const payload = {
-    business: {
-      business_id:
-        numericBusinessId,
-
-      business_name:
-        input.business_name ||
-        "My Business",
-
-      business_type:
-        input.industry ||
-        input.business_type ||
-        "General",
-
-      tone:
-        input.tone ||
-        "friendly and professional",
-
-      target_audience:
-        input.target_audience ||
-        "Everyone",
+export async function generateSchedule(input: {
+  business: BusinessStrategyContext
+  strategy_id: number
+  strategy: Record<string, unknown>
+  options: ScheduleGenerationOptions
+  events?: unknown[]
+  metadata?: AIRequestMetadata
+}): Promise<GenerateScheduleResponse> {
+  return fetchWithRetry(
+    "/api/v1/schedules/generate",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        metadata:
+          input.metadata ??
+          newAiRequestMetadata({
+            business_id: input.business.business_id,
+            strategy_id: input.strategy_id,
+            prompt_version: "schedule-v1",
+          }),
+        business: input.business,
+        strategy_id: input.strategy_id,
+        strategy: input.strategy,
+        events: input.events ?? [],
+        options: input.options,
+      }),
     },
-
-    strategy: {
-      strategy_id:
-        numericStrategyId,
-
-      strategy_name:
-        input.strategy_name ||
-        "Marketing Strategy",
-
-      goal:
-        input.goal ||
-        "Brand growth and engagement",
-    },
-
-    options: {
-      platform:
-        normalizePlatform(
-          input.platform
-        ),
-
-      objective:
-        "engagement",
-
-      topic:
-        input.topic ||
-        "Weekly social media content",
-
-      desired_length:
-        "medium",
-    },
-  }
-
-  const rawResponse =
-    await fetchWithRetry<
-      Record<string, unknown>
-    >(
-      "/api/v1/posts/generate",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify(
-          payload
-        ),
-      }
-    )
-
-  const generated =
-    (
-      rawResponse.generated as
-      | Record<
-        string,
-        unknown
-      >
-      | undefined
-    ) || {}
-
-  const caption =
-    (
-      generated.caption as
-      | string
-      | undefined
-    ) || ""
-
-  const rawHashtags =
-    (
-      generated.hashtags as
-      | Array<
-        | {
-          value?: string
-        }
-        | string
-      >
-      | undefined
-    ) || []
-
-  const hashtags =
-    rawHashtags
-      .map((hashtag) =>
-        typeof hashtag ===
-          "string"
-          ? hashtag
-          : hashtag.value || ""
-      )
-      .filter(Boolean)
-
-  const imagePrompt =
-    (
-      generated.image_prompt as
-      | string
-      | undefined
-    ) || ""
-
-  const title =
-    (
-      generated.title as
-      | string
-      | undefined
-    ) ||
-    (
-      generated.post_goal as
-      | string
-      | undefined
-    ) ||
-    "Generated Post"
-
-  const post: GeneratedPost = {
-    title,
-    caption,
-    hashtags,
-
-    suggested_media_prompt:
-      imagePrompt,
-
-    call_to_action:
-      generated.call_to_action as
-      | string
-      | undefined,
-
-    content_type:
-      generated.content_type as
-      | string
-      | undefined,
-
-    post_goal:
-      generated.post_goal as
-      | string
-      | undefined,
-  }
-
-  return {
-    strategy_id:
-      input.strategy_id,
-
-    post_id:
-      (
-        rawResponse.post_id as
-        | number
-        | string
-        | null
-        | undefined
-      ) ?? null,
-
-    posts: [post],
-  }
+    {
+      timeoutMs: GENERATION_TIMEOUT,
+    }
+  )
 }
 
+export async function generatePost(input: {
+  business: BusinessPostContext
+  strategy: StrategyPostContext
+  options: PostGenerationOptions
+  account?: SocialAccountPostContext | null
+  idea?: ContentIdeaPostContext | null
+  schedule?: ContentSchedulePostContext | null
+}): Promise<GeneratePostResponse> {
+  return fetchWithRetry(
+    "/api/v1/posts/generate",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        business: input.business,
+        strategy: input.strategy,
+        account: input.account ?? null,
+        idea: input.idea ?? null,
+        schedule: input.schedule ?? null,
+        options: input.options,
+      }),
+    },
+    {
+      timeoutMs: GENERATION_TIMEOUT,
+    }
+  )
+}
 
 /**
- * Temporary legacy list endpoint.
+ * Compatibility alias for older callers.
+ */
+export async function generatePosts(input: {
+  business: BusinessPostContext
+  strategy: StrategyPostContext
+  options: PostGenerationOptions
+  account?: SocialAccountPostContext | null
+  idea?: ContentIdeaPostContext | null
+  schedule?: ContentSchedulePostContext | null
+}): Promise<GeneratePostResponse> {
+  return generatePost(input)
+}
+
+export async function generateCreative(input: {
+  business: BusinessCreativeContext
+  post: PostCreativeContext
+  options?: CreativeBriefGenerationOptions
+  metadata?: AIRequestMetadata
+}): Promise<GenerateCreativeBriefResponse> {
+  return fetchWithRetry(
+    "/api/v1/creative/generate",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        metadata:
+          input.metadata ??
+          newAiRequestMetadata({
+            business_id: input.business.business_id,
+            prompt_version: "creative-v1",
+          }),
+        business: input.business,
+        post: input.post,
+        options: input.options ?? {},
+      }),
+    },
+    {
+      timeoutMs: GENERATION_TIMEOUT,
+    }
+  )
+}
+
+/**
+ * Temporary list endpoint.
  *
- * The new Review Content screen should use getPostsForGeneration.
+ * The Review Content screen should use getPostsForGeneration for pipeline runs.
  */
 export async function listPosts(
   businessProfileId: string,
@@ -1419,180 +1512,6 @@ export async function listPosts(
       method: "GET",
     }
   )
-}
-
-
-/**
- * @deprecated Creative briefs should be generated by the pipeline.
- */
-export async function generateCreative(
-  input: CreativeGenerateRequest
-): Promise<CreativeGenerateResponse> {
-  const businessReference =
-    getLegacyBusinessReference(
-      input
-    )
-
-  const numericBusinessId =
-    toNumericId(
-      businessReference
-    )
-
-  const numericPostId =
-    toNumericId(
-      input.post_id
-    )
-
-  const payload = {
-    metadata: {
-      request_id:
-        createRequestId(),
-
-      prompt_version:
-        "v1",
-
-      business_id:
-        numericBusinessId,
-    },
-
-    business: {
-      business_id:
-        numericBusinessId,
-
-      business_name:
-        input.business_name ||
-        "My Business",
-
-      business_type:
-        input.industry ||
-        "General",
-    },
-
-    post: {
-      post_id:
-        numericPostId,
-
-      business_id:
-        numericBusinessId,
-
-      caption:
-        input.caption ||
-        "Social media post",
-
-      image_prompt:
-        input.image_prompt ||
-        input.style_hint ||
-        "High quality photograph matching the social media post.",
-
-      content_type:
-        "promotional",
-    },
-
-    options: {
-      platform:
-        "instagram",
-
-      preferred_style:
-        "modern",
-    },
-  }
-
-  const rawResponse =
-    await fetchWithRetry<
-      Record<string, unknown>
-    >(
-      "/api/v1/creative/generate",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify(
-          payload
-        ),
-      }
-    )
-
-  const brief =
-    (
-      rawResponse.creative_brief as
-      | Record<
-        string,
-        unknown
-      >
-      | undefined
-    ) || {}
-
-  const briefId =
-    rawResponse.brief_id as
-    | number
-    | string
-    | null
-    | undefined
-
-  return {
-    brief_id:
-      briefId ?? null,
-
-    layout_description:
-      (
-        brief.layout_description as
-        | string
-        | undefined
-      ) ||
-      (
-        brief.creative_concept as
-        | string
-        | undefined
-      ) ||
-      "Balanced composition",
-
-    color_palette:
-      typeof brief.color_palette ===
-        "string"
-        ? brief.color_palette
-        : JSON.stringify(
-          brief.color_palette ??
-          []
-        ),
-
-    typography:
-      typeof brief.typography ===
-        "string"
-        ? brief.typography
-        : JSON.stringify(
-          brief.typography ??
-          {}
-        ),
-
-    asset_requirements:
-      typeof brief.asset_requirements ===
-        "string"
-        ? brief.asset_requirements
-        : JSON.stringify(
-          brief.asset_requirements ??
-          {}
-        ),
-
-    refined_prompt:
-      (
-        brief.refined_prompt as
-        | string
-        | undefined
-      ) ||
-      (
-        brief.creative_concept as
-        | string
-        | undefined
-      ) ||
-      "Refined visual prompt",
-
-    status:
-      rawResponse.success
-        ? "success"
-        : "completed",
-  }
 }
 
 
@@ -1709,4 +1628,44 @@ export async function publishToInstagram(
       }),
     }
   )
+}
+
+
+export function flattenHashtags(
+  hashtags: GeneratedPostContent["hashtags"] | undefined
+): string[] {
+  if (!hashtags?.length) {
+    return []
+  }
+
+  return hashtags
+    .map((hashtag) => {
+      if (typeof hashtag === "string") {
+        return hashtag
+          .replace(/^#/, "")
+          .trim()
+      }
+
+      const tag =
+        hashtag.tag ??
+        hashtag.hashtag ??
+        ""
+
+      return String(tag)
+        .replace(/^#/, "")
+        .trim()
+    })
+    .filter(Boolean)
+}
+
+export function hashtagsToCaptionString(
+  hashtags: string[]
+): string {
+  return hashtags
+    .map((hashtag) =>
+      hashtag.startsWith("#")
+        ? hashtag
+        : `#${hashtag}`
+    )
+    .join(" ")
 }

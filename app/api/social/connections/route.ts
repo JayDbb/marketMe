@@ -7,6 +7,7 @@ import {
   type RawSocialConnection,
 } from '@/lib/services/marketing-ai.service'
 import { mapRawConnection } from '@/lib/social/oauth'
+import { hasRealInstagramHandle } from '@/lib/social/instagram-account'
 import { isRateLimitError, rateLimitOrThrow } from '@/lib/rate-limit'
 import {
   listMirroredConnections,
@@ -80,10 +81,26 @@ export async function GET() {
       connections: remote,
     })
     const connections = mergeRemoteAndMirrored(remote, mirrored)
+    const source =
+      remote.length > 0 ? 'marketme-ai' : mirrored.length > 0 ? 'mirror' : 'empty'
+    const mirrorOnlyPlaceholder =
+      source === 'mirror' &&
+      connections.some(
+        (c) =>
+          c.platform === 'instagram' &&
+          c.status === 'connected' &&
+          !hasRealInstagramHandle(c.handle)
+      )
     return NextResponse.json({
       connections,
       businessProfileId: profile.id,
-      source: remote.length > 0 ? 'marketme-ai' : mirrored.length > 0 ? 'mirror' : 'empty',
+      source,
+      ...(mirrorOnlyPlaceholder
+        ? {
+            warning:
+              'Instagram is marked connected in MarketMe, but Meta has no linked Business/Creator account for this workspace yet. Reconnect with an IG account tied to a Facebook Page.',
+          }
+        : {}),
     })
   } catch (error) {
     const message =

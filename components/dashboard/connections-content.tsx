@@ -72,6 +72,7 @@ function OAuthReturnHandler() {
     if (handled.current) return
 
     const result = parseOAuthReturnParams(searchParams)
+    // Consume pending so a later soft navigation can't false-confirm.
     const pending = consumeInstagramOAuthPending()
     if (result.kind === 'none' && !pending) return
 
@@ -79,17 +80,21 @@ function OAuthReturnHandler() {
 
     void (async () => {
       if (result.kind === 'error') {
-        toast.error(result.message)
-      } else {
-        const handle = result.kind === 'success' ? result.handle : undefined
+        toast.error(result.message, {
+          description:
+            'Use an Instagram Business or Creator account linked to a Facebook Page, then try Connect again.',
+          duration: 10_000,
+        })
+        // Keep any existing mirror; failed reconnect must not invent a new connection.
+        await refresh()
+      } else if (result.kind === 'success') {
+        const handle = result.handle
         const confirmed = await confirmOAuthSuccess('instagram', handle)
         if (confirmed.ok) {
           toast.success(
             handle
               ? `Connected @${handle}`
-              : result.kind === 'success' && result.message
-                ? result.message
-                : 'Instagram connected'
+              : result.message || 'Instagram connected'
           )
           if (confirmed.warning) {
             toast.message('Saved in MarketMe', {
@@ -104,6 +109,13 @@ function OAuthReturnHandler() {
             toast.error(confirmed.error || refreshed.error)
           }
         }
+      } else if (pending) {
+        // Landed without oauth query (misdirected or cancelled mid-flow).
+        // Never upsert a placeholder "connected" row from pending alone.
+        await refresh()
+        toast.message('Instagram connection was not completed', {
+          description: 'No OAuth result was returned. Try Connect again.',
+        })
       }
 
       if (result.kind !== 'none') {
@@ -159,7 +171,7 @@ function ConnectedInstagramCard({
                 <span className="text-xs text-zinc-500 dark:text-white/40">Instagram</span>
               </div>
 
-              <h2 className="truncate text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
+              <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
                 {account.title}
               </h2>
 
@@ -270,8 +282,8 @@ function EmptyInstagramCard({
               Connect Instagram
             </h2>
             <p className="max-w-md text-sm leading-relaxed text-zinc-500 dark:text-white/45">
-              Link a Business or Creator account (tied to a Facebook Page) to publish and schedule
-              from MarketMe.
+              Link an Instagram Business or Creator account that is already tied to a Facebook
+              Page. Personal profiles and Facebook-only logins will fail Meta’s check.
             </p>
           </div>
         </div>
@@ -415,7 +427,7 @@ export function ConnectionsContent() {
             const isConnecting = connectingPlatform === platform.id
             const igLabel =
               platform.id === 'instagram' && connectedPlatform && account
-                ? account.atHandle ?? 'Connected'
+                ? account.atHandle
                 : null
 
             return (

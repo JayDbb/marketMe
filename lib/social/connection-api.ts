@@ -94,7 +94,7 @@ export async function confirmInstagramOAuth(handle?: string): Promise<FetchConne
       body: JSON.stringify({
         action: 'confirm',
         platform: 'instagram',
-        handle: handle || 'instagram_account',
+        ...(handle ? { handle } : {}),
       }),
     })
     const data = (await res.json().catch(() => ({}))) as {

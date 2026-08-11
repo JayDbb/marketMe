@@ -22,13 +22,13 @@ export function getInstagramAccountLabel(connection: SocialConnection): {
   return {
     handle,
     atHandle: handle ? `@${handle}` : null,
-    title: handle ? `@${handle}` : 'Instagram connected',
+    title: handle ? `@${handle}` : 'Instagram',
     subtitle: handle
       ? connection.displayName &&
         !connection.displayName.replace(/^@/, '').toLowerCase().includes(handle.toLowerCase())
         ? connection.displayName
         : 'Business / Creator account'
-      : 'Username will appear after the next sync or reconnect',
+      : 'Username appears after Meta sync — reconnect if it stays blank',
     profileUrl: handle ? `https://www.instagram.com/${handle}/` : null,
     isPlaceholder,
   }

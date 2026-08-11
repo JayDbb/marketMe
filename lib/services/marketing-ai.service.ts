@@ -1540,6 +1540,18 @@ export async function getPublishAuthUrl(
         normalizedProfileId,
     })
 
+  // Hint preferred return path when the AI API supports it (ignored if not).
+  params.set("return_path", "/dashboard/connections")
+  params.set("redirect_path", "/dashboard/connections")
+  const appUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    ""
+  ).replace(/\/+$/, "")
+  if (appUrl) {
+    params.set("frontend_url", appUrl)
+  }
+
   return (
     `${API_URL}/api/v1/auth/meta/login?` +
     params.toString()
@@ -1627,6 +1639,145 @@ export async function publishToInstagram(
           imageUrl,
       }),
     }
+  )
+}
+
+/**
+ * Fetch Instagram inbox items (DMs / mentions / comments) for a business profile.
+ * Tries publish inbox first, then generic inbox path (MarketMe AI may expose either).
+ */
+export async function getInboxMessages(
+  businessProfileId: string,
+  options?: { platform?: string }
+): Promise<unknown> {
+  const normalizedProfileId = normalizeRequiredId(
+    businessProfileId,
+    "Business profile ID"
+  )
+  const params = new URLSearchParams({
+    business_profile_id: normalizedProfileId,
+  })
+  if (options?.platform) {
+    params.set("platform", options.platform)
+  }
+
+  const paths = [
+    `/api/v1/inbox/messages?${params.toString()}`,
+    `/api/v1/publish/inbox?${params.toString()}`,
+  ]
+
+  try {
+    return await Promise.any(
+      paths.map((path) =>
+        fetchWithRetry(path, { method: "GET" }, { retries: 1, timeoutMs: 10_000 })
+      )
+    )
+  } catch (error) {
+    const aggregate = error as AggregateError
+    const first =
+      Array.isArray(aggregate?.errors) && aggregate.errors[0] instanceof Error
+        ? aggregate.errors[0]
+        : error instanceof Error
+          ? error
+          : new Error(String(error))
+
+    if (first instanceof MarketingAIError) throw first
+
+    throw new MarketingAIError(
+      first.message || "Inbox endpoint is not available on MarketMe AI yet.",
+      502,
+      paths[0]
+    )
+  }
+}
+
+export async function replyToInboxMessageAi(input: {
+  businessProfileId: string
+  messageId: string
+  body: string
+}): Promise<unknown> {
+  const businessProfileId = normalizeRequiredId(
+    input.businessProfileId,
+    "Business profile ID"
+  )
+  const messageId = normalizeRequiredId(input.messageId, "Message ID")
+  const body = input.body.trim()
+  if (!body) throw new Error("Reply body is required.")
+
+  const payload = {
+    business_profile_id: businessProfileId,
+    message_id: messageId,
+    body,
+  }
+
+  const paths = [
+    `/api/v1/inbox/messages/${encodeURIComponent(messageId)}/reply`,
+    `/api/v1/publish/inbox/${encodeURIComponent(messageId)}/reply`,
+  ]
+
+  let lastError: Error | null = null
+  for (const path of paths) {
+    try {
+      return await fetchWithRetry(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }, { retries: 1, timeoutMs: 25_000 })
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error(String(error))
+      if (error instanceof MarketingAIError && error.status === 404) {
+        continue
+      }
+      throw error
+    }
+  }
+
+  throw (
+    lastError ??
+    new MarketingAIError("Inbox reply endpoint is not available.", 404, paths[0])
+  )
+}
+
+export async function markInboxMessageReadAi(input: {
+  businessProfileId: string
+  messageId: string
+}): Promise<unknown> {
+  const businessProfileId = normalizeRequiredId(
+    input.businessProfileId,
+    "Business profile ID"
+  )
+  const messageId = normalizeRequiredId(input.messageId, "Message ID")
+
+  const paths = [
+    `/api/v1/inbox/messages/${encodeURIComponent(messageId)}`,
+    `/api/v1/publish/inbox/${encodeURIComponent(messageId)}`,
+  ]
+
+  let lastError: Error | null = null
+  for (const path of paths) {
+    try {
+      return await fetchWithRetry(path, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          business_profile_id: businessProfileId,
+          status: "read",
+        }),
+      }, { retries: 1, timeoutMs: 15_000 })
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error(String(error))
+      if (error instanceof MarketingAIError && error.status === 404) {
+        continue
+      }
+      throw error
+    }
+  }
+
+  throw (
+    lastError ??
+    new MarketingAIError("Inbox mark-read endpoint is not available.", 404, paths[0])
   )
 }
 

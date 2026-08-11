@@ -20,7 +20,7 @@ export function AuthBackdrop() {
           `,
         }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-size-[48px_48px] opacity-60" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-size-[48px_48px] opacity-40" />
       <div className="absolute top-[12%] left-[8%] h-28 w-44 rotate-[-8deg] rounded-2xl border border-sky-400/15 bg-sky-500/8 blur-[0.5px] shadow-[0_20px_60px_rgba(14,165,233,0.12)]" />
       <div className="absolute bottom-[18%] right-[10%] h-32 w-48 rotate-[6deg] rounded-2xl border border-blue-400/12 bg-blue-500/6 blur-[0.5px] shadow-[0_24px_70px_rgba(59,130,246,0.1)]" />
       <div className="absolute top-[42%] right-[18%] h-20 w-32 rotate-[12deg] rounded-xl border border-white/6 bg-white/4" />

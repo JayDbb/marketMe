@@ -124,7 +124,13 @@ Flow:
 6. Frontend confirms OAuth success via `POST /api/social/connections` (local mirror in `business_social_connections`) so MarketMe shows the account even if publish list fails
 7. `GET /api/social/connections` merges MarketMe AI publish list + local mirror
 
-**Tristan / Render `FRONTEND_URL`** should send users back to:
+**MarketMe AI Meta callback** currently redirects to:
+
+```text
+{FRONTEND_URL}/dashboard/settings?instagram=connected|cancelled|not_found
+```
+
+This Next app rewrites those returns to Connections via `proxy.ts`. Prefer configuring the AI service to use:
 
 ```text
 {FRONTEND_URL}/dashboard/connections?oauth=instagram&status=success
@@ -136,7 +142,7 @@ On error:
 {FRONTEND_URL}/dashboard/connections?oauth=instagram&status=error&error=<message>
 ```
 
-The Connections page parses those query params, refreshes `/api/social/connections`, and toasts the result.
+`FRONTEND_URL` on Render must match the host you’re actually using (e.g. `http://localhost:3000` for local, or your Vercel URL for preview/prod).
 
 ## CI/CD
 

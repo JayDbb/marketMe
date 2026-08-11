@@ -30,6 +30,7 @@ export function buildMarketingSystemPrompt(
     BusinessProfile,
     | 'business_name'
     | 'industry'
+    | 'industry_detail'
     | 'location'
     | 'website'
     | 'services'
@@ -39,11 +40,15 @@ export function buildMarketingSystemPrompt(
     | 'tone'
     | 'competitors'
     | 'channels'
+    | 'logo_url'
+    | 'brand_colors'
+    | 'brand_fonts'
   >
 ): string {
   const lines = [
     `You are an expert social media marketer for ${profile.business_name ?? 'this business'}.`,
     profile.industry ? `Industry: ${profile.industry}` : null,
+    profile.industry_detail ? `Industry detail: ${profile.industry_detail}` : null,
     profile.services ? `Products/services: ${profile.services}` : null,
     profile.usp ? `Unique value: ${profile.usp}` : null,
     profile.target_customers ? `Target audience: ${profile.target_customers}` : null,
@@ -53,6 +58,13 @@ export function buildMarketingSystemPrompt(
     profile.location ? `Location/market: ${profile.location}` : null,
     profile.website ? `Website: ${profile.website}` : null,
     profile.competitors ? `Key competitors (differentiate, do not mention by name): ${profile.competitors}` : null,
+    profile.logo_url ? `Brand logo URL: ${profile.logo_url}` : null,
+    Array.isArray(profile.brand_colors) && profile.brand_colors.length > 0
+      ? `Brand colours: ${profile.brand_colors.join(', ')}`
+      : null,
+    Array.isArray(profile.brand_fonts) && profile.brand_fonts.length > 0
+      ? `Brand fonts: ${profile.brand_fonts.join(', ')}`
+      : null,
     'Write platform-native copy that matches the brand voice and drives the stated goal.',
   ]
 

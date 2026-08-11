@@ -23,6 +23,7 @@ import { useState } from 'react'
 import { OnboardingChecklist, type OnboardingState } from '@/components/dashboard/onboarding-checklist'
 import { DashboardQuickLinks } from '@/components/dashboard/dashboard-quick-links'
 import { useSocialConnections } from '@/components/dashboard/social-connections-provider'
+import { normalizeInstagramHandle } from '@/lib/social/oauth'
 import {
   getProfileCompleteness,
   formatUpcomingDate,
@@ -52,7 +53,11 @@ interface DashboardContentProps {
 
 export function DashboardContent({ profile, stats }: DashboardContentProps) {
   const router = useRouter()
-  const { hasInstagram, isLoading: connectionsLoading } = useSocialConnections()
+  const {
+    hasInstagram,
+    isLoading: connectionsLoading,
+    getConnection,
+  } = useSocialConnections()
   const [prompt, setPrompt] = useState('')
 
   const businessName = profile?.business_name || 'Welcome'
@@ -63,6 +68,8 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
     profile?.channels?.length ? profile.channels.join(', ') : 'Not set'
   const profileCompleteness = getProfileCompleteness(profile)
   const isProfileComplete = profileCompleteness >= 80
+  const instagramConnection = getConnection('instagram')
+  const instagramHandle = normalizeInstagramHandle(instagramConnection?.handle)
 
   const onboardingState: OnboardingState = {
     profileComplete: isProfileComplete,
@@ -83,9 +90,11 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
 
   const connectedLabel = connectionsLoading
     ? 'Checking...'
-    : hasInstagram
-      ? 'Instagram linked'
-      : 'Not connected'
+    : instagramHandle
+      ? `@${instagramHandle}`
+      : hasInstagram
+        ? 'Instagram linked'
+        : 'Not connected'
 
   const metrics = [
     {
@@ -117,7 +126,7 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
     },
     {
       label: 'Instagram',
-      value: hasInstagram ? 'Connected' : 'Setup',
+      value: instagramHandle ? `@${instagramHandle}` : hasInstagram ? 'Connected' : 'Setup',
       badge: connectedLabel,
       icon: Link2,
       href: '/dashboard/connections',
@@ -164,7 +173,7 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
       </motion.div>
 
       <motion.div variants={itemVariants} className="mb-8">
-        <Card className="bg-white dark:bg-white/4 border-zinc-200 backdrop-blur-2xl dark:border-white/8 text-zinc-900 dark:text-white shadow-2xl rounded-2xl overflow-hidden relative max-w-3xl group">
+        <Card className="bg-white dark:bg-[#0f1117] border-zinc-200 dark:border-white/12 text-zinc-900 dark:text-white shadow-2xl rounded-2xl overflow-hidden relative max-w-3xl group">
           <div className="absolute inset-0 bg-linear-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
           <div className="flex items-center gap-3 p-2">
             <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0 ml-1">
@@ -192,7 +201,7 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
         {metrics.map((metric) => (
           <motion.div variants={itemVariants} key={metric.label}>
             <Link href={metric.href} className="block h-full group">
-              <Card className="h-full bg-white dark:bg-white/2 dark:hover:bg-white/4 border-zinc-200 backdrop-blur-xl dark:border-white/8 text-zinc-900 dark:text-white hover:bg-zinc-50 transition-colors shadow-xl rounded-2xl overflow-hidden relative">
+              <Card className="h-full bg-white dark:bg-[#0f1117] dark:hover:bg-[#12151c] border-zinc-200 dark:border-white/12 text-zinc-900 dark:text-white hover:bg-zinc-50 transition-colors shadow-xl rounded-2xl overflow-hidden relative">
                 <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
                   <CardTitle className="text-[10px] font-medium text-zinc-500 dark:text-white/40 uppercase tracking-widest">
@@ -220,7 +229,7 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
         <motion.div variants={itemVariants} className="lg:col-span-2">
-          <Card className="h-full bg-white dark:bg-white/4 border-zinc-200 backdrop-blur-xl dark:border-white/8 text-zinc-900 dark:text-white shadow-xl rounded-2xl overflow-hidden relative group">
+          <Card className="h-full bg-white dark:bg-[#0f1117] border-zinc-200 dark:border-white/12 text-zinc-900 dark:text-white shadow-xl rounded-2xl overflow-hidden relative group">
             <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
             <CardHeader className="pb-3 relative z-10">
               <div className="flex items-center justify-between">
@@ -293,7 +302,7 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Card className="h-full bg-white dark:bg-white/4 border-zinc-200 backdrop-blur-xl dark:border-white/8 text-zinc-900 dark:text-white shadow-xl rounded-2xl overflow-hidden relative group">
+          <Card className="h-full bg-white dark:bg-[#0f1117] border-zinc-200 dark:border-white/12 text-zinc-900 dark:text-white shadow-xl rounded-2xl overflow-hidden relative group">
             <div className="absolute inset-0 bg-linear-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
             <CardHeader className="pb-4 relative z-10">
               <div className="flex items-center justify-between">

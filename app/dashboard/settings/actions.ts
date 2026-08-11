@@ -124,9 +124,23 @@ export async function getSettingsData(): Promise<SettingsData | null> {
     business: {
       businessName: profile?.business_name ?? '',
       industry: profile?.industry ?? '',
+      industryDetail: profile?.industry_detail ?? '',
       location: profile?.location ?? '',
       website: profile?.website ?? '',
       primaryGoal: profile?.primary_goal ?? '',
+      competitors: profile?.competitors ?? '',
+      logoUrl: profile?.logo_url ?? null,
+      brandColors: Array.isArray(profile?.brand_colors)
+        ? profile.brand_colors.slice(0, 5)
+        : [],
+      primaryFont:
+        Array.isArray(profile?.brand_fonts) && profile.brand_fonts[0]
+          ? profile.brand_fonts[0]
+          : 'Inter',
+      secondaryFont:
+        Array.isArray(profile?.brand_fonts) && profile.brand_fonts[1]
+          ? profile.brand_fonts[1]
+          : 'Georgia',
       hasProfile: Boolean(profile?.business_name),
     },
     preferences: {
@@ -235,17 +249,33 @@ export async function updateCalendarPreferencesAction(formData: FormData) {
 }
 
 export async function updateWorkspaceAction(formData: FormData) {
+  const brandColorsRaw = String(formData.get('brandColors') || '')
+  const brandColors = brandColorsRaw
+    .split(',')
+    .map((c) => c.trim())
+    .filter((c) => /^#[0-9A-Fa-f]{6}$/.test(c))
+    .slice(0, 5)
+
+  const primaryFont = String(formData.get('primaryFont') || 'Inter').trim()
+  const secondaryFont = String(formData.get('secondaryFont') || 'Georgia').trim()
+
   const result = await upsertBusinessProfileAction({
     business_name: (formData.get('businessName') as string) || undefined,
     industry: (formData.get('industry') as string) || undefined,
+    industry_detail: (formData.get('industryDetail') as string) || null,
     location: (formData.get('location') as string) || undefined,
     website: (formData.get('website') as string) || undefined,
     primary_goal: (formData.get('primaryGoal') as string) || undefined,
+    competitors: (formData.get('competitors') as string) || undefined,
+    brand_colors: brandColors.length > 0 ? brandColors : null,
+    brand_fonts: [primaryFont, secondaryFont].filter(Boolean),
   })
 
   if (result.error) return { error: result.error }
 
   revalidatePath('/dashboard/settings')
+  revalidatePath('/dashboard/generate')
+  revalidatePath('/dashboard/studio')
   return { success: true }
 }
 

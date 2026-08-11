@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,12 +19,21 @@ import {
   Loader2,
   CheckCircle2,
   Activity,
+  Palette,
+  Upload,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { completeOnboardingAction } from '@/app/onboarding/actions'
+import {
+  completeOnboardingAction,
+  uploadBusinessLogoAction,
+} from '@/app/onboarding/actions'
 import { toast } from 'sonner'
 import type { BusinessProfile } from '@/types/business-profile'
+import { SMB_INDUSTRIES, OTHER_INDUSTRY, normalizeIndustry } from '@/lib/industries'
+import { getIndustryPalette } from '@/lib/studio-brand-kit'
+import { STUDIO_FONT_FAMILIES } from '@/lib/instagram-formats'
+import { AppSelect } from '@/components/ui/app-select'
 
 const steps = [
   {
@@ -35,13 +44,19 @@ const steps = [
   {
     id: 'marketing',
     title: 'Marketing focus',
-    description: 'Who you reach, how you sound, and where you publish.',
+    description: 'Who you reach, how you sound, where you publish, and who you compete with.',
+  },
+  {
+    id: 'brand',
+    title: 'Brand assets',
+    description: 'Logo, colours, and fonts so Studio and AI stay on-brand.',
   },
 ]
 
 const saveSteps = [
   'Saving your marketing profile…',
-  'Tuning AI to your brand voice…',
+  'Uploading brand assets…',
+  'Tuning AI to your brand…',
   'Opening your dashboard…',
 ]
 
@@ -63,18 +78,24 @@ const toneOptions = [
 const contentChannels = ['Instagram', 'LinkedIn', 'Twitter / X', 'Email Newsletter', 'TikTok']
 
 const inputClass =
-  'h-12 bg-white/5 border-white/10 focus-visible:border-blue-400/60 focus-visible:ring-0 text-white placeholder:text-white/25 rounded-xl transition-all text-base shadow-none'
-const labelClass = 'text-white/45 font-medium text-xs uppercase tracking-wider flex items-center gap-2'
+  'h-12 bg-white/8 border-white/15 focus-visible:border-blue-400/60 focus-visible:ring-0 text-white placeholder:text-white/25 rounded-xl transition-all text-base shadow-none'
+const labelClass =
+  'text-white/45 font-medium text-xs uppercase tracking-wider flex items-center gap-2'
 
 type OnboardingFormData = {
   businessName: string
   industry: string
+  industryDetail: string
   website: string
   services: string
   primaryGoal: string
   targetCustomers: string
   tone: string
   channels: string[]
+  competitors: string
+  brandColors: string[]
+  primaryFont: string
+  secondaryFont: string
 }
 
 function profileToFormData(profile: BusinessProfile | null | undefined): OnboardingFormData {
@@ -82,24 +103,41 @@ function profileToFormData(profile: BusinessProfile | null | undefined): Onboard
     return {
       businessName: '',
       industry: '',
+      industryDetail: '',
       website: '',
       services: '',
       primaryGoal: '',
       targetCustomers: '',
       tone: '',
       channels: [],
+      competitors: '',
+      brandColors: getIndustryPalette(null),
+      primaryFont: 'Inter',
+      secondaryFont: 'Georgia',
     }
   }
 
+  const industry = normalizeIndustry(profile.industry) || profile.industry || ''
+  const colors =
+    Array.isArray(profile.brand_colors) && profile.brand_colors.length > 0
+      ? profile.brand_colors.slice(0, 5)
+      : getIndustryPalette(industry)
+  const fonts = Array.isArray(profile.brand_fonts) ? profile.brand_fonts : []
+
   return {
     businessName: profile.business_name ?? '',
-    industry: profile.industry ?? '',
+    industry,
+    industryDetail: profile.industry_detail ?? '',
     website: profile.website ?? '',
     services: profile.services ?? '',
     primaryGoal: profile.primary_goal ?? '',
     targetCustomers: profile.target_customers ?? '',
     tone: profile.tone ?? '',
     channels: profile.channels ?? [],
+    competitors: profile.competitors ?? '',
+    brandColors: colors.length >= 3 ? colors : getIndustryPalette(industry),
+    primaryFont: fonts[0] || 'Inter',
+    secondaryFont: fonts[1] || 'Georgia',
   }
 }
 
@@ -116,22 +154,39 @@ export function OnboardingWizard({
   const [formData, setFormData] = useState<OnboardingFormData>(() =>
     profileToFormData(initialProfile)
   )
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(
+    initialProfile?.logo_url ?? null
+  )
   const [direction, setDirection] = useState<1 | -1>(1)
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview?.startsWith('blob:')) URL.revokeObjectURL(logoPreview)
+    }
+  }, [logoPreview])
 
   const canContinue = useMemo(() => {
     if (currentStep === 0) {
+      const industryOk =
+        formData.industry.trim().length > 0 &&
+        (formData.industry !== OTHER_INDUSTRY || formData.industryDetail.trim().length > 0)
       return (
         formData.businessName.trim().length > 0 &&
-        formData.industry.trim().length > 0 &&
+        industryOk &&
         formData.services.trim().length > 0
       )
     }
-    return (
-      formData.primaryGoal.length > 0 &&
-      formData.targetCustomers.trim().length > 0 &&
-      formData.tone.length > 0 &&
-      formData.channels.length > 0
-    )
+    if (currentStep === 1) {
+      return (
+        formData.primaryGoal.length > 0 &&
+        formData.targetCustomers.trim().length > 0 &&
+        formData.tone.length > 0 &&
+        formData.channels.length > 0
+      )
+    }
+    // Brand step is optional beyond colours (prefilled)
+    return formData.brandColors.length >= 1 && formData.primaryFont.length > 0
   }, [currentStep, formData])
 
   const finishOnboarding = async () => {
@@ -143,12 +198,19 @@ export function OnboardingWizard({
       const result = await completeOnboardingAction({
         business_name: formData.businessName.trim(),
         industry: formData.industry.trim(),
+        industry_detail:
+          formData.industry === OTHER_INDUSTRY
+            ? formData.industryDetail.trim()
+            : null,
         website: formData.website.trim() || undefined,
         services: formData.services.trim(),
         primary_goal: formData.primaryGoal,
         target_customers: formData.targetCustomers.trim(),
         tone: formData.tone,
         channels: formData.channels,
+        competitors: formData.competitors.trim() || undefined,
+        brand_colors: formData.brandColors.slice(0, 5),
+        brand_fonts: [formData.primaryFont, formData.secondaryFont].filter(Boolean),
       })
 
       if (result.error || !result.data?.business_name) {
@@ -161,9 +223,19 @@ export function OnboardingWizard({
       }
 
       setSaveStep(1)
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      if (logoFile) {
+        const fd = new FormData()
+        fd.set('logo', logoFile)
+        const upload = await uploadBusinessLogoAction(fd)
+        if ('error' in upload) {
+          toast.message('Profile saved', { description: upload.error })
+        }
+      }
+
       setSaveStep(2)
       await new Promise((resolve) => setTimeout(resolve, 400))
+      setSaveStep(3)
+      await new Promise((resolve) => setTimeout(resolve, 350))
 
       toast.success('Profile saved')
       router.push('/dashboard')
@@ -194,7 +266,22 @@ export function OnboardingWizard({
   }
 
   const updateFields = (fields: Partial<typeof formData>) => {
-    setFormData((prev) => ({ ...prev, ...fields }))
+    setFormData((prev) => {
+      const next = { ...prev, ...fields }
+      if (fields.industry && fields.industry !== prev.industry) {
+        next.brandColors = getIndustryPalette(fields.industry)
+        if (fields.industry !== OTHER_INDUSTRY) next.industryDetail = ''
+      }
+      return next
+    })
+  }
+
+  const setBrandColor = (index: number, value: string) => {
+    setFormData((prev) => {
+      const colors = [...prev.brandColors]
+      colors[index] = value
+      return { ...prev, brandColors: colors }
+    })
   }
 
   const toggleChannel = (channel: string) => {
@@ -206,6 +293,15 @@ export function OnboardingWizard({
     }))
   }
 
+  const onLogoChange = (file: File | null) => {
+    if (logoPreview?.startsWith('blob:')) URL.revokeObjectURL(logoPreview)
+    setLogoFile(file)
+    setLogoPreview(file ? URL.createObjectURL(file) : initialProfile?.logo_url ?? null)
+  }
+
+  const cardClass =
+    'w-full max-w-2xl bg-[#0d1117]/95 border border-white/15 shadow-2xl z-10 p-8 md:p-10 rounded-2xl relative'
+
   if (isSaving) {
     return (
       <div className="flex flex-col min-h-dvh font-sans items-center justify-center py-12 px-4 relative w-full">
@@ -213,7 +309,7 @@ export function OnboardingWizard({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="w-full max-w-md bg-white/4 border border-white/8 backdrop-blur-xl shadow-2xl z-10 p-10 rounded-2xl flex flex-col items-center"
+          className="w-full max-w-md bg-[#0d1117]/95 border border-white/15 shadow-2xl z-10 p-10 rounded-2xl flex flex-col items-center"
         >
           <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/30 mb-6">
             <Loader2 className="w-7 h-7 text-blue-400 animate-spin" />
@@ -237,7 +333,9 @@ export function OnboardingWizard({
                   ) : (
                     <div className="w-5 h-5 rounded-full border border-white/20 shrink-0" />
                   )}
-                  <span className={`text-sm ${isActive ? 'text-white' : 'text-white/55'}`}>{step}</span>
+                  <span className={`text-sm ${isActive ? 'text-white' : 'text-white/55'}`}>
+                    {step}
+                  </span>
                 </div>
               )
             })}
@@ -284,7 +382,7 @@ export function OnboardingWizard({
           e.preventDefault()
           handleNext()
         }}
-        className="w-full max-w-2xl bg-white/4 border border-white/8 backdrop-blur-xl shadow-2xl z-10 p-8 md:p-10 rounded-2xl relative"
+        className={cardClass}
       >
         <div className="flex items-center gap-2 mb-8">
           {steps.map((step, i) => (
@@ -338,13 +436,23 @@ export function OnboardingWizard({
                       <Building2 className="w-3.5 h-3.5 text-blue-400" />
                       Industry
                     </Label>
-                    <Input
+                    <AppSelect
+                      tone="onboarding"
+                      aria-label="Industry"
                       value={formData.industry}
-                      onChange={(e) => updateFields({ industry: e.target.value })}
-                      placeholder="e.g. Luxury retail"
-                      required
-                      className={inputClass}
+                      placeholder="Select industry…"
+                      options={SMB_INDUSTRIES}
+                      onChange={(industry) => updateFields({ industry })}
                     />
+                    {formData.industry === OTHER_INDUSTRY ? (
+                      <Input
+                        value={formData.industryDetail}
+                        onChange={(e) => updateFields({ industryDetail: e.target.value })}
+                        placeholder="Describe your industry"
+                        required
+                        className={inputClass}
+                      />
+                    ) : null}
                   </div>
                 </div>
 
@@ -358,14 +466,15 @@ export function OnboardingWizard({
                     onChange={(e) => updateFields({ services: e.target.value })}
                     placeholder="One sentence is fine — e.g. Custom suits and personal styling for professionals."
                     required
-                    className="min-h-[88px] bg-white/5 border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/60 text-white placeholder:text-white/20 rounded-xl text-sm p-4 resize-y shadow-none"
+                    className="min-h-[88px] bg-white/8 border-white/15 focus-visible:ring-0 focus-visible:border-blue-400/60 text-white placeholder:text-white/20 rounded-xl text-sm p-4 resize-y shadow-none"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label className={labelClass}>
                     <Globe className="w-3.5 h-3.5 text-blue-400" />
-                    Website <span className="text-white/25 normal-case tracking-normal">(optional)</span>
+                    Website{' '}
+                    <span className="text-white/25 normal-case tracking-normal">(optional)</span>
                   </Label>
                   <Input
                     value={formData.website}
@@ -394,7 +503,7 @@ export function OnboardingWizard({
                         className={`h-11 px-3 rounded-xl border text-sm font-medium transition-all text-left ${
                           formData.primaryGoal === goal
                             ? 'bg-blue-500/12 border-blue-500/50 text-blue-300'
-                            : 'bg-white/4 border-white/10 text-white/50 hover:border-white/20'
+                            : 'bg-white/8 border-white/10 text-white/50 hover:border-white/20'
                         }`}
                       >
                         {goal}
@@ -429,7 +538,7 @@ export function OnboardingWizard({
                         className={`h-9 px-3 rounded-xl border text-xs font-medium transition-all ${
                           formData.tone === tone
                             ? 'bg-blue-500/15 text-blue-300 border-blue-500/40'
-                            : 'bg-white/4 border-white/10 text-white/45 hover:border-white/20'
+                            : 'bg-white/8 border-white/10 text-white/45 hover:border-white/20'
                         }`}
                       >
                         {tone}
@@ -455,13 +564,123 @@ export function OnboardingWizard({
                           className={`h-9 px-3 rounded-xl border text-xs font-medium transition-all ${
                             isActive
                               ? 'bg-blue-500/15 text-blue-300 border-blue-500/40'
-                              : 'bg-white/4 border-white/10 text-white/45 hover:border-white/20'
+                              : 'bg-white/8 border-white/10 text-white/45 hover:border-white/20'
                           }`}
                         >
                           {channel}
                         </button>
                       )
                     })}
+                  </div>
+                  <p className="text-[11px] text-white/30">
+                    Instagram is live for connect &amp; publish today. Other channels inform
+                    planning copy.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className={labelClass}>
+                    Competitors{' '}
+                    <span className="text-white/25 normal-case tracking-normal">
+                      (optional — up to 5)
+                    </span>
+                  </Label>
+                  <Textarea
+                    value={formData.competitors}
+                    onChange={(e) => updateFields({ competitors: e.target.value })}
+                    placeholder={'@rivalbarbershop\nhttps://competitor-salon.com\n@anotherfade'}
+                    className="min-h-[88px] bg-white/8 border-white/15 focus-visible:ring-0 focus-visible:border-blue-400/60 text-white placeholder:text-white/20 rounded-xl text-sm p-4 resize-y shadow-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label className={labelClass}>
+                    <Upload className="w-3.5 h-3.5 text-blue-400" />
+                    Logo{' '}
+                    <span className="text-white/25 normal-case tracking-normal">(optional)</span>
+                  </Label>
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-xl border border-white/15 bg-white/8 overflow-hidden flex items-center justify-center">
+                      {logoPreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <Palette className="w-6 h-6 text-white/30" />
+                      )}
+                    </div>
+                    <label className="cursor-pointer h-10 px-4 rounded-xl border border-white/15 bg-white/8 text-sm text-white/80 hover:border-white/30 inline-flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      Upload
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={(e) => onLogoChange(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                    {logoPreview ? (
+                      <button
+                        type="button"
+                        className="text-xs text-white/40 hover:text-white"
+                        onClick={() => onLogoChange(null)}
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className={labelClass}>
+                    <Palette className="w-3.5 h-3.5 text-blue-400" />
+                    Brand colours
+                  </Label>
+                  <div className="flex flex-wrap gap-3">
+                    {formData.brandColors.slice(0, 5).map((color, i) => (
+                      <label key={i} className="flex flex-col items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => setBrandColor(i, e.target.value)}
+                          className="h-10 w-10 cursor-pointer rounded-lg border border-white/15 bg-transparent p-0.5"
+                        />
+                        <span className="text-[10px] text-white/35 font-mono">{color}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-white/30">
+                    Prefills from your industry — tweak to match your brand.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className={labelClass}>Primary font</Label>
+                    <AppSelect
+                      tone="onboarding"
+                      aria-label="Primary font"
+                      value={formData.primaryFont}
+                      options={STUDIO_FONT_FAMILIES}
+                      onChange={(primaryFont) => updateFields({ primaryFont })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={labelClass}>Secondary font</Label>
+                    <AppSelect
+                      tone="onboarding"
+                      aria-label="Secondary font"
+                      value={formData.secondaryFont}
+                      options={STUDIO_FONT_FAMILIES}
+                      onChange={(secondaryFont) => updateFields({ secondaryFont })}
+                    />
                   </div>
                 </div>
               </div>
@@ -478,7 +697,7 @@ export function OnboardingWizard({
           </div>
         ) : null}
 
-        <div className="mt-10 flex items-center justify-between border-t border-white/8 pt-6">
+        <div className="mt-10 flex items-center justify-between border-t border-white/10 pt-6">
           <Button
             type="button"
             variant="ghost"
@@ -501,7 +720,7 @@ export function OnboardingWizard({
         </div>
 
         <p className="text-center text-[11px] text-white/25 mt-4">
-          You can add competitors, USP, and more later in Settings → Workspace.
+          Built for all small businesses — barbers & salons get smarter defaults first.
         </p>
       </form>
     </div>

@@ -136,24 +136,49 @@ export async function upsertBusinessProfile(
     }
   }
 
-  const payload = {
+  // Only include fields present on `input`. Omitting them (vs sending null)
+  // keeps partial updates — e.g. logo-only — from wiping onboarding data.
+  const payload: Record<string, unknown> = {
     user_id: normalizedUserId,
-    business_name: input.business_name?.trim() || null,
-    industry: input.industry?.trim() || null,
-    location: input.location?.trim() || null,
-    website: input.website?.trim() || null,
-    services: input.services?.trim() || null,
-    usp: input.usp?.trim() || null,
-    primary_goal: input.primary_goal?.trim() || null,
-    social_handle: input.social_handle?.trim() || null,
-    tone: input.tone?.trim() || null,
-    target_customers:
-      input.target_customers?.trim() || null,
-    competitors: input.competitors?.trim() || null,
-    channels: Array.isArray(input.channels)
-      ? input.channels
-      : [],
     updated_at: new Date().toISOString(),
+  }
+
+  const setText = (
+    key: keyof BusinessProfileInput,
+    value: string | null | undefined
+  ) => {
+    if (value === undefined) return
+    payload[key] = typeof value === "string" ? value.trim() || null : null
+  }
+
+  setText("business_name", input.business_name)
+  setText("industry", input.industry)
+  setText("industry_detail", input.industry_detail)
+  setText("location", input.location)
+  setText("website", input.website)
+  setText("services", input.services)
+  setText("usp", input.usp)
+  setText("primary_goal", input.primary_goal)
+  setText("social_handle", input.social_handle)
+  setText("tone", input.tone)
+  setText("target_customers", input.target_customers)
+  setText("competitors", input.competitors)
+
+  if (input.channels !== undefined) {
+    payload.channels = Array.isArray(input.channels) ? input.channels : []
+  }
+  if (input.logo_url !== undefined) {
+    payload.logo_url = input.logo_url?.trim() || null
+  }
+  if (input.brand_colors !== undefined) {
+    payload.brand_colors = Array.isArray(input.brand_colors)
+      ? input.brand_colors.slice(0, 5)
+      : null
+  }
+  if (input.brand_fonts !== undefined) {
+    payload.brand_fonts = Array.isArray(input.brand_fonts)
+      ? input.brand_fonts.slice(0, 3)
+      : null
   }
 
   const { data, error } = await supabaseAdmin

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import {
   Search,
   MessageCircle,
@@ -13,6 +14,7 @@ import {
   RefreshCw,
   Send,
   ExternalLink,
+  Info,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -25,7 +27,10 @@ import { replyToMessage } from '@/lib/social/inbox-api'
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06 },
+  },
 }
 
 const itemVariants = {
@@ -64,6 +69,9 @@ function InboxDetailPanel({
     try {
       await replyToMessage(message.id, reply)
       setReply('')
+      toast.success('Reply sent')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to send reply')
     } finally {
       setSending(false)
     }
@@ -97,7 +105,7 @@ function InboxDetailPanel({
             href={message.postUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-4 text-xs text-blue-500 hover:underline"
+            className="inline-flex items-center gap-1.5 mt-4 text-xs text-sky-600 hover:underline dark:text-sky-400"
           >
             View on Instagram
             <ExternalLink className="w-3 h-3" />
@@ -115,7 +123,7 @@ function InboxDetailPanel({
         <Button
           onClick={handleReply}
           disabled={sending || !reply.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl border-0"
+          className="w-full bg-sky-600 hover:bg-sky-500 text-white rounded-xl border-0"
         >
           {sending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -126,9 +134,6 @@ function InboxDetailPanel({
             </>
           )}
         </Button>
-        <p className="text-[10px] text-zinc-400 dark:text-white/25 text-center">
-          TODO(backend): wire to Instagram Graph API send endpoint
-        </p>
       </div>
     </div>
   )
@@ -138,7 +143,7 @@ function InboxConnectBanner() {
   return (
     <motion.div
       variants={itemVariants}
-      className="rounded-2xl border border-blue-500/25 bg-blue-500/5 p-8 text-center mb-6"
+      className="rounded-2xl border border-sky-500/25 bg-sky-500/5 p-8 text-center mb-6"
     >
       <div className="w-14 h-14 rounded-2xl bg-linear-to-tr from-yellow-400 via-red-500 to-pink-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
         <Link2 className="w-7 h-7 text-white" />
@@ -147,12 +152,12 @@ function InboxConnectBanner() {
         Connect Instagram to unlock your inbox
       </h2>
       <p className="text-sm text-zinc-500 dark:text-white/45 max-w-md mx-auto mb-6 leading-relaxed">
-        DMs, @mentions, and post comments will appear here once your Instagram account
-        is linked on the Connections page.
+        DMs, @mentions, and post comments appear here for the Instagram Business or Creator
+        account you link on Connections.
       </p>
       <Link
         href="/dashboard/connections"
-        className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl px-8 h-11 border-0 transition-colors"
+        className="inline-flex items-center justify-center bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl px-8 h-11 border-0 transition-colors"
       >
         <Link2 className="w-4 h-4 mr-2" />
         Go to Connections
@@ -173,14 +178,22 @@ export function InboxContent() {
     unreadCount,
     refresh,
     markRead,
+    account,
+    error,
+    warning,
+    syncStatus,
   } = useInbox()
 
   const [selected, setSelected] = useState<InboxMessage | null>(null)
 
   const handleSelect = (message: InboxMessage) => {
     setSelected(message)
-    if (message.status === 'unread') markRead(message.id)
+    if (message.status === 'unread') void markRead(message.id)
   }
+
+  const accountLabel = account?.atHandle ?? account?.displayName ?? 'Instagram'
+  const needsReconnect = syncStatus === 'needs_reconnect'
+  const bannerTone = error || needsReconnect ? 'amber' : warning ? 'sky' : null
 
   return (
     <motion.div
@@ -194,7 +207,7 @@ export function InboxContent() {
         className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0"
       >
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-sky-600 dark:text-sky-400 mb-1">
             Social
           </p>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-zinc-900 dark:text-white">
@@ -202,9 +215,30 @@ export function InboxContent() {
           </h1>
           <p className="text-zinc-500 dark:text-white/40 mt-2 text-base">
             {hasInstagram
-              ? `${unreadCount} unread · Instagram connected`
+              ? needsReconnect
+                ? 'Instagram needs a reconnect to sync messages'
+                : `${unreadCount} unread · ${accountLabel}`
               : 'Connect Instagram to start receiving messages'}
           </p>
+          {hasInstagram && account?.atHandle && !needsReconnect ? (
+            <p className="mt-1 text-xs text-zinc-400 dark:text-white/35">
+              Showing conversations for{' '}
+              {account.profileUrl ? (
+                <a
+                  href={account.profileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-sky-600 hover:underline dark:text-sky-400"
+                >
+                  {account.atHandle}
+                </a>
+              ) : (
+                <span className="font-medium text-zinc-700 dark:text-white/70">
+                  {account.atHandle}
+                </span>
+              )}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -215,12 +249,12 @@ export function InboxContent() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search conversations…"
               disabled={!hasInstagram}
-              className="pl-10 h-10 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 rounded-xl"
+              className="pl-10 h-10 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 focus-visible:ring-0 focus-visible:border-sky-400/50 rounded-xl"
             />
           </div>
           <button
             type="button"
-            onClick={() => refresh()}
+            onClick={() => void refresh()}
             disabled={isLoading || !hasInstagram}
             className="w-10 h-10 rounded-xl border border-zinc-200 dark:border-white/10 flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors shrink-0"
             aria-label="Refresh inbox"
@@ -232,10 +266,51 @@ export function InboxContent() {
 
       {!hasInstagram && !isLoading && <InboxConnectBanner />}
 
+      {hasInstagram && (error || warning) ? (
+        <motion.div
+          variants={itemVariants}
+          role="status"
+          className={`mb-4 flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-start sm:justify-between ${
+            bannerTone === 'amber'
+              ? 'border-amber-500/25 bg-amber-500/8'
+              : 'border-sky-500/25 bg-sky-500/8'
+          }`}
+        >
+          <div className="flex gap-3 min-w-0">
+            <Info
+              className={`mt-0.5 size-5 shrink-0 ${
+                bannerTone === 'amber' ? 'text-amber-500' : 'text-sky-500'
+              }`}
+            />
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                {needsReconnect
+                  ? 'Reconnect Instagram to sync inbox'
+                  : error
+                    ? 'Could not load Instagram inbox'
+                    : 'Inbox sync'}
+              </p>
+              <p className="text-xs leading-relaxed text-zinc-500 dark:text-white/45">
+                {error || warning}
+              </p>
+            </div>
+          </div>
+          {needsReconnect ? (
+            <Link
+              href="/dashboard/connections"
+              className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-500"
+            >
+              <Link2 className="mr-1.5 size-3.5" />
+              Reconnect
+            </Link>
+          ) : null}
+        </motion.div>
+      ) : null}
+
       {isLoading ? (
         <div className="flex items-center justify-center py-24 text-zinc-500 dark:text-white/40 gap-2">
           <Loader2 className="w-5 h-5 animate-spin" />
-          Loading inbox…
+          Loading {accountLabel} inbox…
         </div>
       ) : hasInstagram ? (
         <motion.div
@@ -246,8 +321,12 @@ export function InboxContent() {
             title="DMs"
             icon={MessageCircle}
             messages={dms}
-            emptyTitle="No DMs yet"
-            emptyDescription="Direct messages from Instagram will show up here."
+            emptyTitle={needsReconnect ? 'Waiting on reconnect' : 'No DMs yet'}
+            emptyDescription={
+              needsReconnect
+                ? 'After reconnecting, Instagram DMs will appear here.'
+                : `Direct messages to ${accountLabel} will show up here.`
+            }
             selectedId={selected?.id}
             onSelect={handleSelect}
           />
@@ -255,8 +334,12 @@ export function InboxContent() {
             title="@ Mentions"
             icon={AtSign}
             messages={mentions}
-            emptyTitle="No mentions"
-            emptyDescription="When someone @mentions you, it appears here."
+            emptyTitle={needsReconnect ? 'Waiting on reconnect' : 'No mentions'}
+            emptyDescription={
+              needsReconnect
+                ? 'Mentions sync after Instagram is reconnected.'
+                : `When someone @mentions ${accountLabel}, it appears here.`
+            }
             selectedId={selected?.id}
             onSelect={handleSelect}
           />
@@ -264,8 +347,12 @@ export function InboxContent() {
             title="Comments"
             icon={MessageSquareText}
             messages={comments}
-            emptyTitle="No comments"
-            emptyDescription="Comments on your posts sync to this column."
+            emptyTitle={needsReconnect ? 'Waiting on reconnect' : 'No comments'}
+            emptyDescription={
+              needsReconnect
+                ? 'Post comments sync after Instagram is reconnected.'
+                : `Comments on ${accountLabel} posts sync to this column.`
+            }
             selectedId={selected?.id}
             onSelect={handleSelect}
           />

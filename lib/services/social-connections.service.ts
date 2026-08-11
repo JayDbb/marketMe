@@ -1,6 +1,8 @@
 import 'server-only'
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { normalizeInstagramHandle } from '@/lib/social/oauth'
+import { hasRealInstagramHandle } from '@/lib/social/instagram-account'
 import type { SocialConnection, SocialPlatform } from '@/types/social'
 
 export type MirroredSocialConnectionRow = {
@@ -18,12 +20,17 @@ export type MirroredSocialConnectionRow = {
 }
 
 function rowToConnection(row: MirroredSocialConnectionRow): SocialConnection {
-  const handle = (row.handle || 'instagram_account').replace(/^@/, '')
+  const handle =
+    normalizeInstagramHandle(row.handle) ||
+    normalizeInstagramHandle(row.display_name) ||
+    'instagram_account'
   return {
     id: row.id,
     platform: row.platform,
     handle,
-    displayName: row.display_name || (handle.startsWith('@') ? handle : `@${handle}`),
+    displayName: row.display_name?.startsWith('@')
+      ? row.display_name
+      : `@${handle}`,
     status: row.status,
     connectedAt: row.connected_at,
     externalAccountId: row.external_account_id || undefined,
@@ -61,7 +68,10 @@ export async function upsertMirroredConnection(input: {
   externalAccountId?: string | null
   source?: 'marketme-ai' | 'oauth-return' | 'manual'
 }): Promise<SocialConnection | null> {
-  const handle = (input.handle || 'instagram_account').replace(/^@/, '')
+  const handle =
+    normalizeInstagramHandle(input.handle) ||
+    normalizeInstagramHandle(input.displayName) ||
+    'instagram_account'
   const status = input.status ?? 'connected'
   const now = new Date().toISOString()
 
@@ -73,7 +83,9 @@ export async function upsertMirroredConnection(input: {
         user_id: input.userId,
         platform: input.platform,
         handle,
-        display_name: input.displayName || `@${handle}`,
+        display_name: input.displayName?.startsWith('@')
+          ? input.displayName
+          : `@${handle}`,
         status,
         external_account_id: input.externalAccountId ?? null,
         source: input.source ?? 'oauth-return',
@@ -148,6 +160,7 @@ export async function markMirroredDisconnected(input: {
 /**
  * Prefer remote AI connections; fill gaps from the local mirror so OAuth success
  * still shows in MarketMe when publish list fails.
+ * Keep a real Instagram username when one side only has a placeholder.
  */
 export function mergeRemoteAndMirrored(
   remote: SocialConnection[],
@@ -155,11 +168,34 @@ export function mergeRemoteAndMirrored(
 ): SocialConnection[] {
   const byPlatform = new Map<string, SocialConnection>()
 
+  const prefer = (next: SocialConnection, prev?: SocialConnection): SocialConnection => {
+    if (!prev) return next
+    const nextReal = hasRealInstagramHandle(next.handle)
+    const prevReal = hasRealInstagramHandle(prev.handle)
+    if (nextReal && !prevReal) return next
+    if (!nextReal && prevReal) {
+      return {
+        ...next,
+        handle: prev.handle,
+        displayName: prev.displayName,
+        externalAccountId: next.externalAccountId || prev.externalAccountId,
+      }
+    }
+    return {
+      ...next,
+      handle: nextReal ? next.handle : prev.handle,
+      displayName: nextReal ? next.displayName : prev.displayName,
+      externalAccountId: next.externalAccountId || prev.externalAccountId,
+      connectedAt: next.connectedAt || prev.connectedAt,
+    }
+  }
+
   for (const c of mirrored) {
     if (c.status === 'connected') byPlatform.set(c.platform, c)
   }
   for (const c of remote) {
-    if (c.status === 'connected') byPlatform.set(c.platform, c)
+    if (c.status !== 'connected') continue
+    byPlatform.set(c.platform, prefer(c, byPlatform.get(c.platform)))
   }
 
   return Array.from(byPlatform.values())

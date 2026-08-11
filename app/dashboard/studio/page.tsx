@@ -25,7 +25,11 @@ export default async function StudioPage() {
     getBusinessProfileAction(),
   ])
 
-  const brandKit = getStudioBrandKit(profileResult.data?.industry)
+  const brandKit = getStudioBrandKit(profileResult.data?.industry, {
+    brandColors: profileResult.data?.brand_colors,
+    brandFonts: profileResult.data?.brand_fonts,
+    logoUrl: profileResult.data?.logo_url,
+  })
 
   return (
     <Suspense fallback={<StudioLoading />}>

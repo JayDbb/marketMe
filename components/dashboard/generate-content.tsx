@@ -877,7 +877,7 @@ export function GenerateContent({
               )}
             </div>
 
-            <div className="bg-white dark:bg-[#0a0a14]/60 backdrop-blur-2xl border border-black/5 dark:border-white/10 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
+            <div className="bg-white dark:bg-[#0f1117] border border-black/5 dark:border-white/12 rounded-[2rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-blue-500/30 to-transparent" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

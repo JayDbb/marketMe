@@ -30,7 +30,10 @@ interface SocialConnectionsContextValue {
   error: string | null
   warning: string | null
   refresh: () => Promise<RefreshConnectionsResult>
-  confirmOAuthSuccess: (platform?: SocialPlatform) => Promise<RefreshConnectionsResult>
+  confirmOAuthSuccess: (
+    platform?: SocialPlatform,
+    handle?: string
+  ) => Promise<RefreshConnectionsResult>
   connect: (platform: SocialPlatform) => Promise<void>
   disconnect: (connectionId: string) => Promise<void>
   getConnection: (platform: SocialPlatform) => SocialConnection | undefined
@@ -98,14 +101,17 @@ export function SocialConnectionsProvider({
   }, [businessProfileId])
 
   const confirmOAuthSuccess = useCallback(
-    async (platform: SocialPlatform = 'instagram'): Promise<RefreshConnectionsResult> => {
+    async (
+      platform: SocialPlatform = 'instagram',
+      handle?: string
+    ): Promise<RefreshConnectionsResult> => {
       if (platform !== 'instagram') {
         return { ok: false, error: 'Only Instagram OAuth confirm is supported' }
       }
       setIsLoading(true)
       setError(null)
       try {
-        const saved = await confirmInstagramOAuth()
+        const saved = await confirmInstagramOAuth(handle)
         if (saved.ok && saved.connections.length > 0) {
           setConnections(saved.connections)
         }

@@ -1,56 +1,101 @@
 /**
- * Inbox API — FRONTEND STUB
- * -------------------------
- * TODO(backend): replace with GET /api/inbox/messages?platform=instagram
- * Normalize Instagram webhook payloads (DMs, comments, mentions) into InboxMessage.
+ * Client inbox API — talks to authenticated Next.js routes,
+ * which sync from the connected Instagram account via MarketMe AI.
  */
 
-import type { InboxMessage, SocialConnection } from '@/types/social'
-import { getDemoInboxMessages } from '@/lib/social/demo-inbox'
+import type { InboxMessage } from '@/types/social'
 
-export interface FetchInboxOptions {
-  connections: SocialConnection[]
-  /** When true, returns demo data for connected platforms (default in stub) */
-  useDemoData?: boolean
+export type InboxAccountSummary = {
+  connectionId: string
+  handle: string | null
+  displayName: string
+  atHandle: string | null
+  profileUrl: string | null
 }
 
-/**
- * TODO(backend): fetch real messages for all connected accounts.
- * Filter by connectionId / platform on the server.
- */
-export async function fetchInboxMessages(
-  options: FetchInboxOptions
-): Promise<InboxMessage[]> {
-  await delay(500)
+export type InboxSyncStatus =
+  | 'ok'
+  | 'empty'
+  | 'needs_reconnect'
+  | 'inbox_unavailable'
+  | 'unreachable'
 
-  const connected = options.connections.filter((c) => c.status === 'connected')
-  if (connected.length === 0) return []
+export type FetchInboxResult = {
+  messages: InboxMessage[]
+  connected: boolean
+  account: InboxAccountSummary | null
+  source?: string
+  syncStatus?: InboxSyncStatus
+  warning?: string
+  error?: string
+}
 
-  // --- TEAMMATE: replace demo block with API response ---
-  if (options.useDemoData !== false) {
-    const instagram = connected.find((c) => c.platform === 'instagram')
-    if (instagram) return getDemoInboxMessages(instagram.id)
+export async function fetchInboxMessages(): Promise<FetchInboxResult> {
+  const res = await fetch('/api/inbox/messages', {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+  })
+
+  const data = (await res.json().catch(() => ({}))) as {
+    messages?: InboxMessage[]
+    connected?: boolean
+    account?: InboxAccountSummary | null
+    source?: string
+    syncStatus?: InboxSyncStatus
+    warning?: string
+    error?: string
   }
 
-  return []
+  const messages = Array.isArray(data.messages) ? data.messages : []
+
+  if (!res.ok && messages.length === 0 && !data.connected) {
+    return {
+      messages: [],
+      connected: false,
+      account: null,
+      error: data.error || 'Failed to load inbox',
+      warning: data.warning,
+      syncStatus: data.syncStatus,
+    }
+  }
+
+  return {
+    messages,
+    connected: Boolean(data.connected),
+    account: data.account ?? null,
+    source: data.source,
+    syncStatus: data.syncStatus,
+    warning: data.warning,
+    error: res.ok ? undefined : data.error,
+  }
 }
 
-/** TODO(backend): PATCH /api/inbox/messages/:id */
 export async function markMessageRead(messageId: string): Promise<void> {
-  await delay(150)
-  void messageId
+  const res = await fetch('/api/inbox/messages', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'mark_read', messageId }),
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(data.error || 'Failed to mark message read')
+  }
 }
 
-/** TODO(backend): POST /api/inbox/messages/:id/reply */
 export async function replyToMessage(
   messageId: string,
   body: string
 ): Promise<void> {
-  await delay(300)
-  void messageId
-  void body
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  const res = await fetch('/api/inbox/messages', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'reply', messageId, body }),
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(data.error || 'Failed to send reply')
+  }
 }

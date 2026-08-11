@@ -13,7 +13,13 @@ await ensureDevCacheHealthy()
 checkEnv()
 
 const nextBin = join(process.cwd(), 'node_modules', 'next', 'dist', 'bin', 'next')
-const args = ['dev', ...process.argv.slice(2)]
+// Always bind to 3000 unless the caller already passed -p/--port.
+const extraArgs = process.argv.slice(2)
+const hasPort = extraArgs.some(
+  (arg, i) => arg === '-p' || arg === '--port' || arg.startsWith('--port=') ||
+    (extraArgs[i - 1] === '-p' || extraArgs[i - 1] === '--port')
+)
+const args = hasPort ? ['dev', ...extraArgs] : ['dev', '-p', '3000', ...extraArgs]
 
 const child = spawn(process.execPath, [nextBin, ...args], {
   stdio: 'inherit',

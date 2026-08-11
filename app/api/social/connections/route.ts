@@ -174,8 +174,10 @@ export async function POST(request: NextRequest) {
     businessProfileId: profile.id,
     userId: session.user.id,
     platform: 'instagram',
-    handle: body.handle || 'instagram_account',
-    displayName: body.handle ? `@${body.handle.replace(/^@/, '')}` : '@instagram_account',
+    handle: body.handle || undefined,
+    displayName: body.handle
+      ? `@${String(body.handle).replace(/^@/, '')}`
+      : undefined,
     status: 'connected',
     source: 'oauth-return',
   })

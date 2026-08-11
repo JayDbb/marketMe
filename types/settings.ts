@@ -9,9 +9,15 @@ export interface SettingsData {
   business: {
     businessName: string
     industry: string
+    industryDetail: string
     location: string
     website: string
     primaryGoal: string
+    competitors: string
+    logoUrl: string | null
+    brandColors: string[]
+    primaryFont: string
+    secondaryFont: string
     hasProfile: boolean
   }
   preferences: {

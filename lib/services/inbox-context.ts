@@ -117,3 +117,36 @@ export function inboxUnavailableMessage(
     message,
   }
 }
+
+/** Strip gateway wrappers so the UI can show Instagram's actual reason. */
+export function publicInboxError(
+  error: unknown,
+  fallback = 'Failed to send reply'
+): string {
+  const responseBody =
+    typeof (error as { responseBody?: string })?.responseBody === 'string'
+      ? (error as { responseBody: string }).responseBody
+      : ''
+  const raw = responseBody || (error instanceof Error ? error.message : '')
+  const jsonMatch = raw.match(/\{[\s\S]*\}/)
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]) as {
+        detail?: unknown
+        error?: unknown
+        message?: unknown
+      }
+      const detail = parsed.detail ?? parsed.error ?? parsed.message
+      if (typeof detail === 'string' && detail.trim()) return detail.trim()
+      if (detail && typeof detail === 'object' && 'message' in detail) {
+        const nested = (detail as { message?: unknown }).message
+        if (typeof nested === 'string' && nested.trim()) return nested.trim()
+      }
+    } catch {
+      // Fall through to the stripped gateway message.
+    }
+  }
+
+  const stripped = raw.replace(/^MarketMe[- ]?AI error\s*\d+:\s*/i, '').trim()
+  return stripped || fallback
+}

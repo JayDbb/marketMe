@@ -79,11 +79,14 @@ export async function fetchInboxMessages(): Promise<FetchInboxResult> {
 export async function fetchInboxConversation(
   conversationId: string
 ): Promise<InboxConversation> {
-  const res = await fetch(`/api/inbox/conversations/${encodeURIComponent(conversationId)}`, {
-    method: 'GET',
-    credentials: 'include',
-    cache: 'no-store',
-  })
+  const res = await fetch(
+    `/api/inbox/conversations?id=${encodeURIComponent(conversationId)}`,
+    {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    }
+  )
   const data = (await res.json().catch(() => ({}))) as {
     conversation?: InboxConversation
     error?: string
@@ -125,13 +128,14 @@ export async function replyToMessage(
 
 export async function replyToConversation(
   conversationId: string,
-  body: string
+  body: string,
+  messageId?: string | null
 ): Promise<void> {
-  const res = await fetch(`/api/inbox/conversations/${encodeURIComponent(conversationId)}`, {
+  const res = await fetch('/api/inbox/conversations', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ conversationId, messageId, body }),
   })
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string }

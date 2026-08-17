@@ -115,6 +115,13 @@ function ThreadMessages({
   )
 }
 
+function latestReplyTargetId(conversation: InboxConversation): string | undefined {
+  const incoming = [...conversation.messages]
+    .reverse()
+    .find((message) => message.direction !== 'outgoing' && Boolean(message.id))
+  return incoming?.id || conversation.latestMessage?.id || undefined
+}
+
 function InboxDetailPanel({
   conversation,
   message,
@@ -126,7 +133,7 @@ function InboxDetailPanel({
   message: InboxMessage | null
   threadLoading: boolean
   onClose: () => void
-  onReplyConversation: (conversationId: string, body: string) => Promise<void>
+  onReplyConversation: (conversation: InboxConversation, body: string) => Promise<void>
 }) {
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
@@ -151,7 +158,7 @@ function InboxDetailPanel({
     setSending(true)
     try {
       if (conversation) {
-        await onReplyConversation(conversation.id, reply)
+        await onReplyConversation(conversation, reply)
       } else if (message) {
         await replyToMessage(message.id, reply)
       }
@@ -295,10 +302,17 @@ export function InboxContent() {
     void openConversation(conversation)
   }
 
-  const handleReplyConversation = async (conversationId: string, body: string) => {
-    await replyToConversation(conversationId, body)
-    appendOutgoing(conversationId, body)
-    void refreshConversation(conversationId)
+  const handleReplyConversation = async (
+    conversation: InboxConversation,
+    body: string
+  ) => {
+    await replyToConversation(
+      conversation.id,
+      body,
+      latestReplyTargetId(conversation)
+    )
+    appendOutgoing(conversation.id, body)
+    void refreshConversation(conversation.id)
   }
 
   const accountLabel = account?.atHandle ?? account?.displayName ?? 'Instagram'

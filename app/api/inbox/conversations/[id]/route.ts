@@ -4,9 +4,11 @@ import {
   getInboxConversation,
   MarketingAIError,
   replyToInboxConversationAi,
+  replyToInboxMessageAi,
 } from '@/lib/services/marketing-ai.service'
 import {
   inboxAccountPayload,
+  publicInboxError,
   resolveInboxContext,
   type InboxRouteContext,
 } from '@/lib/services/inbox-context'
@@ -89,7 +91,7 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
     }
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Failed to load conversation' },
+      { error: publicInboxError(e, 'Failed to load conversation') },
       { status: 502 }
     )
   }
@@ -111,27 +113,53 @@ export async function POST(
       return NextResponse.json({ error: 'conversation id is required' }, { status: 400 })
     }
 
-    const body = (await request.json().catch(() => ({}))) as { body?: string }
+    const body = (await request.json().catch(() => ({}))) as {
+      body?: string
+      messageId?: string
+    }
     const replyBody = body.body?.trim() || ''
     if (!replyBody) {
       return NextResponse.json({ error: 'Reply body is required' }, { status: 400 })
     }
 
+    let sent = false
+    let lastError: unknown = null
     try {
       await replyToInboxConversationAi({
         businessProfileId: context.profile.id,
         conversationId,
         body: replyBody,
       })
+      sent = true
     } catch (error) {
-      if (error instanceof MarketingAIError && error.status === 404) {
+      lastError = error
+    }
+
+    const messageId = body.messageId?.trim()
+    if (!sent && messageId) {
+      try {
+        await replyToInboxMessageAi({
+          businessProfileId: context.profile.id,
+          messageId,
+          body: replyBody,
+        })
+        sent = true
+      } catch (error) {
+        lastError = error
+      }
+    }
+
+    if (!sent) {
+      if (lastError instanceof MarketingAIError && lastError.status === 404) {
         return NextResponse.json(
           { error: 'Conversation reply is not available yet on the Instagram publish service.' },
           { status: 501 }
         )
       }
-      const message = error instanceof Error ? error.message : 'Failed to send reply'
-      return NextResponse.json({ error: message }, { status: 502 })
+      return NextResponse.json(
+        { error: publicInboxError(lastError, 'Failed to send reply') },
+        { status: 502 }
+      )
     }
 
     return NextResponse.json({ success: true, conversationId })

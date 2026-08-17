@@ -10,6 +10,7 @@ import {
 import {
   inboxAccountPayload,
   inboxUnavailableMessage,
+  explainInboxReplyError,
   publicInboxError,
   resolveInboxContext,
   type InboxSyncStatus,
@@ -204,20 +205,9 @@ export async function POST(request: NextRequest) {
     let via: 'conversation' | 'message' | null = null
     let lastError: unknown = null
 
-    if (conversationId) {
-      try {
-        await replyToInboxConversationAi({
-          businessProfileId: profile.id,
-          conversationId,
-          body: replyBody,
-        })
-        via = 'conversation'
-      } catch (error) {
-        lastError = error
-      }
-    }
-
-    if (!via && messageId) {
+    // Prefer message reply so Instagram treats this as a response to their DM,
+    // not a new outbound message (which Meta rejects as outside the window).
+    if (messageId) {
       try {
         await replyToInboxMessageAi({
           businessProfileId: profile.id,
@@ -230,8 +220,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (!via && conversationId) {
+      try {
+        await replyToInboxConversationAi({
+          businessProfileId: profile.id,
+          conversationId,
+          body: replyBody,
+        })
+        via = 'conversation'
+      } catch (error) {
+        lastError = error
+      }
+    }
+
     if (!via) {
-      const message = publicInboxError(lastError, 'Failed to send reply')
+      const message = explainInboxReplyError(lastError)
       const status =
         lastError instanceof MarketingAIError && lastError.status === 404
           ? 501

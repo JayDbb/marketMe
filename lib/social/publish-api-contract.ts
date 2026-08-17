@@ -32,13 +32,13 @@ export const PUBLISH_API_CONTRACT = {
   inboxConversation:
     'GET /api/v1/inbox/conversations/{conversation_id}?business_profile_id={uuid}',
 
+  /**
+   * Conversation reply. Instagram rejects API sends outside the 24h user-to-business
+   * window unless the AI service sends messaging_type=MESSAGE_TAG and tag=HUMAN_AGENT.
+   */
   inboxConversationReply:
     'POST /api/v1/inbox/conversations/{conversation_id}/reply  body: { business_profile_id, body }',
 
-  /**
-   * Needed for learn-over-time Generate — official Graph insights for the
-   * connected Instagram Business/Creator account (no scraping).
-   */
   /**
    * Creative brief for image generation.
    * Frontend sends brand_colours, preferred_visual_styles, prohibited_visual_elements,

@@ -150,3 +150,11 @@ export function publicInboxError(
   const stripped = raw.replace(/^MarketMe[- ]?AI error\s*\d+:\s*/i, '').trim()
   return stripped || fallback
 }
+
+export function explainInboxReplyError(error: unknown): string {
+  const message = publicInboxError(error)
+  if (/outside of allowed window|#10\b/i.test(message)) {
+    return 'Instagram only allows MarketMe to reply within 24 hours of the customer’s last DM. Reply in the Instagram app, or ask them to send a new message, then reply here.'
+  }
+  return message
+}

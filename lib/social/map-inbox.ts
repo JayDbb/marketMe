@@ -42,8 +42,12 @@ export type RawInboxItem = {
   unread?: boolean
   receivedAt?: string
   received_at?: string
+  created_time?: string | number
+  createdTime?: string | number
   created_at?: string
-  timestamp?: string
+  timestamp?: string | number
+  updated_time?: string | number
+  updatedAt?: string
   postUrl?: string | null
   post_url?: string
   permalink?: string
@@ -94,6 +98,19 @@ function normalizeDirection(raw: string | undefined): InboxMessageDirection {
   return raw?.toLowerCase() === 'outgoing' ? 'outgoing' : 'incoming'
 }
 
+function coerceTimestamp(value: unknown): string | null {
+  if (value == null || value === '') return null
+  if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) {
+    const n = Number(value)
+    if (!Number.isFinite(n) || n <= 0) return null
+    const ms = n < 1e12 ? n * 1000 : n
+    const date = new Date(ms)
+    return Number.isNaN(date.getTime()) ? null : date.toISOString()
+  }
+  const date = new Date(String(value))
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
 export function mapRawInboxItem(
   item: RawInboxItem,
   fallback: { connectionId: string; platform?: SocialPlatform }
@@ -133,10 +150,14 @@ export function mapRawInboxItem(
   ).trim()
 
   const receivedAt =
-    item.receivedAt ||
-    item.received_at ||
-    item.created_at ||
-    item.timestamp ||
+    coerceTimestamp(item.receivedAt) ||
+    coerceTimestamp(item.received_at) ||
+    coerceTimestamp(item.created_time) ||
+    coerceTimestamp(item.createdTime) ||
+    coerceTimestamp(item.created_at) ||
+    coerceTimestamp(item.timestamp) ||
+    coerceTimestamp(item.updated_time) ||
+    coerceTimestamp(item.updatedAt) ||
     new Date().toISOString()
 
   const preview = (item.preview || body).slice(0, 140)

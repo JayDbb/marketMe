@@ -26,15 +26,25 @@ import {
 import {
   approveAndSchedulePost,
   updateExistingPostForSchedule,
+  verifyPostOwnership,
 } from '@/lib/services/post-lifecycle.service'
 import {
+  buildMarketingSystemPrompt,
   mapProfileGoalToGenerateGoal,
   primaryChannelFromProfile,
 } from '@/lib/marketing-profile-prompt'
+import { imagePromptSystemInstructions } from '@/lib/image-prompt'
 import {
   healthCheck,
   startContentGeneration,
 } from '@/lib/services/marketing-ai.service'
+import {
+  formatBrandMemoryPromptBlock,
+  getBrandMemoryContext,
+} from '@/lib/services/brand-memory.service'
+import { buildGenerationContext } from '@/lib/services/generation-context.service'
+import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
+import { resolveImageModel } from '@/lib/ai-models'
 import { openai } from '@/lib/openai'
 import { PIPELINE_CREDIT_COSTS } from '@/types/pipeline'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -190,6 +200,15 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
       }),
   ])
 
+  const learning =
+    profile?.id
+      ? await buildGenerationContext({
+          userId: user.id,
+          profile,
+          syncInsights: false,
+        })
+      : null
+
   const businessName = resolveDisplayName(user, profile)
   const plan = ((subscriptionResult.data?.plan as PlanId) ?? 'free') as PlanId
   const creditsLimit = PLANS[plan]?.limits.aiCredits ?? null
@@ -202,6 +221,18 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
     defaultTone: profile?.tone?.trim() || 'Professional',
     defaultGoal: mapProfileGoalToGenerateGoal(profile?.primary_goal),
     defaultPlatform: primaryChannelFromProfile(profile?.channels),
+    usesOnboardingBrandKit: Boolean(
+      profile &&
+        (profile.services?.trim() ||
+          profile.tone?.trim() ||
+          (Array.isArray(profile.brand_colors) && profile.brand_colors.length > 0) ||
+          profile.logo_url)
+    ),
+    learningLayers: {
+      brandMemory: learning?.hasBrandMemory ?? false,
+      insights: learning?.hasInsights ?? false,
+      insightsStatus: learning?.insightsStatus ?? 'none',
+    },
 
     hasLiveAi: pipelineAvailable,
     hasOpenAI: pipelineAvailable,
@@ -285,6 +316,13 @@ export async function generatePostsAction(
   )
 
   try {
+    const generationContext = await buildGenerationContext({
+      userId: user.id,
+      profile: businessProfile,
+      userTopic: pipelineInput.topic,
+      syncInsights: true,
+    })
+
     const result = await startContentGeneration({
       business_profile_id: businessProfile.id,
       goal,
@@ -292,11 +330,9 @@ export async function generatePostsAction(
       number_of_posts: numPosts,
       tone,
       template_source: templateSelection.templateSource,
+      topic: generationContext.topic,
       ...(templateSelection.studioTemplateId
         ? { studio_template_id: templateSelection.studioTemplateId }
-        : {}),
-      ...(pipelineInput.topic?.trim()
-        ? { topic: pipelineInput.topic.trim() }
         : {}),
       ...(pipelineInput.startDate || pipelineInput.start_date
         ? { start_date: pipelineInput.startDate ?? pipelineInput.start_date }
@@ -342,6 +378,21 @@ export async function reviseCaptionAction(
     throw new Error('Enter an instruction for the caption revision.')
   }
 
+  const user = await getAuthenticatedUser()
+  const { data: profile } = user
+    ? await getBusinessProfileAction()
+    : { data: null }
+  const brandMemory =
+    user && profile?.id
+      ? await getBrandMemoryContext(user.id, profile.id)
+      : null
+  const brandMemoryBlock = brandMemory
+    ? formatBrandMemoryPromptBlock(brandMemory, { maxExamples: 3 })
+    : ''
+  const profilePrompt = profile
+    ? buildMarketingSystemPrompt(profile)
+    : ''
+
   if (process.env.OPENAI_API_KEY?.trim()) {
     try {
       const completion = await openai.chat.completions.create({
@@ -349,9 +400,15 @@ export async function reviseCaptionAction(
         messages: [
           {
             role: 'system',
-            content:
-              `Revise the following ${platform} post caption based on the user's ` +
-              'instruction. Return only the revised caption text, without quotes or Markdown.',
+            content: [
+              profilePrompt ||
+                `You are an expert social media marketer revising a ${platform} caption.`,
+              `Revise the following ${platform} post caption based on the user's instruction.`,
+              'Return only the revised caption text, without quotes or Markdown.',
+              brandMemoryBlock,
+            ]
+              .filter(Boolean)
+              .join('\n\n'),
           },
           {
             role: 'user',
@@ -374,6 +431,202 @@ export async function reviseCaptionAction(
   })
 
   return `${normalizedCaption}\n\n(Revision requested: ${normalizedPrompt})`
+}
+
+export type RevisePostImageResult =
+  | {
+      success: true
+      imagePrompt: string
+      imageUrl: string
+    }
+  | { success: false; error: string }
+
+/**
+ * Revise a post's image prompt from Generate review chat, then generate a new
+ * image with OpenAI and upload it to storage.
+ */
+export async function revisePostImageAction(input: {
+  postId: string
+  instruction: string
+  currentPrompt?: string | null
+  caption?: string | null
+  title?: string | null
+}): Promise<RevisePostImageResult> {
+  const user = await getAuthenticatedUser()
+  if (!user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  const postId = input.postId?.trim()
+  const instruction = input.instruction.trim()
+  if (!postId || !isValidUuid(postId)) {
+    return { success: false, error: 'Save or finish generating this post before revising its image.' }
+  }
+  if (!instruction) {
+    return { success: false, error: 'Describe how you want the image changed.' }
+  }
+
+  try {
+    rateLimitOrThrow(`revise-image:${user.id}`, 8, 60_000)
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Too many image revisions. Try again shortly.',
+    }
+  }
+
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    return {
+      success: false,
+      error: 'Image revision needs OPENAI_API_KEY configured on the server.',
+    }
+  }
+
+  try {
+    await verifyPostOwnership(user.id, postId)
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Post not found',
+    }
+  }
+
+  const { data: postRow } = await supabaseAdmin
+    .from('posts')
+    .select('id, image_prompt, caption, content, title')
+    .eq('id', postId)
+    .maybeSingle()
+
+  const { data: profile } = await getBusinessProfileAction()
+  const brandMemory = profile?.id
+    ? await getBrandMemoryContext(user.id, profile.id)
+    : null
+  const brandMemoryBlock = brandMemory
+    ? formatBrandMemoryPromptBlock(brandMemory, { maxExamples: 2 })
+    : ''
+  const profilePrompt = profile ? buildMarketingSystemPrompt(profile) : ''
+
+  const seedPrompt =
+    input.currentPrompt?.trim() ||
+    (typeof postRow?.image_prompt === 'string' ? postRow.image_prompt.trim() : '') ||
+    [
+      input.title || postRow?.title || 'Social post visual',
+      input.caption || postRow?.caption || postRow?.content || '',
+      profile?.brand_colors?.length
+        ? `Brand colours: ${profile.brand_colors.join(', ')}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('. ')
+
+  let imagePrompt = seedPrompt
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: [
+            profilePrompt ||
+              'You write image-generation prompts for on-brand social media graphics.',
+            imagePromptSystemInstructions({
+              businessName: profile?.business_name,
+              industry: profile?.industry,
+              industryDetail: profile?.industry_detail,
+              tone: profile?.tone,
+              services: profile?.services,
+              brandColors: profile?.brand_colors,
+              brandFonts: profile?.brand_fonts,
+              logoUrl: profile?.logo_url,
+            }),
+            'Revise the image prompt from the user instruction.',
+            brandMemoryBlock,
+          ]
+            .filter(Boolean)
+            .join('\n\n'),
+        },
+        {
+          role: 'user',
+          content: `Current image prompt:\n${seedPrompt || 'Professional brand social graphic'}\n\nRevision request:\n${instruction}`,
+        },
+      ],
+    })
+    const revised = completion.choices[0]?.message?.content?.trim()
+    if (revised) imagePrompt = revised
+  } catch (error) {
+    console.error('Image prompt revision failed:', error)
+    return {
+      success: false,
+      error: 'Could not revise the image prompt. Try again.',
+    }
+  }
+
+  await supabaseAdmin
+    .from('posts')
+    .update({ image_prompt: imagePrompt })
+    .eq('id', postId)
+
+  try {
+    const prefs = await getUserAiPreferences(user.id)
+    const imageModel = resolveImageModel(prefs.imageModel)
+    const imageResponse = await openai.images.generate({
+      model: imageModel as 'dall-e-3',
+      prompt: imagePrompt.slice(0, 4000),
+      n: 1,
+      size: '1024x1024',
+    })
+    const tempUrl = imageResponse.data?.[0]?.url
+    if (!tempUrl) {
+      return { success: false, error: 'Image model returned no URL.' }
+    }
+
+    const fetchResponse = await fetch(tempUrl)
+    if (!fetchResponse.ok) {
+      return { success: false, error: 'Failed to download generated image.' }
+    }
+    const buffer = Buffer.from(await fetchResponse.arrayBuffer())
+    const fileName = `Posts/post-${postId}-${Date.now()}.png`
+    const bucketName =
+      process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'generated-content'
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(bucketName)
+      .upload(fileName, buffer, {
+        contentType: 'image/png',
+        upsert: true,
+      })
+
+    if (uploadError) {
+      return {
+        success: false,
+        error: `Upload failed: ${uploadError.message}`,
+      }
+    }
+
+    const { data: publicUrlData } = supabaseAdmin.storage
+      .from(bucketName)
+      .getPublicUrl(fileName)
+    const imageUrl = publicUrlData.publicUrl
+
+    await supabaseAdmin
+      .from('posts')
+      .update({ image_url: imageUrl, image_prompt: imagePrompt })
+      .eq('id', postId)
+
+    revalidatePath('/dashboard/generate')
+    revalidatePath('/dashboard/posts')
+
+    return { success: true, imagePrompt, imageUrl }
+  } catch (error) {
+    console.error('Image generation after revise failed:', error)
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Image generation failed. Check OpenAI access and try again.',
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

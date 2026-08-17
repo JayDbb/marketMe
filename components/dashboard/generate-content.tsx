@@ -24,10 +24,14 @@ import { toast } from 'sonner'
 
 import type { CanvasData } from '@/types/canvas'
 import { CanvasEditor } from '@/components/dashboard/studio/canvas-editor'
-import { reviseCaptionAction, schedulePostsBatchAction, generatePostsAction } from '@/app/dashboard/generate/actions'
+import { reviseCaptionAction, revisePostImageAction, schedulePostsBatchAction, generatePostsAction } from '@/app/dashboard/generate/actions'
 import type { GenerateContext, GenerateSetupInput } from '@/lib/generate-utils'
 import { generateCanvasFromTemplate, matchTemplateToGoal } from '@/lib/generate-utils'
-import { formatScheduledPreview, getMinScheduleDatetime } from '@/lib/post-schedule-utils'
+import {
+  formatScheduledPreview,
+  getMinScheduleDatetime,
+  toLocalGeneratedSchedule,
+} from '@/lib/post-schedule-utils'
 import { imageToCanvas } from '@/lib/studio-utils'
 import type { StudioTemplate } from '@/app/dashboard/studio/actions'
 import { AiContentNotice } from '@/components/legal/ai-content-notice'
@@ -53,6 +57,8 @@ interface GeneratedPost {
   scheduledDate: string
   status: PostStatus
   templateId?: string | null
+  imagePrompt?: string | null
+  imageUrl?: string | null
 }
 
 // ─── Mock Canvas Data ─────────────────────────────────────────────────────────
@@ -82,6 +88,12 @@ const DEFAULT_CONTEXT: GenerateContext = {
   defaultTone: 'Professional',
   defaultGoal: 'Increase Brand Awareness',
   defaultPlatform: 'Instagram',
+  usesOnboardingBrandKit: false,
+  learningLayers: {
+    brandMemory: false,
+    insights: false,
+    insightsStatus: 'none',
+  },
   hasLiveAi: false,
   hasOpenAI: false,
   aiProvider: 'none',
@@ -162,24 +174,6 @@ function normalizePipelinePostStatus(value: string): PostStatus {
   }
 }
 
-function toDatetimeLocalValue(
-  value: string | null | undefined,
-  fallbackIndex: number
-): string {
-  const fallback = new Date()
-  fallback.setDate(fallback.getDate() + fallbackIndex + 1)
-  fallback.setHours(9, 0, 0, 0)
-
-  const parsed = value ? new Date(value) : fallback
-  const date = Number.isNaN(parsed.getTime()) ? fallback : parsed
-
-  const localDate = new Date(
-    date.getTime() - date.getTimezoneOffset() * 60_000
-  )
-
-  return localDate.toISOString().slice(0, 16)
-}
-
 function buildFallbackCanvas(
   post: GeneratedPipelinePost,
   title: string,
@@ -241,6 +235,11 @@ function mapPipelinePostToReviewPost(
     post.content?.trim() ||
     ''
 
+  const generatedImageUrl =
+    post.image_url ??
+    post.generated_assets?.find((asset) => Boolean(asset.file_url))?.file_url ??
+    null
+
   return {
     id: post.id,
     title,
@@ -252,15 +251,14 @@ function mapPipelinePostToReviewPost(
       caption,
       fallbackTemplate
     ),
-    scheduledDate: toDatetimeLocalValue(
-      post.scheduled_at,
-      index
-    ),
+    scheduledDate: toLocalGeneratedSchedule(post.scheduled_at, index),
     status: normalizePipelinePostStatus(post.status),
     templateId:
       post.template_id ??
       fallbackTemplate?.id ??
       null,
+    imagePrompt: post.image_prompt ?? null,
+    imageUrl: generatedImageUrl,
   }
 }
 
@@ -716,6 +714,7 @@ export function GenerateContent({
   const [editCaption, setEditCaption] = useState('')
   const [editHashtags, setEditHashtags] = useState('')
   const [aiPrompt, setAiPrompt] = useState('')
+  const [reviseTarget, setReviseTarget] = useState<'caption' | 'image'>('caption')
   const [isApplyingAi, setIsApplyingAi] = useState(false)
   const [isScheduling, setIsScheduling] = useState(false)
 
@@ -737,14 +736,51 @@ export function GenerateContent({
     setIsApplyingAi(true)
 
     try {
-      // Call the API Contract Stub
+      if (reviseTarget === 'image') {
+        const result = await revisePostImageAction({
+          postId: selectedPost.id,
+          instruction: aiPrompt,
+          currentPrompt: selectedPost.imagePrompt,
+          caption: editCaption,
+          title: selectedPost.title,
+        })
+        if (!result.success) {
+          toast.error(result.error)
+          return
+        }
+        const nextCanvas = generateCanvasFromTemplate(
+          imageToCanvas(result.imageUrl, selectedPost.title),
+          selectedPost.title,
+          editCaption
+        )
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === selectedPost.id
+              ? {
+                  ...p,
+                  imagePrompt: result.imagePrompt,
+                  imageUrl: result.imageUrl,
+                  canvasData: nextCanvas,
+                }
+              : p
+          )
+        )
+        setAiPrompt('')
+        toast.success('Image revised and regenerated')
+        return
+      }
+
       const newCaption = await reviseCaptionAction(editCaption, aiPrompt, setupData.platform)
       setEditCaption(newCaption)
       setAiPrompt('')
-      toast.success("Caption revised successfully")
+      toast.success('Caption revised successfully')
     } catch (error) {
-      console.error("Failed to revise caption", error)
-      toast.error("Failed to generate revision. Please try again.")
+      console.error('Failed to revise with AI', error)
+      toast.error(
+        reviseTarget === 'image'
+          ? 'Failed to revise image. Please try again.'
+          : 'Failed to generate revision. Please try again.'
+      )
     } finally {
       setIsApplyingAi(false)
     }
@@ -863,6 +899,29 @@ export function GenerateContent({
                   </span>
                 </span>
               </div>
+              {ctx.usesOnboardingBrandKit ? (
+                <div className="flex items-start gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-950 dark:text-emerald-100/90">
+                  <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <p>
+                    Using your onboarding brand kit
+                    {ctx.industry ? ` (${ctx.industry}` : ''}
+                    {ctx.industry && ctx.services ? ' · ' : ''}
+                    {ctx.services
+                      ? `${ctx.services.slice(0, 80)}${ctx.services.length > 80 ? '…' : ''}`
+                      : ''}
+                    {ctx.industry ? ')' : ''}
+                    {' '}for copy, voice, and visual direction.
+                    {ctx.learningLayers?.brandMemory
+                      ? ' Brand memory from your edits is included.'
+                      : ''}
+                    {ctx.learningLayers?.insights
+                      ? ' Instagram insights are shaping what to post next.'
+                      : ctx.learningLayers?.insightsStatus === 'unavailable'
+                        ? ' Instagram insights will unlock when the publish API ships.'
+                        : ''}
+                  </p>
+                </div>
+              ) : null}
               {!ctx.hasOpenAI && (
                 <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-900 dark:text-amber-100/90">
                   <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
@@ -1338,11 +1397,58 @@ export function GenerateContent({
                         <label className="text-[11px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
                           <Sparkles className="w-3.5 h-3.5" /> AI Revision Engine
                         </label>
-                        <p className="text-sm text-zinc-500 dark:text-white/40 mb-4 leading-relaxed">Describe how you want to tweak the caption above. The AI will instantly rewrite it.</p>
+
+                        <div className="mb-4 flex gap-2">
+                          <button
+                            type="button"
+                            aria-pressed={reviseTarget === 'caption'}
+                            onClick={() => setReviseTarget('caption')}
+                            className={`h-8 rounded-lg px-3 text-xs font-semibold transition-colors ${
+                              reviseTarget === 'caption'
+                                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30'
+                                : 'bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-white/45 border border-transparent hover:border-zinc-200 dark:hover:border-white/10'
+                            }`}
+                          >
+                            Caption
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={reviseTarget === 'image'}
+                            onClick={() => setReviseTarget('image')}
+                            className={`h-8 rounded-lg px-3 text-xs font-semibold transition-colors ${
+                              reviseTarget === 'image'
+                                ? 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/30'
+                                : 'bg-zinc-100 dark:bg-white/5 text-zinc-500 dark:text-white/45 border border-transparent hover:border-zinc-200 dark:hover:border-white/10'
+                            }`}
+                          >
+                            Image
+                          </button>
+                        </div>
+
+                        <p className="text-sm text-zinc-500 dark:text-white/40 mb-4 leading-relaxed">
+                          {reviseTarget === 'image'
+                            ? 'Describe how to change the graphic. Your note updates the image prompt and regenerates the visual.'
+                            : 'Describe how you want to tweak the caption above. The AI will rewrite it.'}
+                        </p>
+                        {reviseTarget === 'image' && selectedPost.imagePrompt ? (
+                          <p className="mb-3 line-clamp-2 text-[11px] text-zinc-400 dark:text-white/30">
+                            Current prompt: {selectedPost.imagePrompt}
+                          </p>
+                        ) : null}
                         <div className="flex gap-3">
                           <Input
-                            placeholder='e.g. "Make it punchier and add a call to action at the end"'
+                            placeholder={
+                              reviseTarget === 'image'
+                                ? 'e.g. "Darker background, product on a wooden table, no people"'
+                                : 'e.g. "Make it punchier and add a call to action at the end"'
+                            }
                             value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                void handleApplyAiEdit()
+                              }
+                            }}
                             className="h-12 bg-zinc-50 dark:bg-black/60 border border-blue-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-white/40 focus-visible:ring-1 focus-visible:ring-blue-500 rounded-xl"
                           />
                           <Button

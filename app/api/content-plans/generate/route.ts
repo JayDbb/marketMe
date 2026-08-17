@@ -15,6 +15,7 @@ import {
   type SocialPlatform,
   type TemplateSource,
 } from "@/lib/services/marketing-ai.service"
+import { buildGenerationContext } from "@/lib/services/generation-context.service"
 
 
 interface GenerateContentPlanBody {
@@ -41,10 +42,19 @@ interface BusinessProfileRow {
   user_id: string
   business_name: string | null
   industry: string | null
+  industry_detail: string | null
+  location: string | null
+  website: string | null
+  services: string | null
+  usp: string | null
   primary_goal: string | null
   target_customers: string | null
   tone: string | null
+  competitors: string | null
   channels: string[] | null
+  logo_url: string | null
+  brand_colors: string[] | null
+  brand_fonts: string[] | null
 }
 
 
@@ -178,7 +188,7 @@ export async function POST(
     } = await supabaseAdmin
       .from("business_profiles")
       .select(
-        "id, user_id, business_name, industry, primary_goal, target_customers, tone, channels"
+        "id, user_id, business_name, industry, industry_detail, location, website, services, usp, primary_goal, target_customers, tone, competitors, channels, logo_url, brand_colors, brand_fonts"
       )
       .eq(
         "id",
@@ -349,6 +359,14 @@ export async function POST(
           .split("T")[0]
     }
 
+    const generationContext = await buildGenerationContext({
+      userId: session.user.id,
+      profile,
+      userTopic: body.topic,
+      syncInsights: true,
+    })
+    const topicFromProfile = generationContext.topic
+
     /*
      * The FastAPI pipeline is responsible for creating:
      *
@@ -385,12 +403,7 @@ export async function POST(
         template_source:
           templateSource,
 
-        ...(body.topic?.trim()
-          ? {
-            topic:
-              body.topic.trim(),
-          }
-          : {}),
+        topic: topicFromProfile,
 
         ...(startDate
           ? {

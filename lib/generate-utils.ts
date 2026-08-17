@@ -1,4 +1,5 @@
 import { toDatetimeLocalValue } from '@/lib/calendar-utils'
+import { parseDatetimeLocal } from '@/lib/post-schedule-utils'
 import type { CanvasData } from '@/types/canvas'
 
 export interface GenerateSetupInput {
@@ -26,6 +27,14 @@ export interface GenerateContext {
   defaultTone: string
   defaultGoal: string
   defaultPlatform: string
+  /** True when onboarding profile fields will seed generation prompts. */
+  usesOnboardingBrandKit?: boolean
+  /** Which learning layers are active for this workspace. */
+  learningLayers?: {
+    brandMemory: boolean
+    insights: boolean
+    insightsStatus: string
+  }
   /** True when MarketMe AI API and/or OpenAI/OpenRouter is configured. */
   hasLiveAi: boolean
   /** @deprecated Use hasLiveAi */
@@ -52,7 +61,7 @@ export function normalizePlatform(platform: string): string {
 }
 
 export function toIsoScheduledDate(value: string): string {
-  const d = new Date(value)
+  const d = parseDatetimeLocal(value)
   if (Number.isNaN(d.getTime())) {
     throw new Error('Invalid scheduled date')
   }

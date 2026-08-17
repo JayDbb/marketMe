@@ -21,7 +21,9 @@ import {
   recordReviseSignal,
   REVISE_EXAMPLES,
 } from '@/lib/services/brand-memory.service'
+import { buildGenerationContext } from '@/lib/services/generation-context.service'
 import { resolveChatModel, resolveImageModel } from '@/lib/ai-models'
+import { imagePromptSystemInstructions } from '@/lib/image-prompt'
 import type {
   GenerateWeeklyContentPayload,
   RegenerateCaptionPayload,
@@ -130,11 +132,11 @@ export const generateWeeklyContent = task({
     }
 
     const typed = profile as BusinessProfile
-    const brandMemory = await getBrandMemoryContext(
-      payload.userId,
-      typed.id
-    )
-    const brandMemoryBlock = formatBrandMemoryPromptBlock(brandMemory)
+    const generationContext = await buildGenerationContext({
+      userId: payload.userId,
+      profile: typed,
+      syncInsights: true,
+    })
 
     const pipeline = await runCreativePipeline({
       business: profileToPipelineInput(typed),
@@ -146,8 +148,8 @@ export const generateWeeklyContent = task({
       tone: typed.tone ?? undefined,
       numPosts: 5,
       weekStartDate: payload.startDate.slice(0, 10),
-      includeCreativeBriefs: false,
-      brandMemoryInstructions: brandMemoryBlock || undefined,
+      includeCreativeBriefs: true,
+      brandMemoryInstructions: generationContext.fullInstructions || undefined,
     })
 
     const startDate = new Date(payload.startDate)
@@ -321,7 +323,7 @@ export const generateCreativeBrief = task({
           'Professional brand photography, clean composition, high quality'
 
         const creativeData = await generateCreative({
-          business: buildBusinessCreativeContext(postCtx),
+          business: buildBusinessCreativeContext(postCtx, business),
           post: {
             post_id: payload.backendPostId,
             business_id: toAiBusinessId(business.profileId),
@@ -332,7 +334,9 @@ export const generateCreativeBrief = task({
             platform: 'instagram',
           },
           options: {
-            style_hint: payload.style || 'High quality, professional photograph',
+            style_hint:
+              payload.style || imagePromptSystemInstructions(business),
+            additional_instructions: imagePromptSystemInstructions(business),
           },
         })
 
@@ -428,7 +432,63 @@ export const generateImage = task({
 
     if (postError || !post) throw new Error('Post not found')
 
-    let prompt = post.image_prompt
+    let prompt = post.image_prompt as string | null
+    const businessProfileId =
+      post.content_plans?.business_profile_id || null
+    let brandForPrompt: Parameters<typeof imagePromptSystemInstructions>[0] = null
+    if (businessProfileId) {
+      const { data: profile } = await supabaseAdmin
+        .from('business_profiles')
+        .select('*')
+        .eq('id', businessProfileId)
+        .maybeSingle()
+      if (profile) {
+        const business = profileToPipelineInput(profile as BusinessProfile)
+        brandForPrompt = {
+          businessName: business.businessName,
+          industry: business.industry,
+          industryDetail: business.industryDetail,
+          tone: business.tone,
+          services: business.services,
+          brandColors: business.brandColors,
+          brandFonts: business.brandFonts,
+          logoUrl: business.logoUrl,
+        }
+      }
+    }
+
+    if (payload.revisionInstruction?.trim()) {
+      const instruction = payload.revisionInstruction.trim()
+      const base =
+        (typeof prompt === 'string' && prompt.trim()) ||
+        (typeof post.content === 'string' && post.content.trim()) ||
+        (typeof post.caption === 'string' && post.caption.trim()) ||
+        'Professional social media marketing image'
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content:
+              imagePromptSystemInstructions(brandForPrompt) +
+              (payload.style ? ` Preferred style: ${payload.style}.` : ''),
+          },
+          {
+            role: 'user',
+            content: `Current prompt:\n${base}\n\nRevision request:\n${instruction}`,
+          },
+        ],
+      })
+      const revised = completion.choices[0]?.message?.content?.trim()
+      if (revised) {
+        prompt = revised
+        await supabaseAdmin
+          .from('posts')
+          .update({ image_prompt: prompt })
+          .eq('id', payload.postId)
+      }
+    }
+
     if (!prompt) {
       const briefResult = await generateCreativeBrief.triggerAndWait({
         postId: payload.postId,
@@ -444,13 +504,17 @@ export const generateImage = task({
       await supabaseAdmin.from('posts').update({ image_prompt: prompt }).eq('id', payload.postId)
     }
 
+    if (!prompt?.trim()) {
+      throw new Error('No image prompt available for generation')
+    }
+
     const imageModel = post.user_id
       ? resolveImageModel((await getUserAiPreferences(post.user_id)).imageModel)
       : resolveImageModel(null)
 
     const imageResponse = await openai.images.generate({
       model: imageModel as 'dall-e-3',
-      prompt: prompt,
+      prompt: prompt.trim(),
       n: 1,
       size: '1024x1024',
     })

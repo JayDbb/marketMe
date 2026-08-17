@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, AuthError } from '@/lib/services/auth.service'
-import { getBusinessProfile } from '@/lib/services/business.service'
+import { AuthError } from '@/lib/services/auth.service'
 import {
+  getInboxConversations,
   getInboxMessages,
-  getSocialConnections,
   markInboxMessageReadAi,
   MarketingAIError,
   replyToInboxMessageAi,
-  type RawSocialConnection,
 } from '@/lib/services/marketing-ai.service'
 import {
   listInboxMessages,
@@ -15,97 +13,24 @@ import {
   upsertInboxMessages,
 } from '@/lib/services/inbox.service'
 import {
-  listMirroredConnections,
-  mergeRemoteAndMirrored,
-} from '@/lib/services/social-connections.service'
-import { getInstagramAccountLabel } from '@/lib/social/instagram-account'
-import { mapRawInboxPayload } from '@/lib/social/map-inbox'
-import { mapRawConnection, normalizeInstagramHandle } from '@/lib/social/oauth'
-import { isRateLimitError, rateLimitOrThrow } from '@/lib/rate-limit'
-import type { SocialConnection } from '@/types/social'
+  inboxAccountPayload,
+  inboxUnavailableMessage,
+  resolveInboxContext,
+  type InboxSyncStatus,
+} from '@/lib/services/inbox-context'
+import {
+  mapRawConversationsPayload,
+  mapRawInboxPayload,
+} from '@/lib/social/map-inbox'
+import { normalizeInstagramHandle } from '@/lib/social/oauth'
+import { isRateLimitError } from '@/lib/rate-limit'
+import type { InboxConversation, InboxMessage } from '@/types/social'
 
 export const runtime = 'nodejs'
 
-export type InboxSyncStatus =
-  | 'ok'
-  | 'empty'
-  | 'needs_reconnect'
-  | 'inbox_unavailable'
-  | 'unreachable'
+export type { InboxSyncStatus }
 
-function mapConnections(raw: RawSocialConnection[]) {
-  return raw.map((acc) =>
-    mapRawConnection({
-      id: acc.account_id ?? acc.id,
-      platform: acc.platform,
-      handle: acc.handle,
-      account_url: acc.account_url,
-      connected_status: acc.connected_status,
-      instagram_user_id: acc.instagram_user_id,
-      facebook_page_id: acc.facebook_page_id,
-      created_at: acc.created_at,
-    })
-  )
-}
-
-async function resolveContext() {
-  const session = await requireAuth()
-  rateLimitOrThrow(`inbox:${session.user.id}`, 40, 60_000)
-
-  const { data: profile, error: profileError } = await getBusinessProfile(
-    session.user.id
-  )
-  if (profileError) {
-    throw Object.assign(new Error(profileError), { status: 500 })
-  }
-  if (!profile) {
-    throw Object.assign(
-      new Error('Complete your business profile before opening the inbox.'),
-      { status: 404 }
-    )
-  }
-
-  const mirrored = await listMirroredConnections(profile.id, session.user.id)
-  let remote: SocialConnection[] = []
-  let remoteError: string | null = null
-  try {
-    const raw = await getSocialConnections(profile.id)
-    remote = mapConnections(Array.isArray(raw) ? raw : [])
-  } catch (error) {
-    remoteError =
-      error instanceof Error ? error.message : 'Failed to reach publish service'
-  }
-
-  const connections = mergeRemoteAndMirrored(remote, mirrored)
-  const instagram = connections.find(
-    (c) => c.platform === 'instagram' && c.status === 'connected'
-  )
-  const remoteInstagram = remote.find(
-    (c) => c.platform === 'instagram' && c.status === 'connected'
-  )
-
-  return {
-    session,
-    profile,
-    instagram,
-    remoteInstagram,
-    remoteError,
-    mirroredOnly: Boolean(instagram && !remoteInstagram && !remoteError),
-  }
-}
-
-function accountPayload(instagram: SocialConnection) {
-  const account = getInstagramAccountLabel(instagram)
-  return {
-    connectionId: instagram.id,
-    handle: normalizeInstagramHandle(instagram.handle) || null,
-    displayName: account.title,
-    atHandle: account.atHandle,
-    profileUrl: account.profileUrl,
-  }
-}
-
-/** List Instagram inbox messages for the signed-in user's connected account. */
+/** List Instagram inbox messages and conversations for the signed-in user. */
 export async function GET() {
   try {
     const {
@@ -115,13 +40,14 @@ export async function GET() {
       remoteInstagram,
       remoteError,
       mirroredOnly,
-    } = await resolveContext()
+    } = await resolveInboxContext()
 
     if (!instagram) {
       return NextResponse.json(
         {
           error: 'Connect Instagram on the Connections page to open your inbox.',
           messages: [],
+          conversations: [],
           connected: false,
           syncStatus: 'empty',
         },
@@ -135,16 +61,16 @@ export async function GET() {
       platform: 'instagram',
     })
 
-    // Mirror says connected, but publish service has no Instagram token.
     if (mirroredOnly) {
       return NextResponse.json({
         messages: local,
+        conversations: [],
         connected: true,
         source: local.length > 0 ? 'local' : 'empty',
         syncStatus: 'needs_reconnect' satisfies InboxSyncStatus,
         warning:
           'Instagram is marked connected in MarketMe, but the publish service has no token for this account. Reconnect Instagram to enable inbox sync.',
-        account: accountPayload(instagram),
+        account: inboxAccountPayload(instagram),
         businessProfileId: profile.id,
       })
     }
@@ -152,57 +78,73 @@ export async function GET() {
     if (remoteError && !remoteInstagram) {
       return NextResponse.json({
         messages: local,
+        conversations: [],
         connected: true,
         source: local.length > 0 ? 'local' : 'empty',
         syncStatus: 'unreachable' satisfies InboxSyncStatus,
         warning: `Could not reach the publish service to load inbox. ${remoteError.replace(/^MarketMe[- ]?AI error:\s*/i, '')}`,
-        account: accountPayload(instagram),
+        account: inboxAccountPayload(instagram),
         businessProfileId: profile.id,
       })
     }
 
-    // Prefer the richer remote account (real @handle) when available.
     const activeAccount = remoteInstagram || instagram
-    let remoteMessages = mapRawInboxPayload(null, {
+    const fallback = {
       connectionId: activeAccount.id,
-      platform: 'instagram',
-    })
+      platform: 'instagram' as const,
+    }
+
+    const [messagesOutcome, conversationsOutcome] = await Promise.allSettled([
+      getInboxMessages(profile.id, { platform: 'instagram' }),
+      getInboxConversations(profile.id, { platform: 'instagram' }),
+    ])
+
+    let remoteMessages: InboxMessage[] = []
+    let conversations: InboxConversation[] = []
     let source: 'marketme-ai' | 'local' | 'empty' = 'empty'
     let syncStatus: InboxSyncStatus = 'empty'
     let warning: string | undefined
+    const failures: unknown[] = []
 
-    try {
-      const raw = await getInboxMessages(profile.id, { platform: 'instagram' })
-      remoteMessages = mapRawInboxPayload(raw, {
+    if (messagesOutcome.status === 'fulfilled') {
+      remoteMessages = mapRawInboxPayload(messagesOutcome.value, fallback)
+    } else {
+      failures.push(messagesOutcome.reason)
+    }
+
+    if (conversationsOutcome.status === 'fulfilled') {
+      conversations = mapRawConversationsPayload(
+        conversationsOutcome.value,
+        fallback
+      )
+    } else {
+      failures.push(conversationsOutcome.reason)
+    }
+
+    if (remoteMessages.length > 0) {
+      await upsertInboxMessages({
+        businessProfileId: profile.id,
+        userId: session.user.id,
         connectionId: activeAccount.id,
-        platform: 'instagram',
+        messages: remoteMessages,
       })
-      if (remoteMessages.length > 0) {
-        await upsertInboxMessages({
-          businessProfileId: profile.id,
-          userId: session.user.id,
-          connectionId: activeAccount.id,
-          messages: remoteMessages,
-        })
-        source = 'marketme-ai'
-        syncStatus = 'ok'
-      } else {
-        syncStatus = 'empty'
-      }
-    } catch (error) {
-      const message =
-        error instanceof MarketingAIError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : 'Failed to sync Instagram inbox'
-      console.error('[inbox/messages]', message)
+    }
 
-      const isMissingEndpoint =
-        error instanceof MarketingAIError &&
-        (error.status === 404 || /not found/i.test(message))
-
-      if (isMissingEndpoint) {
+    const hasRemote = remoteMessages.length > 0 || conversations.length > 0
+    if (hasRemote) {
+      source = 'marketme-ai'
+      syncStatus = 'ok'
+    } else if (failures.length > 0) {
+      const first = failures[0]
+      const { missingEndpoint, message } = inboxUnavailableMessage(first)
+      const allMissing = failures.every((error) => inboxUnavailableMessage(error).missingEndpoint)
+      console.error('[inbox/messages]', {
+        outcome: allMissing || missingEndpoint ? 'inbox_unavailable' : 'unreachable',
+        businessProfileId: profile.id,
+        failedCount: failures.length,
+        message,
+      })
+      if (allMissing || missingEndpoint) {
         syncStatus = 'inbox_unavailable'
         warning = activeAccount
           ? `Your Instagram account is linked${normalizeInstagramHandle(activeAccount.handle) ? ` as @${normalizeInstagramHandle(activeAccount.handle)}` : ''}, but live DM/comment sync is not enabled on the publish API yet.`
@@ -215,15 +157,18 @@ export async function GET() {
 
     const messages = remoteMessages.length > 0 ? remoteMessages : local
     if (remoteMessages.length === 0 && local.length > 0) source = 'local'
-    if (syncStatus === 'empty' && messages.length > 0) syncStatus = 'ok'
+    if (syncStatus === 'empty' && (messages.length > 0 || conversations.length > 0)) {
+      syncStatus = 'ok'
+    }
 
     return NextResponse.json({
       messages,
+      conversations,
       connected: true,
       source,
       syncStatus,
       warning,
-      account: accountPayload(activeAccount),
+      account: inboxAccountPayload(activeAccount),
       businessProfileId: profile.id,
     })
   } catch (e) {
@@ -241,6 +186,7 @@ export async function GET() {
       {
         error: e instanceof Error ? e.message : 'Failed to load inbox',
         messages: [],
+        conversations: [],
       },
       { status }
     )
@@ -250,7 +196,7 @@ export async function GET() {
 /** Mark read or reply to an inbox message. */
 export async function POST(request: NextRequest) {
   try {
-    const { session, profile, instagram, mirroredOnly } = await resolveContext()
+    const { session, profile, instagram, mirroredOnly } = await resolveInboxContext()
     if (!instagram) {
       return NextResponse.json(
         { error: 'Connect Instagram before managing inbox messages.' },

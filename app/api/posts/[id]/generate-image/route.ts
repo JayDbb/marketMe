@@ -39,11 +39,17 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { style } = body;
+    const { style, revisionInstruction } = body as {
+      style?: string
+      revisionInstruction?: string
+    };
 
     const handle = await tasks.trigger<typeof generateImage>("generate-image", {
       postId: id,
       style,
+      ...(revisionInstruction?.trim()
+        ? { revisionInstruction: revisionInstruction.trim() }
+        : {}),
     });
 
     return NextResponse.json({ success: true, jobId: handle.id });

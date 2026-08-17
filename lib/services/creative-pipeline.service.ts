@@ -1,8 +1,14 @@
 import 'server-only'
 
 import { toAiBusinessId } from '@/lib/ai-business-id'
-import { toDatetimeLocalValue } from '@/lib/calendar-utils'
+import {
+  buildCompactBrandBrief,
+  buildMarketingSystemPrompt,
+  type MarketingPromptProfile,
+} from '@/lib/marketing-profile-prompt'
+import { toLocalGeneratedSchedule } from '@/lib/post-schedule-utils'
 import type { BusinessProfile } from '@/types/business-profile'
+import { buildImagePromptDirectives } from '@/lib/image-prompt'
 import {
   flattenHashtags,
   generateCreative,
@@ -29,13 +35,19 @@ export interface PipelineBusinessInput {
   profileId: string
   businessName: string
   industry?: string | null
+  industryDetail?: string | null
   location?: string | null
+  website?: string | null
   services?: string | null
   usp?: string | null
   primaryGoal?: string | null
   tone?: string | null
   targetCustomers?: string | null
+  competitors?: string | null
   channels?: string[] | null
+  logoUrl?: string | null
+  brandColors?: string[] | null
+  brandFonts?: string[] | null
 }
 
 export interface PipelinePostDraft {
@@ -85,6 +97,7 @@ export function mapGoalToObjective(goal: string | null | undefined): ContentObje
   if (g.includes('engage') || g.includes('community')) return 'engagement'
   if (g.includes('educat') || g.includes('authority')) return 'education'
   if (g.includes('retain') || g.includes('loyalty')) return 'retention'
+  if (g.includes('booking') || g.includes('consultation')) return 'leads'
   return 'awareness'
 }
 
@@ -96,14 +109,47 @@ export function profileToPipelineInput(
     profileId: profile.id,
     businessName: overrides?.businessName ?? profile.business_name ?? 'My Business',
     industry: overrides?.industry ?? profile.industry,
+    industryDetail: overrides?.industryDetail ?? profile.industry_detail,
     location: overrides?.location ?? profile.location,
+    website: overrides?.website ?? profile.website,
     services: overrides?.services ?? profile.services,
     usp: overrides?.usp ?? profile.usp,
     primaryGoal: overrides?.primaryGoal ?? profile.primary_goal,
     tone: overrides?.tone ?? profile.tone,
     targetCustomers: overrides?.targetCustomers ?? profile.target_customers,
+    competitors: overrides?.competitors ?? profile.competitors,
     channels: overrides?.channels ?? profile.channels,
+    logoUrl: overrides?.logoUrl ?? profile.logo_url,
+    brandColors: overrides?.brandColors ?? profile.brand_colors,
+    brandFonts: overrides?.brandFonts ?? profile.brand_fonts,
   }
+}
+
+export function pipelineInputToMarketingProfile(
+  input: PipelineBusinessInput
+): MarketingPromptProfile {
+  return {
+    business_name: input.businessName,
+    industry: input.industry ?? null,
+    industry_detail: input.industryDetail ?? null,
+    location: input.location ?? null,
+    website: input.website ?? null,
+    services: input.services ?? null,
+    usp: input.usp ?? null,
+    primary_goal: input.primaryGoal ?? null,
+    target_customers: input.targetCustomers ?? null,
+    tone: input.tone ?? null,
+    competitors: input.competitors ?? null,
+    channels: input.channels ?? [],
+    logo_url: input.logoUrl ?? null,
+    brand_colors: input.brandColors ?? null,
+    brand_fonts: input.brandFonts ?? null,
+  }
+}
+
+/** Full onboarding-aware instructions for strategy / posts / creative. */
+export function buildPipelineProfileInstructions(input: PipelineBusinessInput): string {
+  return buildMarketingSystemPrompt(pipelineInputToMarketingProfile(input))
 }
 
 export function buildBusinessStrategyContext(
@@ -113,18 +159,30 @@ export function buildBusinessStrategyContext(
     .map((c) => mapPlatform(c))
     .filter((v, i, arr) => arr.indexOf(v) === i)
 
+  const industry = input.industry?.trim() || 'General business'
+  const detail = input.industryDetail?.trim()
+  const businessType = detail ? `${industry} — ${detail}` : industry
+
+  const descriptionParts = [
+    input.services?.trim() || null,
+    input.website?.trim() ? `Website: ${input.website.trim()}` : null,
+  ].filter(Boolean)
+
   return {
     business_id: toAiBusinessId(input.profileId),
     business_name: input.businessName.trim() || 'My Business',
-    business_type: input.industry?.trim() || 'General business',
+    business_type: businessType,
     location: input.location ?? null,
-    description: input.services ?? null,
+    description: descriptionParts.join('\n') || null,
     summary: input.usp ?? input.services ?? null,
     tone: input.tone?.trim() || 'friendly and professional',
     products_or_services: splitList(input.services),
     existing_audience: input.targetCustomers ?? null,
     current_marketing_channels: channels.length > 0 ? channels : ['instagram'],
     unique_selling_points: splitList(input.usp),
+    prohibited_keywords: input.competitors
+      ? splitList(input.competitors).slice(0, 10)
+      : undefined,
   }
 }
 
@@ -150,9 +208,42 @@ export function buildBusinessPostContext(
 }
 
 export function buildBusinessCreativeContext(
-  postCtx: BusinessPostContext
+  postCtx: BusinessPostContext,
+  input?: PipelineBusinessInput
 ): BusinessCreativeContext {
-  return { ...postCtx }
+  const colors = (input?.brandColors ?? []).filter(Boolean)
+  const fonts = (input?.brandFonts ?? []).filter(Boolean)
+  const styles = [
+    fonts.length > 0 ? `Use brand fonts: ${fonts.join(' / ')}` : null,
+    input?.logoUrl
+      ? 'Leave space for the real brand logo; never invent a wordmark'
+      : 'Do not invent logos or brand names in the image',
+    input?.tone ? `Visual mood matches brand voice: ${input.tone}` : null,
+    buildImagePromptDirectives(input ?? null),
+  ].filter(Boolean) as string[]
+
+  return {
+    ...postCtx,
+    brand_colours: colors.length > 0 ? colors : undefined,
+    preferred_visual_styles: styles.length > 0 ? styles : undefined,
+    prohibited_visual_elements: [
+      'tiny unreadable text',
+      'watermarks',
+      'fake logos',
+      'misspelled words',
+      'busy collage',
+    ],
+  }
+}
+
+function supportingPlatforms(
+  channels: string[] | null | undefined,
+  primary: SocialPlatform
+): SocialPlatform[] {
+  return (channels ?? [])
+    .map((c) => mapPlatform(c))
+    .filter((p, i, arr) => p !== primary && arr.indexOf(p) === i)
+    .slice(0, 4)
 }
 
 function strategyToPostContext(
@@ -203,20 +294,6 @@ function collectScheduleItems(schedule: GeneratedContentSchedule): ScheduledCont
   return items.sort((a, b) => a.sequence_number - b.sequence_number)
 }
 
-function toLocalScheduleDate(isoOrDate: string): string {
-  const d = new Date(isoOrDate)
-  if (Number.isNaN(d.getTime())) {
-    const fallback = new Date()
-    fallback.setDate(fallback.getDate() + 1)
-    fallback.setHours(10, 0, 0, 0)
-    return toDatetimeLocalValue(fallback)
-  }
-  if (d.getTime() <= Date.now()) {
-    d.setDate(d.getDate() + 1)
-  }
-  return toDatetimeLocalValue(d)
-}
-
 function postResponseToDraft(
   response: GeneratePostResponse,
   fallbackTitle: string,
@@ -229,15 +306,23 @@ function postResponseToDraft(
     title: fallbackTitle,
     caption: response.generated.caption?.trim() || '',
     hashtags: hashtagsToCaptionString(hashtags),
-    scheduledDate: response.post_data.scheduled_date
-      ? toLocalScheduleDate(response.post_data.scheduled_date)
-      : toLocalScheduleDate(fallbackDate),
+    scheduledDate: toLocalGeneratedSchedule(
+      response.post_data.scheduled_date || fallbackDate,
+      index
+    ),
     imagePrompt: response.generated.image_prompt,
     callToAction: response.generated.call_to_action ?? null,
     backendPostId: response.post_id,
     contentType: response.generated.content_type,
     status: 'needs_review',
   }
+}
+
+function joinInstructions(...parts: Array<string | null | undefined>): string {
+  return parts
+    .map((p) => p?.trim())
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 export async function runCreativePipeline(options: {
@@ -256,24 +341,30 @@ export async function runCreativePipeline(options: {
   const objective = mapGoalToObjective(options.goal ?? options.business.primaryGoal)
   const tone = options.tone?.trim() || options.business.tone || 'friendly and professional'
   const memory = options.brandMemoryInstructions?.trim() ?? ''
+  const supporting = supportingPlatforms(options.business.channels, platform)
 
   const businessInput: PipelineBusinessInput = {
     ...options.business,
     tone,
   }
 
+  const profileInstructions = buildPipelineProfileInstructions(businessInput)
+  const compactBrief = buildCompactBrandBrief(
+    pipelineInputToMarketingProfile(businessInput)
+  )
+
   const strategyBusiness = buildBusinessStrategyContext(businessInput)
   const postBusiness = buildBusinessPostContext(
     strategyBusiness,
     options.business.targetCustomers
   )
+  const creativeBusiness = buildBusinessCreativeContext(postBusiness, businessInput)
 
   const weekStart =
     options.weekStartDate ??
     (() => {
       const d = new Date()
       d.setHours(0, 0, 0, 0)
-      // Next Monday-ish: tomorrow as safe default for API date
       d.setDate(d.getDate() + 1)
       return d.toISOString().slice(0, 10)
     })()
@@ -282,13 +373,21 @@ export async function runCreativePipeline(options: {
     business: strategyBusiness,
     options: {
       primary_platform: platform,
-      supporting_platforms: [],
+      supporting_platforms: supporting,
       timeframe: 'weekly',
       primary_objective: objective,
       target_audience_hint: options.business.targetCustomers ?? null,
       campaign_focus: options.goal ?? options.business.primaryGoal ?? null,
       posting_capacity_per_week: numPosts,
-      additional_instructions: `Brand tone: ${tone}. Generate a practical weekly content strategy.${memory}`,
+      additional_instructions: joinInstructions(
+        profileInstructions,
+        `Brand tone override for this run: ${tone}.`,
+        'Generate a practical weekly content strategy.',
+        options.business.competitors
+          ? 'Differentiate from listed competitors without naming them in copy.'
+          : null,
+        memory
+      ),
     },
   })
 
@@ -306,9 +405,14 @@ export async function runCreativePipeline(options: {
       number_of_weeks: 1,
       posts_per_week: numPosts,
       primary_platform: platform,
+      supporting_platforms: supporting,
       include_weekends: true,
       include_promotional_content: true,
-      additional_instructions: `Plan exactly ${numPosts} posts for the week.${memory}`,
+      additional_instructions: joinInstructions(
+        `Plan exactly ${numPosts} posts for the week.`,
+        compactBrief,
+        memory
+      ),
     },
   })
 
@@ -334,12 +438,29 @@ export async function runCreativePipeline(options: {
           target_audience: options.business.targetCustomers || 'Ideal customers',
         }))
 
+  const visualStyleHint = buildImagePromptDirectives({
+    businessName: businessInput.businessName,
+    industry: businessInput.industry,
+    industryDetail: businessInput.industryDetail,
+    tone: businessInput.tone,
+    services: businessInput.services,
+    brandColors: businessInput.brandColors,
+    brandFonts: businessInput.brandFonts,
+    logoUrl: businessInput.logoUrl,
+  })
+
   for (let i = 0; i < itemsToGenerate.length; i++) {
     const item = itemsToGenerate[i]
     const topic = [item.title, item.key_message, item.description]
       .filter(Boolean)
       .join(' — ')
       .slice(0, 1000)
+
+    const ctaHint =
+      item.call_to_action_intent ??
+      (businessInput.website
+        ? `Point readers to ${businessInput.website} when a CTA fits`
+        : null)
 
     const postResponse = await generatePost({
       business: postBusiness,
@@ -365,17 +486,17 @@ export async function runCreativePipeline(options: {
         include_emojis: true,
         include_hashtags: true,
         include_call_to_action: true,
-        call_to_action_hint: item.call_to_action_intent ?? null,
-        additional_instructions: [
+        call_to_action_hint: ctaHint,
+        additional_instructions: joinInstructions(
+          profileInstructions,
           `Tone: ${tone}`,
           ...(item.post_generation_instructions ?? []),
           item.visual_direction_hint
             ? `Visual direction hint: ${item.visual_direction_hint}`
-            : '',
-          memory,
-        ]
-          .filter(Boolean)
-          .join('\n'),
+            : null,
+          visualStyleHint || null,
+          memory
+        ),
       },
     })
 
@@ -390,7 +511,7 @@ export async function runCreativePipeline(options: {
     if (options.includeCreativeBriefs && postResponse.post_id) {
       try {
         const brief = await generateCreative({
-          business: buildBusinessCreativeContext(postBusiness),
+          business: creativeBusiness,
           post: {
             post_id: postResponse.post_id,
             business_id: postBusiness.business_id,
@@ -402,7 +523,15 @@ export async function runCreativePipeline(options: {
             platform: item.platform || platform,
           },
           options: {
-            style_hint: item.visual_direction_hint ?? 'High quality, professional brand visual',
+            style_hint:
+              item.visual_direction_hint ||
+              visualStyleHint ||
+              'High quality, professional brand visual',
+            additional_instructions: joinInstructions(
+              compactBrief,
+              visualStyleHint || null,
+              memory
+            ),
           },
         })
         creativeBriefs.push(brief)

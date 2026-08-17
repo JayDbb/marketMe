@@ -129,13 +129,20 @@ export async function replyToMessage(
 export async function replyToConversation(
   conversationId: string,
   body: string,
-  messageId?: string | null
+  messageId?: string | null,
+  options?: { recipientId?: string | null; lastInboundAt?: string | null }
 ): Promise<void> {
   const res = await fetch('/api/inbox/conversations', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ conversationId, messageId, body }),
+    body: JSON.stringify({
+      conversationId,
+      messageId,
+      body,
+      recipientId: options?.recipientId,
+      lastInboundAt: options?.lastInboundAt,
+    }),
   })
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string }

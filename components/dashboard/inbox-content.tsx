@@ -122,6 +122,13 @@ function latestReplyTargetId(conversation: InboxConversation): string | undefine
   return incoming?.id || conversation.latestMessage?.id || undefined
 }
 
+function latestInboundAt(conversation: InboxConversation): string | undefined {
+  const incoming = [...conversation.messages]
+    .reverse()
+    .find((message) => message.direction !== 'outgoing' && Boolean(message.receivedAt))
+  return incoming?.receivedAt || conversation.latestMessage?.receivedAt || conversation.updatedAt || undefined
+}
+
 function InboxDetailPanel({
   conversation,
   message,
@@ -309,7 +316,11 @@ export function InboxContent() {
     await replyToConversation(
       conversation.id,
       body,
-      latestReplyTargetId(conversation)
+      latestReplyTargetId(conversation),
+      {
+        recipientId: conversation.participantId,
+        lastInboundAt: latestInboundAt(conversation),
+      }
     )
     appendOutgoing(conversation.id, body)
     void refreshConversation(conversation.id)

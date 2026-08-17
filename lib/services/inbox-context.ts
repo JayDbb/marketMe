@@ -151,10 +151,21 @@ export function publicInboxError(
   return stripped || fallback
 }
 
-export function explainInboxReplyError(error: unknown): string {
+export function explainInboxReplyError(
+  error: unknown,
+  options?: { lastInboundAt?: string | null }
+): string {
   const message = publicInboxError(error)
-  if (/outside of allowed window|#10\b/i.test(message)) {
-    return 'Instagram only allows MarketMe to reply within 24 hours of the customer’s last DM. Reply in the Instagram app, or ask them to send a new message, then reply here.'
+  if (!/outside of allowed window|#10\b/i.test(message)) return message
+
+  const lastInboundAt = options?.lastInboundAt?.trim()
+  const ageMs = lastInboundAt ? Date.now() - new Date(lastInboundAt).getTime() : Number.NaN
+  const within24h =
+    Number.isFinite(ageMs) && ageMs >= 0 && ageMs < 24 * 60 * 60 * 1000
+
+  if (within24h) {
+    return 'Instagram rejected this reply even though this DM is still under 24 hours old, so it is not the usual time-window limit. Reply in the Instagram app for now — the publish API needs to send to the customer’s Instagram user id (IGSID) as a response, not a new message.'
   }
-  return message
+
+  return 'Instagram only allows MarketMe to reply within 24 hours of the customer’s last DM. Reply in the Instagram app, or ask them to send a new message, then reply here.'
 }

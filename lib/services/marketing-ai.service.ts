@@ -1691,10 +1691,46 @@ export async function getInboxMessages(
   }
 }
 
+async function postInboxReplyJson(
+  path: string,
+  payload: Record<string, unknown>
+): Promise<unknown> {
+  try {
+    return await fetchWithRetry(
+      path,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      { retries: 1, timeoutMs: 25_000 }
+    )
+  } catch (error) {
+    if (
+      error instanceof MarketingAIError &&
+      error.status === 422 &&
+      "recipient_id" in payload
+    ) {
+      const { recipient_id: _recipientId, ...base } = payload
+      return await fetchWithRetry(
+        path,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(base),
+        },
+        { retries: 1, timeoutMs: 25_000 }
+      )
+    }
+    throw error
+  }
+}
+
 export async function replyToInboxMessageAi(input: {
   businessProfileId: string
   messageId: string
   body: string
+  recipientId?: string
 }): Promise<unknown> {
   const businessProfileId = normalizeRequiredId(
     input.businessProfileId,
@@ -1704,9 +1740,11 @@ export async function replyToInboxMessageAi(input: {
   const body = input.body.trim()
   if (!body) throw new Error("Reply body is required.")
 
+  const recipientId = input.recipientId?.trim()
   const inboxPayload = {
     business_profile_id: businessProfileId,
     body,
+    ...(recipientId ? { recipient_id: recipientId } : {}),
   }
 
   const paths = [
@@ -1723,11 +1761,7 @@ export async function replyToInboxMessageAi(input: {
   let lastError: Error | null = null
   for (const candidate of paths) {
     try {
-      return await fetchWithRetry(candidate.path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(candidate.body),
-      }, { retries: 1, timeoutMs: 25_000 })
+      return await postInboxReplyJson(candidate.path, candidate.body)
     } catch (error) {
       lastError =
         error instanceof Error ? error : new Error(String(error))
@@ -1841,6 +1875,7 @@ export async function replyToInboxConversationAi(input: {
   businessProfileId: string
   conversationId: string
   body: string
+  recipientId?: string
 }): Promise<unknown> {
   const businessProfileId = normalizeRequiredId(
     input.businessProfileId,
@@ -1852,18 +1887,15 @@ export async function replyToInboxConversationAi(input: {
   )
   const body = input.body.trim()
   if (!body) throw new Error("Reply body is required.")
+  const recipientId = input.recipientId?.trim()
 
-  return fetchWithRetry(
+  return postInboxReplyJson(
     `/api/v1/inbox/conversations/${encodeURIComponent(conversationId)}/reply`,
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        business_profile_id: businessProfileId,
-        body,
-      }),
-    },
-    { retries: 1, timeoutMs: 25_000 }
+      business_profile_id: businessProfileId,
+      body,
+      ...(recipientId ? { recipient_id: recipientId } : {}),
+    }
   )
 }
 

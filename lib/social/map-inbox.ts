@@ -158,7 +158,7 @@ export function mapRawInboxItem(
     coerceTimestamp(item.timestamp) ||
     coerceTimestamp(item.updated_time) ||
     coerceTimestamp(item.updatedAt) ||
-    new Date().toISOString()
+    ''
 
   const preview = (item.preview || body).slice(0, 140)
   const conversationId = String(

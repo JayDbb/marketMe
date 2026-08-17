@@ -186,11 +186,15 @@ export async function POST(request: NextRequest) {
     const payload = (await request.json().catch(() => ({}))) as {
       conversationId?: string
       messageId?: string
+      recipientId?: string
+      lastInboundAt?: string
       body?: string
     }
     const replyBody = payload.body?.trim() || ''
     const conversationId = payload.conversationId?.trim() || ''
     const messageId = payload.messageId?.trim() || ''
+    const recipientId = payload.recipientId?.trim() || ''
+    const lastInboundAt = payload.lastInboundAt?.trim() || ''
 
     if (!replyBody) {
       return NextResponse.json({ error: 'Reply body is required' }, { status: 400 })
@@ -213,6 +217,7 @@ export async function POST(request: NextRequest) {
           businessProfileId: profile.id,
           messageId,
           body: replyBody,
+          recipientId,
         })
         via = 'message'
       } catch (error) {
@@ -226,6 +231,7 @@ export async function POST(request: NextRequest) {
           businessProfileId: profile.id,
           conversationId,
           body: replyBody,
+          recipientId,
         })
         via = 'conversation'
       } catch (error) {
@@ -234,7 +240,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!via) {
-      const message = explainInboxReplyError(lastError)
+      const message = explainInboxReplyError(lastError, { lastInboundAt })
       const status =
         lastError instanceof MarketingAIError && lastError.status === 404
           ? 501
@@ -243,6 +249,8 @@ export async function POST(request: NextRequest) {
         businessProfileId: profile.id,
         conversationIdLength: conversationId.length,
         hasMessageId: Boolean(messageId),
+        hasRecipientId: Boolean(recipientId),
+        lastInboundAt: lastInboundAt || null,
         status,
         message,
       })

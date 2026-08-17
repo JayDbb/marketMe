@@ -3,7 +3,7 @@
  * which sync from the connected Instagram account via MarketMe AI.
  */
 
-import type { InboxMessage } from '@/types/social'
+import type { InboxConversation, InboxMessage } from '@/types/social'
 
 export type InboxAccountSummary = {
   connectionId: string
@@ -22,6 +22,7 @@ export type InboxSyncStatus =
 
 export type FetchInboxResult = {
   messages: InboxMessage[]
+  conversations: InboxConversation[]
   connected: boolean
   account: InboxAccountSummary | null
   source?: string
@@ -39,6 +40,7 @@ export async function fetchInboxMessages(): Promise<FetchInboxResult> {
 
   const data = (await res.json().catch(() => ({}))) as {
     messages?: InboxMessage[]
+    conversations?: InboxConversation[]
     connected?: boolean
     account?: InboxAccountSummary | null
     source?: string
@@ -48,10 +50,12 @@ export async function fetchInboxMessages(): Promise<FetchInboxResult> {
   }
 
   const messages = Array.isArray(data.messages) ? data.messages : []
+  const conversations = Array.isArray(data.conversations) ? data.conversations : []
 
-  if (!res.ok && messages.length === 0 && !data.connected) {
+  if (!res.ok && messages.length === 0 && conversations.length === 0 && !data.connected) {
     return {
       messages: [],
+      conversations: [],
       connected: false,
       account: null,
       error: data.error || 'Failed to load inbox',
@@ -62,6 +66,7 @@ export async function fetchInboxMessages(): Promise<FetchInboxResult> {
 
   return {
     messages,
+    conversations,
     connected: Boolean(data.connected),
     account: data.account ?? null,
     source: data.source,
@@ -69,6 +74,24 @@ export async function fetchInboxMessages(): Promise<FetchInboxResult> {
     warning: data.warning,
     error: res.ok ? undefined : data.error,
   }
+}
+
+export async function fetchInboxConversation(
+  conversationId: string
+): Promise<InboxConversation> {
+  const res = await fetch(`/api/inbox/conversations/${encodeURIComponent(conversationId)}`, {
+    method: 'GET',
+    credentials: 'include',
+    cache: 'no-store',
+  })
+  const data = (await res.json().catch(() => ({}))) as {
+    conversation?: InboxConversation
+    error?: string
+  }
+  if (!res.ok || !data.conversation) {
+    throw new Error(data.error || 'Failed to load conversation')
+  }
+  return data.conversation
 }
 
 export async function markMessageRead(messageId: string): Promise<void> {
@@ -93,6 +116,22 @@ export async function replyToMessage(
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'reply', messageId, body }),
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(data.error || 'Failed to send reply')
+  }
+}
+
+export async function replyToConversation(
+  conversationId: string,
+  body: string
+): Promise<void> {
+  const res = await fetch(`/api/inbox/conversations/${encodeURIComponent(conversationId)}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
   })
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string }

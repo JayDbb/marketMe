@@ -13,16 +13,27 @@ export const PUBLISH_API_CONTRACT = {
   publishInstagram: 'POST /api/v1/publish/instagram',
 
   /**
-   * Needed for Inbox — list DMs / mentions / comments.
-   * Prefer publish path; frontend also tries /api/v1/inbox/messages.
+   * Inbox — list DMs / mentions / comments.
+   * Live on Render: GET /api/v1/inbox/messages
+   * Frontend also tries /api/v1/publish/inbox as a fallback.
    */
-  inboxList: 'GET /api/v1/publish/inbox?business_profile_id={uuid}&platform=instagram',
+  inboxList: 'GET /api/v1/inbox/messages?business_profile_id={uuid}&platform=instagram',
 
   inboxReply:
-    'POST /api/v1/publish/inbox/{message_id}/reply  body: { business_profile_id, message_id, body }',
+    'POST /api/v1/inbox/messages/{message_id}/reply  body: { business_profile_id, body }',
 
   inboxMarkRead:
-    'PATCH /api/v1/publish/inbox/{message_id}  body: { business_profile_id, status: "read" }',
+    'PATCH /api/v1/inbox/messages/{message_id}  body: { business_profile_id }',
+
+  /** Conversation threads — list, open, and reply. */
+  inboxConversations:
+    'GET /api/v1/inbox/conversations?business_profile_id={uuid}&platform=instagram',
+
+  inboxConversation:
+    'GET /api/v1/inbox/conversations/{conversation_id}?business_profile_id={uuid}',
+
+  inboxConversationReply:
+    'POST /api/v1/inbox/conversations/{conversation_id}/reply  body: { business_profile_id, body }',
 
   /**
    * Needed for learn-over-time Generate — official Graph insights for the

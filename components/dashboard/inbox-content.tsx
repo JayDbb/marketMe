@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -20,10 +20,13 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useInbox } from '@/hooks/use-inbox'
-import { InboxColumn } from '@/components/dashboard/inbox/inbox-message-card'
-import type { InboxMessage } from '@/types/social'
+import {
+  InboxColumn,
+  InboxConversationColumn,
+} from '@/components/dashboard/inbox/inbox-message-card'
+import type { InboxConversation, InboxMessage } from '@/types/social'
 import { formatDistanceToNow } from '@/lib/social/format-relative'
-import { replyToMessage } from '@/lib/social/inbox-api'
+import { replyToConversation, replyToMessage } from '@/lib/social/inbox-api'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -42,17 +45,93 @@ const itemVariants = {
   },
 }
 
-function InboxDetailPanel({
-  message,
-  onClose,
+function ThreadMessages({
+  conversation,
+  loading,
 }: {
+  conversation: InboxConversation
+  loading: boolean
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const thread =
+    conversation.messages.length > 0
+      ? conversation.messages
+      : conversation.latestMessage
+        ? [conversation.latestMessage]
+        : []
+
+  useEffect(() => {
+    const node = scrollerRef.current
+    if (!node) return
+    node.scrollTop = node.scrollHeight
+  }, [thread.length, conversation.id])
+
+  if (loading && thread.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-500 dark:text-white/40 gap-2">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading thread…
+      </div>
+    )
+  }
+
+  if (thread.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-5 text-center text-sm text-zinc-500 dark:text-white/40">
+        No messages in this conversation yet.
+      </div>
+    )
+  }
+
+  return (
+    <div ref={scrollerRef} className="flex-1 p-5 overflow-y-auto custom-scrollbar space-y-3">
+      {thread.map((message) => {
+        const outgoing = message.direction === 'outgoing'
+        return (
+          <div
+            key={message.id}
+            className={`flex ${outgoing ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${
+                outgoing
+                  ? 'bg-sky-600 text-white rounded-br-md'
+                  : 'bg-zinc-100 dark:bg-white/8 text-zinc-800 dark:text-white/85 rounded-bl-md'
+              }`}
+            >
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.body}</p>
+              <p
+                className={`mt-1 text-[10px] ${
+                  outgoing ? 'text-white/70' : 'text-zinc-400 dark:text-white/35'
+                }`}
+              >
+                {formatDistanceToNow(message.receivedAt)} ago
+              </p>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function InboxDetailPanel({
+  conversation,
+  message,
+  threadLoading,
+  onClose,
+  onReplyConversation,
+}: {
+  conversation: InboxConversation | null
   message: InboxMessage | null
+  threadLoading: boolean
   onClose: () => void
+  onReplyConversation: (conversationId: string, body: string) => Promise<void>
 }) {
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
 
-  if (!message) {
+  if (!conversation && !message) {
     return (
       <div className="hidden lg:flex flex-1 min-w-[280px] max-w-md flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 bg-white/30 dark:bg-white/2 p-8 text-center">
         <MessageCircle className="w-10 h-10 text-zinc-300 dark:text-white/15 mb-3" />
@@ -63,11 +142,19 @@ function InboxDetailPanel({
     )
   }
 
+  const title = conversation?.participantName || message?.authorName || 'Conversation'
+  const handle = conversation?.participantHandle || message?.authorHandle || 'user'
+  const postUrl = message?.postUrl
+
   const handleReply = async () => {
     if (!reply.trim()) return
     setSending(true)
     try {
-      await replyToMessage(message.id, reply)
+      if (conversation) {
+        await onReplyConversation(conversation.id, reply)
+      } else if (message) {
+        await replyToMessage(message.id, reply)
+      }
       setReply('')
       toast.success('Reply sent')
     } catch (e) {
@@ -81,8 +168,8 @@ function InboxDetailPanel({
     <div className="hidden lg:flex flex-1 min-w-[280px] max-w-md flex-col rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/3 overflow-hidden">
       <div className="px-5 py-4 border-b border-zinc-200 dark:border-white/8 flex items-center justify-between">
         <div>
-          <p className="font-semibold text-zinc-900 dark:text-white">{message.authorName}</p>
-          <p className="text-xs text-zinc-500 dark:text-white/40">@{message.authorHandle}</p>
+          <p className="font-semibold text-zinc-900 dark:text-white">{title}</p>
+          <p className="text-xs text-zinc-500 dark:text-white/40">@{handle}</p>
         </div>
         <button
           type="button"
@@ -93,25 +180,29 @@ function InboxDetailPanel({
         </button>
       </div>
 
-      <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
-        <p className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-white/30 mb-3">
-          {message.type} · {formatDistanceToNow(message.receivedAt)} ago
-        </p>
-        <p className="text-sm text-zinc-800 dark:text-white/85 leading-relaxed whitespace-pre-wrap">
-          {message.body}
-        </p>
-        {message.postUrl && (
-          <a
-            href={message.postUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-4 text-xs text-sky-600 hover:underline dark:text-sky-400"
-          >
-            View on Instagram
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
-      </div>
+      {conversation ? (
+        <ThreadMessages conversation={conversation} loading={threadLoading} />
+      ) : (
+        <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
+          <p className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-white/30 mb-3">
+            {message?.type} · {message ? `${formatDistanceToNow(message.receivedAt)} ago` : ''}
+          </p>
+          <p className="text-sm text-zinc-800 dark:text-white/85 leading-relaxed whitespace-pre-wrap">
+            {message?.body}
+          </p>
+          {postUrl && (
+            <a
+              href={postUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-4 text-xs text-sky-600 hover:underline dark:text-sky-400"
+            >
+              View on Instagram
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
+      )}
 
       <div className="p-4 border-t border-zinc-200 dark:border-white/8 space-y-2">
         <Textarea
@@ -171,6 +262,9 @@ export function InboxContent() {
     dms,
     mentions,
     comments,
+    conversations,
+    activeConversation,
+    threadLoading,
     isLoading,
     searchQuery,
     setSearchQuery,
@@ -178,22 +272,39 @@ export function InboxContent() {
     unreadCount,
     refresh,
     markRead,
+    openConversation,
+    closeConversation,
+    appendOutgoing,
+    refreshConversation,
     account,
     error,
     warning,
     syncStatus,
   } = useInbox()
 
-  const [selected, setSelected] = useState<InboxMessage | null>(null)
+  const [selectedMessage, setSelectedMessage] = useState<InboxMessage | null>(null)
 
-  const handleSelect = (message: InboxMessage) => {
-    setSelected(message)
+  const handleSelectMessage = (message: InboxMessage) => {
+    closeConversation()
+    setSelectedMessage(message)
     if (message.status === 'unread') void markRead(message.id)
+  }
+
+  const handleSelectConversation = (conversation: InboxConversation) => {
+    setSelectedMessage(null)
+    void openConversation(conversation)
+  }
+
+  const handleReplyConversation = async (conversationId: string, body: string) => {
+    await replyToConversation(conversationId, body)
+    appendOutgoing(conversationId, body)
+    void refreshConversation(conversationId)
   }
 
   const accountLabel = account?.atHandle ?? account?.displayName ?? 'Instagram'
   const needsReconnect = syncStatus === 'needs_reconnect'
   const bannerTone = error || needsReconnect ? 'amber' : warning ? 'sky' : null
+  const useThreads = conversations.length > 0
 
   return (
     <motion.div
@@ -317,19 +428,35 @@ export function InboxContent() {
           variants={itemVariants}
           className="flex gap-4 overflow-x-auto pb-4 flex-1 min-h-0"
         >
-          <InboxColumn
-            title="DMs"
-            icon={MessageCircle}
-            messages={dms}
-            emptyTitle={needsReconnect ? 'Waiting on reconnect' : 'No DMs yet'}
-            emptyDescription={
-              needsReconnect
-                ? 'After reconnecting, Instagram DMs will appear here.'
-                : `Direct messages to ${accountLabel} will show up here.`
-            }
-            selectedId={selected?.id}
-            onSelect={handleSelect}
-          />
+          {useThreads ? (
+            <InboxConversationColumn
+              title="DMs"
+              icon={MessageCircle}
+              conversations={conversations}
+              emptyTitle={needsReconnect ? 'Waiting on reconnect' : 'No DMs yet'}
+              emptyDescription={
+                needsReconnect
+                  ? 'After reconnecting, Instagram DMs will appear here.'
+                  : `Direct messages to ${accountLabel} will show up here.`
+              }
+              selectedId={activeConversation?.id}
+              onSelect={handleSelectConversation}
+            />
+          ) : (
+            <InboxColumn
+              title="DMs"
+              icon={MessageCircle}
+              messages={dms}
+              emptyTitle={needsReconnect ? 'Waiting on reconnect' : 'No DMs yet'}
+              emptyDescription={
+                needsReconnect
+                  ? 'After reconnecting, Instagram DMs will appear here.'
+                  : `Direct messages to ${accountLabel} will show up here.`
+              }
+              selectedId={selectedMessage?.id}
+              onSelect={handleSelectMessage}
+            />
+          )}
           <InboxColumn
             title="@ Mentions"
             icon={AtSign}
@@ -340,8 +467,8 @@ export function InboxContent() {
                 ? 'Mentions sync after Instagram is reconnected.'
                 : `When someone @mentions ${accountLabel}, it appears here.`
             }
-            selectedId={selected?.id}
-            onSelect={handleSelect}
+            selectedId={selectedMessage?.id}
+            onSelect={handleSelectMessage}
           />
           <InboxColumn
             title="Comments"
@@ -353,10 +480,19 @@ export function InboxContent() {
                 ? 'Post comments sync after Instagram is reconnected.'
                 : `Comments on ${accountLabel} posts sync to this column.`
             }
-            selectedId={selected?.id}
-            onSelect={handleSelect}
+            selectedId={selectedMessage?.id}
+            onSelect={handleSelectMessage}
           />
-          <InboxDetailPanel message={selected} onClose={() => setSelected(null)} />
+          <InboxDetailPanel
+            conversation={activeConversation}
+            message={selectedMessage}
+            threadLoading={threadLoading}
+            onClose={() => {
+              closeConversation()
+              setSelectedMessage(null)
+            }}
+            onReplyConversation={handleReplyConversation}
+          />
         </motion.div>
       ) : null}
     </motion.div>

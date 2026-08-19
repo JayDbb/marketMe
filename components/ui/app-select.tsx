@@ -37,7 +37,7 @@ export function AppSelect({
         type="button"
         aria-label={ariaLabel}
         className={cn(
-          'group flex h-12 w-full items-center justify-between gap-2 rounded-xl border px-3 text-left text-base outline-none transition-all',
+          'group flex h-12 w-full items-center justify-between gap-2 rounded-xl border px-3 text-left text-base outline-none ui-transition',
           isOnboarding
             ? 'border-white/15 bg-white/8 text-white hover:border-white/25 focus-visible:border-blue-400/60 data-popup-open:border-blue-400/60'
             : 'border-zinc-200 bg-white text-zinc-900 shadow-inner hover:border-zinc-300 focus-visible:ring-1 focus-visible:ring-blue-500/50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:border-white/20',

@@ -15,7 +15,6 @@ export function OrganizationJsonLd() {
       priceCurrency: 'USD',
     },
   }
-
   return (
     <script
       type="application/ld+json"

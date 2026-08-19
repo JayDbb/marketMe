@@ -41,6 +41,7 @@ export interface InboxMessage {
   status: InboxMessageStatus
   receivedAt: string
   postUrl?: string | null
+  externalId?: string | null
 }
 
 export interface InboxConversation {

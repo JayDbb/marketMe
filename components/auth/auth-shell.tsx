@@ -56,7 +56,7 @@ export function AuthShell({
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 120, damping: 24 }}
-          className="w-full max-w-[440px] rounded-2xl border border-zinc-200/80 bg-white p-8 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.45)] sm:p-10"
+          className="w-full max-w-md rounded-3xl border border-zinc-200/80 bg-white p-8 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.45)] sm:p-10"
         >
           <div className="mb-8 flex items-center justify-between gap-3">
             <Link href="/" className="group inline-flex items-center gap-2.5">
@@ -74,8 +74,10 @@ export function AuthShell({
             </Link>
           </div>
 
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{headline}</h1>
-          <p className="mt-2 text-sm text-zinc-500">
+          <h1 className="text-balance text-2xl font-semibold tracking-tight text-zinc-900">
+            {headline}
+          </h1>
+          <p className="mt-2 text-pretty text-sm leading-relaxed text-zinc-500">
             {alternatePrompt}{' '}
             <Link
               href={alternateHref}
@@ -87,8 +89,8 @@ export function AuthShell({
 
           <div className="mt-8">{children}</div>
 
-          <p className="mt-8 text-center text-[11px] text-zinc-400">
-            {mode === 'login' ? 'Secure sign-in' : '14-day free trial'} · Marketme
+          <p className="mt-8 text-center text-xs text-zinc-400">
+            {mode === 'login' ? 'Secure Sign-In' : '14-Day Free Trial'} · Marketme
           </p>
         </motion.div>
       </div>

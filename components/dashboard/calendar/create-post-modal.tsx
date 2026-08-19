@@ -14,6 +14,7 @@ import {
   getMinScheduleDatetime,
   getPlatformCharLimit,
   getSchedulePresets,
+  parseDatetimeLocal,
 } from "@/lib/post-schedule-utils";
 import { Platform } from "@/types/content";
 import { AnimatePresence, motion } from "framer-motion";
@@ -39,6 +40,7 @@ import { useIsClient } from "@/hooks/use-is-client";
 import { ImageUpload } from "./image-upload";
 import { PannablePreviewImage } from "./pannable-preview-image";
 import { toDatetimeLocalValue } from "@/lib/calendar-utils";
+import { DEFAULT_PREFERENCES, formatTimezoneLabel } from "@/lib/settings-utils";
 
 export interface CreatePostPayload {
   caption: string;
@@ -60,9 +62,10 @@ interface CreatePostModalProps {
   onSubmit: (post: CreatePostPayload) => void | Promise<void>;
   initialScheduledFor?: string;
   editPost?: EditPostInitial | null;
+  timeZone?: string;
 }
 
-const PLATFORMS: Platform[] = ["twitter", "linkedin", "instagram"];
+const PLATFORMS: Platform[] = ["instagram"];
 
 const PLATFORM_LABELS: Record<string, string> = {
   twitter: "X / Twitter",
@@ -139,7 +142,7 @@ function PostPreview({
 
   if (platform === "instagram") {
     return (
-      <div className="w-full max-w-[360px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col transition-all">
+      <div className="w-full max-w-[360px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col ui-transition">
         <div className="p-3 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-linear-to-tr from-yellow-400 via-red-500 to-pink-500 p-[2px] shrink-0">
@@ -181,7 +184,7 @@ function PostPreview({
 
   if (platform === "linkedin") {
     return (
-      <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xl flex flex-col transition-all">
+      <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xl flex flex-col ui-transition">
         <div className="p-4 flex items-start gap-3">
           <div className="w-12 h-12 rounded bg-blue-100 flex items-center justify-center shrink-0">
             <span className="font-bold text-blue-700 text-sm">
@@ -241,7 +244,7 @@ function PostPreview({
   }
 
   return (
-    <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col transition-all">
+    <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col ui-transition">
       <div className="p-4 pb-2 flex items-start gap-3">
         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
           <div className="w-full h-full bg-blue-500/10 flex items-center justify-center">
@@ -301,11 +304,12 @@ export function CreatePostModal({
   onSubmit,
   initialScheduledFor,
   editPost = null,
+  timeZone = DEFAULT_PREFERENCES.timezone,
 }: CreatePostModalProps) {
   const [content, setContent] = useState("");
   const [platform, setPlatform] = useState<Platform>("instagram");
-  const [scheduledFor, setScheduledFor] = useState(
-    getDefaultScheduleDatetime(),
+  const [scheduledFor, setScheduledFor] = useState(() =>
+    getDefaultScheduleDatetime(timeZone),
   );
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -343,8 +347,8 @@ export function CreatePostModal({
             (() => {
               const d = new Date(editPost.scheduled_date);
               return Number.isNaN(d.getTime())
-                ? getDefaultScheduleDatetime()
-                : toDatetimeLocalValue(d);
+                ? getDefaultScheduleDatetime(timeZone)
+                : toDatetimeLocalValue(d, timeZone);
             })(),
         );
         setFile(null);
@@ -352,15 +356,15 @@ export function CreatePostModal({
       }
       setContent("");
       setPlatform("instagram");
-      setScheduledFor(initialScheduledFor ?? getDefaultScheduleDatetime());
+      setScheduledFor(initialScheduledFor ?? getDefaultScheduleDatetime(timeZone));
       setFile(null);
     });
-  }, [isOpen, initialScheduledFor, editPost]);
+  }, [isOpen, initialScheduledFor, editPost, timeZone]);
 
   const charLimit = getPlatformCharLimit(platform);
   const charCount = content.length;
-  const schedulePresets = getSchedulePresets();
-  const minSchedule = getMinScheduleDatetime();
+  const schedulePresets = getSchedulePresets(timeZone);
+  const minSchedule = getMinScheduleDatetime(timeZone);
   const isEditMode = Boolean(editPost);
 
   useEffect(() => {
@@ -374,8 +378,8 @@ export function CreatePostModal({
     setContent("");
     setPlatform("instagram");
     setFile(null);
-    setScheduledFor(getDefaultScheduleDatetime());
-  }, []);
+    setScheduledFor(getDefaultScheduleDatetime(timeZone));
+  }, [timeZone]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,7 +395,7 @@ export function CreatePostModal({
       return;
     }
 
-    const scheduledDate = new Date(scheduledFor);
+    const scheduledDate = parseDatetimeLocal(scheduledFor, timeZone);
     if (Number.isNaN(scheduledDate.getTime())) {
       toast.error("Please pick a valid date and time");
       return;
@@ -411,7 +415,7 @@ export function CreatePostModal({
           file,
         }),
       );
-      toast.success("Post scheduled successfully!");
+      toast.success(isEditMode ? "Post updated" : "Post scheduled successfully!");
       resetForm();
       onClose();
     } catch (error) {
@@ -419,7 +423,9 @@ export function CreatePostModal({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to schedule post. Please try again.",
+          : isEditMode
+            ? "Failed to update post. Please try again."
+            : "Failed to schedule post. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -508,6 +514,10 @@ export function CreatePostModal({
                             </button>
                           ))}
                         </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Instagram publishing is live now. Additional channels will appear here
+                          once they are supported.
+                        </p>
                       </div>
 
                       <div className="space-y-2">
@@ -543,8 +553,11 @@ export function CreatePostModal({
 
                       <div className="space-y-3">
                         <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                          Schedule For
+                          Schedule for
                         </Label>
+                        <p className="text-[11px] text-muted-foreground">
+                          Times in {formatTimezoneLabel(timeZone)}
+                        </p>
                         <div className="relative">
                           <Input
                             type="datetime-local"
@@ -558,7 +571,7 @@ export function CreatePostModal({
                         </div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 shrink-0" />
-                          {formatScheduledPreview(scheduledFor)}
+                          {formatScheduledPreview(scheduledFor, timeZone)}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {schedulePresets.map((preset) => (

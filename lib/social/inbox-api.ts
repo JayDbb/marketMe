@@ -97,6 +97,19 @@ export async function fetchInboxConversation(
   return data.conversation
 }
 
+export async function archiveInboxItem(messageId: string): Promise<void> {
+  const res = await fetch('/api/inbox/messages', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'archive', messageId }),
+  })
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(data.error || 'Failed to mark inbox item done')
+  }
+}
+
 export async function markMessageRead(messageId: string): Promise<void> {
   const res = await fetch('/api/inbox/messages', {
     method: 'POST',

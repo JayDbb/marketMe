@@ -215,6 +215,12 @@ export function mapRawConnection(acc: {
   instagram_user_id?: string | null
   facebook_page_id?: string | null
   created_at?: string
+  updated_at?: string
+  avatar_url?: string | null
+  profile_picture_url?: string | null
+  profile_image_url?: string | null
+  last_synced_at?: string | null
+  token_expires_at?: string | null
 }): SocialConnection {
   const platform = (acc.platform || 'instagram') as SocialPlatform
   const handle =
@@ -240,5 +246,9 @@ export function mapRawConnection(acc: {
     status,
     connectedAt: acc.created_at || new Date().toISOString(),
     externalAccountId: acc.instagram_user_id || acc.facebook_page_id || undefined,
+    avatarUrl:
+      acc.avatar_url || acc.profile_picture_url || acc.profile_image_url || null,
+    lastSyncedAt: acc.last_synced_at || acc.updated_at || acc.created_at || null,
+    tokenExpiresAt: acc.token_expires_at || null,
   }
 }

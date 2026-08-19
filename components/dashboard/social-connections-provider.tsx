@@ -20,7 +20,7 @@ import {
 } from '@/lib/social/connection-api'
 
 export type RefreshConnectionsResult =
-  | { ok: true; warning?: string }
+  | { ok: true; warning?: string; source?: string }
   | { ok: false; error: string }
 
 interface SocialConnectionsContextValue {
@@ -29,6 +29,7 @@ interface SocialConnectionsContextValue {
   connectingPlatform: SocialPlatform | null
   error: string | null
   warning: string | null
+  source: string | null
   refresh: () => Promise<RefreshConnectionsResult>
   confirmOAuthSuccess: (
     platform?: SocialPlatform,
@@ -66,6 +67,7 @@ export function SocialConnectionsProvider({
     useState<SocialPlatform | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
+  const [source, setSource] = useState<string | null>(null)
 
   const refresh = useCallback(async (): Promise<RefreshConnectionsResult> => {
     const normalizedProfileId = businessProfileId.trim()
@@ -74,6 +76,7 @@ export function SocialConnectionsProvider({
       setConnections([])
       setError('No business profile is available.')
       setWarning(null)
+      setSource(null)
       setIsLoading(false)
       return { ok: false, error: 'No business profile is available.' }
     }
@@ -93,8 +96,9 @@ export function SocialConnectionsProvider({
         return { ok: false, error: result.error }
       }
       setConnections(result.connections)
+      setSource(result.source ?? null)
       if (result.warning) setWarning(result.warning)
-      return { ok: true, warning: result.warning }
+      return { ok: true, warning: result.warning, source: result.source }
     } finally {
       setIsLoading(false)
     }
@@ -114,12 +118,16 @@ export function SocialConnectionsProvider({
         const saved = await confirmInstagramOAuth(handle)
         if (saved.ok && saved.connections.length > 0) {
           setConnections(saved.connections)
+          setSource(saved.source ?? 'mirror')
         }
         const refreshed = await fetchConnections(businessProfileId.trim())
         if (refreshed.ok) {
           setConnections(refreshed.connections)
+          setSource(
+            refreshed.source ?? (saved.ok ? saved.source : undefined) ?? 'mirror'
+          )
           if (refreshed.warning) setWarning(refreshed.warning)
-          return { ok: true, warning: refreshed.warning }
+          return { ok: true, warning: refreshed.warning, source: refreshed.source }
         }
         if (saved.ok) {
           if (refreshed.error) setWarning(refreshed.error)
@@ -158,7 +166,6 @@ export function SocialConnectionsProvider({
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Connection failed'
         setError(message)
-        toast.error(message)
         setConnectingPlatform(null)
       }
     },
@@ -178,7 +185,12 @@ export function SocialConnectionsProvider({
       try {
         await disconnectConnection(connectionId, normalizedProfileId)
         setConnections((prev) => prev.filter((c) => c.id !== connectionId))
-        toast.success('Instagram disconnected in MarketMe')
+        setSource(null)
+        setWarning(null)
+        toast.success('Instagram removed from MarketMe', {
+          description:
+            'Revoke MarketMe in Meta Business Integrations if you want to cut token access.',
+        })
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Disconnect failed')
       }
@@ -188,7 +200,9 @@ export function SocialConnectionsProvider({
 
   const getConnection = useCallback(
     (platform: SocialPlatform) =>
-      connections.find((c) => c.platform === platform && c.status === 'connected'),
+      connections.find(
+        (c) => c.platform === platform && c.status !== 'disconnected'
+      ),
     [connections]
   )
 
@@ -206,6 +220,7 @@ export function SocialConnectionsProvider({
       connectingPlatform,
       error,
       warning,
+      source,
       refresh,
       confirmOAuthSuccess,
       connect,
@@ -220,6 +235,7 @@ export function SocialConnectionsProvider({
       connectingPlatform,
       error,
       warning,
+      source,
       refresh,
       confirmOAuthSuccess,
       connect,

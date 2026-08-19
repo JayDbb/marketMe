@@ -125,7 +125,7 @@ export function StudioUploadZone({
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
-        className={`relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-12 cursor-pointer transition-all select-none ${
+        className={`relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-12 cursor-pointer ui-transition select-none ${
           isDragging
             ? 'border-purple-400/70 bg-purple-500/6'
             : 'border-zinc-200 dark:border-white/10 bg-white/50 dark:bg-white/2'
@@ -199,7 +199,7 @@ export function StudioUploadZone({
                   key={c}
                   type="button"
                   onClick={() => setCategory(c)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border ui-transition ${
                     category === c
                       ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
                       : 'bg-transparent border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-zinc-800 dark:hover:text-white/70'

@@ -5,8 +5,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
-import { FastForward } from "lucide-react"
+} from '@/components/ui/sheet'
 
 interface InvoicesDrawerProps {
   open: boolean
@@ -16,14 +15,15 @@ interface InvoicesDrawerProps {
 export function InvoicesDrawer({ open, onOpenChange }: InvoicesDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl bg-background border-border text-foreground p-0">
-        <SheetHeader className="p-6 border-b border-border bg-card">
-          <SheetTitle className="text-foreground font-bold tracking-tight">Invoices</SheetTitle>
+      <SheetContent className="w-full border-border bg-background p-0 text-foreground sm:max-w-xl">
+        <SheetHeader className="border-b border-border bg-card p-6">
+          <SheetTitle className="font-semibold tracking-tight text-foreground">
+            Invoices
+          </SheetTitle>
         </SheetHeader>
-        
-        <div className="flex flex-col h-full bg-background">
-          {/* Table Header */}
-          <div className="grid grid-cols-5 text-xs font-bold text-muted-foreground uppercase tracking-wider px-6 py-4 border-b border-border bg-card">
+
+        <div className="flex h-full flex-col bg-background">
+          <div className="grid grid-cols-5 border-b border-border bg-card px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
             <div className="col-span-1">Status</div>
             <div className="col-span-1">Type</div>
             <div className="col-span-1">Date</div>
@@ -31,10 +31,11 @@ export function InvoicesDrawer({ open, onOpenChange }: InvoicesDrawerProps) {
             <div className="col-span-1 text-right">Invoice</div>
           </div>
 
-          {/* Empty State */}
-          <div className="flex-1 flex flex-col items-center justify-center p-6 pb-20">
-            <FastForward className="w-8 h-8 text-zinc-500 dark:text-white/20 mb-3" />
-            <p className="text-sm text-zinc-500 dark:text-white/40 font-medium">Nothing here yet.</p>
+          <div className="flex flex-1 flex-col items-center justify-center p-6 pb-20">
+            <p className="text-sm font-medium text-foreground">No invoices yet</p>
+            <p className="mt-1 max-w-sm text-center text-xs text-muted-foreground">
+              Checkout is not live, so nothing will appear here until payments are connected.
+            </p>
           </div>
         </div>
       </SheetContent>

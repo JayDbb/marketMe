@@ -107,7 +107,7 @@ export function StudioStockPicker({
               key={photo.id}
               type="button"
               onClick={() => addPhoto(photo)}
-              className="relative aspect-square rounded-lg overflow-hidden border border-black/5 dark:border-white/10 hover:ring-2 hover:ring-blue-500/50 transition-all"
+              className="relative aspect-square rounded-lg overflow-hidden border border-black/5 dark:border-white/10 hover:ring-2 hover:ring-blue-500/50 ui-transition"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

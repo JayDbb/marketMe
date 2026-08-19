@@ -8,10 +8,15 @@ import {
   replyToInboxMessageAi,
 } from '@/lib/services/marketing-ai.service'
 import {
+  archiveInboxMessageLocal,
   listInboxMessages,
   markInboxMessageReadLocal,
   upsertInboxMessages,
 } from '@/lib/services/inbox.service'
+import {
+  overlayConversationStatus,
+  overlayLocalInboxStatus,
+} from '@/lib/inbox-utils'
 import {
   inboxAccountPayload,
   inboxUnavailableMessage,
@@ -121,12 +126,18 @@ export async function GET() {
       failures.push(conversationsOutcome.reason)
     }
 
+    let localMessages = local
     if (remoteMessages.length > 0) {
       await upsertInboxMessages({
         businessProfileId: profile.id,
         userId: session.user.id,
         connectionId: activeAccount.id,
         messages: remoteMessages,
+      })
+      localMessages = await listInboxMessages({
+        businessProfileId: profile.id,
+        userId: session.user.id,
+        platform: 'instagram',
       })
     }
 
@@ -155,8 +166,12 @@ export async function GET() {
       }
     }
 
-    const messages = remoteMessages.length > 0 ? remoteMessages : local
-    if (remoteMessages.length === 0 && local.length > 0) source = 'local'
+    const messages =
+      remoteMessages.length > 0
+        ? overlayLocalInboxStatus(remoteMessages, localMessages)
+        : localMessages
+    conversations = overlayConversationStatus(conversations, localMessages)
+    if (remoteMessages.length === 0 && localMessages.length > 0) source = 'local'
     if (syncStatus === 'empty' && (messages.length > 0 || conversations.length > 0)) {
       syncStatus = 'ok'
     }
@@ -215,7 +230,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json().catch(() => ({}))) as {
-      action?: 'mark_read' | 'reply'
+      action?: 'mark_read' | 'reply' | 'archive'
       messageId?: string
       body?: string
     }
@@ -223,6 +238,21 @@ export async function POST(request: NextRequest) {
     const messageId = body.messageId?.trim()
     if (!messageId) {
       return NextResponse.json({ error: 'messageId is required' }, { status: 400 })
+    }
+
+    if (body.action === 'archive') {
+      const archived = await archiveInboxMessageLocal({
+        businessProfileId: profile.id,
+        userId: session.user.id,
+        messageId,
+      })
+      if (!archived) {
+        return NextResponse.json(
+          { error: 'Could not mark this item done.' },
+          { status: 500 }
+        )
+      }
+      return NextResponse.json({ success: true })
     }
 
     if (body.action === 'reply') {

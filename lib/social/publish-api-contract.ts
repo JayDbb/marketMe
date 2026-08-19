@@ -33,11 +33,28 @@ export const PUBLISH_API_CONTRACT = {
     'GET /api/v1/inbox/conversations/{conversation_id}?business_profile_id={uuid}',
 
   /**
-   * Conversation reply. Instagram rejects API sends outside the 24h user-to-business
-   * window unless the AI service sends messaging_type=MESSAGE_TAG and tag=HUMAN_AGENT.
+   * Conversation reply. Instagram (#10) on a recent DM means the AI send used the
+   * wrong recipient. Do NOT send to conversation.id. Graph requires:
+   *
+   * POST https://graph.instagram.com/{ig-user-id}/messages
+   * Authorization: Bearer {instagram_user_access_token}
+   * {
+   *   "recipient": { "id": "<IGSID>" },
+   *   "message": { "text": "<body>" }
+   * }
+   *
+   * IGSID = InboxConversation.participantId from the messages webhook
+   * (GET /api/v1/meta/webhook verify + POST receive). Polling
+   * GET /conversations can list threads without opening a send window.
+   *
+   * Frontend already posts recipient_id on reply. Accept it on ReplyRequest
+   * and use it as recipient.id. Optional 7-day human inbox:
+   * messaging_type=MESSAGE_TAG, tag=HUMAN_AGENT (Advanced Access).
    */
   inboxConversationReply:
-    'POST /api/v1/inbox/conversations/{conversation_id}/reply  body: { business_profile_id, body }',
+    'POST /api/v1/inbox/conversations/{conversation_id}/reply  body: { business_profile_id, body, recipient_id }',
+
+  metaWebhook: 'GET|POST /api/v1/meta/webhook  subscribe Instagram field: messages',
 
   /**
    * Creative brief for image generation.

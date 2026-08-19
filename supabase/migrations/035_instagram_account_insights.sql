@@ -41,3 +41,8 @@ CREATE POLICY "Users can read own instagram insights"
   ON public.instagram_account_insights
   FOR SELECT
   USING (user_id = auth.uid()::text OR user_id = (auth.jwt() ->> 'sub'));
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.instagram_account_insights
+  TO anon, authenticated, service_role;
+
+NOTIFY pgrst, 'reload schema';

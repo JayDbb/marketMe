@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { Post } from '@/types/content'
-import { fetchUserPostsResult } from '@/lib/fetch-user-posts'
+import { fetchPlannerPostsResult } from '@/lib/fetch-user-posts'
 import { getBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import { getInitials, resolveDisplayName } from '@/lib/billing-utils'
 import { toSocialHandle } from '@/lib/post-schedule-utils'
@@ -16,6 +16,7 @@ import {
   approveAndSchedulePost,
   transitionPostStatus,
 } from '@/lib/services/post-lifecycle.service'
+import { runApprovedPostQueueingWorkflows } from '@/lib/services/workflow.service'
 import { rateLimitMessage } from '@/lib/rate-limit'
 
 export type PostModalContext = {
@@ -41,15 +42,57 @@ export async function getPostModalContextAction(): Promise<PostModalContext | nu
 
 export async function getPostsAction(): Promise<{
   posts: Post[]
+  undatedDrafts: Post[]
   error: string | null
 }> {
   const user = await getAuthenticatedUser()
-  if (!user) return { posts: [], error: 'Not authenticated' }
+  if (!user) return { posts: [], undatedDrafts: [], error: 'Not authenticated' }
 
-  return fetchUserPostsResult(user.id, {
-    scheduledOnly: true,
-    requireScheduled: true,
+  return fetchPlannerPostsResult(user.id)
+}
+
+export async function rescheduleCalendarPostAction(payload: {
+  postId: string
+  scheduledDate: string
+}): Promise<{ success: boolean; error?: string }> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+
+  const limited = rateLimitMessage(`calendar:mutate:${user.id}`, 60, 60_000)
+  if (limited) return { success: false, error: limited }
+
+  const scheduledDate = payload.scheduledDate.trim()
+  if (!scheduledDate) {
+    return { success: false, error: 'Pick a date and time' }
+  }
+
+  const { data: existing, error: loadError } = await supabaseAdmin
+    .from('posts')
+    .select('id, status')
+    .eq('id', payload.postId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (loadError || !existing) {
+    return { success: false, error: 'Post not found' }
+  }
+
+  if (existing.status === 'published') {
+    return { success: false, error: 'Published posts cannot be moved' }
+  }
+
+  const { error } = await updatePost(user.id, payload.postId, {
+    scheduled_at: scheduledDate,
   })
+
+  if (error) {
+    console.error('Error rescheduling post:', error)
+    return { success: false, error }
+  }
+
+  revalidatePath('/dashboard/calendar')
+  revalidatePath('/dashboard/posts')
+  return { success: true }
 }
 
 async function uploadPostImage(
@@ -112,6 +155,8 @@ export async function approveCalendarPostAction(
   if (error || !data) {
     return { success: false, error: error ?? 'Approval failed' }
   }
+
+  await runApprovedPostQueueingWorkflows(user.id, postId)
 
   revalidatePath('/dashboard/calendar')
   revalidatePath('/dashboard/posts')

@@ -7,15 +7,7 @@ import {
   buildConnectionsOAuthReturnUrl,
   isInstagramOAuthReturn,
 } from '@/lib/social/oauth'
-import { Loader2 } from 'lucide-react'
-
-function SettingsLoading() {
-  return (
-    <div className="flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="w-8 h-8 text-blue-400/50 animate-spin" />
-    </div>
-  )
-}
+import SettingsLoading from './loading'
 
 export default async function SettingsPage({
   searchParams,
@@ -31,7 +23,6 @@ export default async function SettingsPage({
     }
   }
 
-  // Meta OAuth return used to land here (?instagram=…). Send to Connections.
   if (isInstagramOAuthReturn(query)) {
     redirect(buildConnectionsOAuthReturnUrl('http://local.invalid', query))
   }

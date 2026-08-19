@@ -1,6 +1,10 @@
 import type { Post } from '@/types/content'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { mapDbRowToPost, POST_INBOX_TAB_STATUSES } from '@/lib/post-utils'
+import {
+  collectTemplateIds,
+  fetchTemplatePreviewsById,
+} from '@/lib/fetch-template-previews'
 
 export type FetchUserPostsOptions = {
   scheduledOnly?: boolean
@@ -18,9 +22,20 @@ export type FetchPlannerPostsResult = {
   error: string | null
 }
 
-function mapRows(rows: Record<string, unknown>[] | null, requireScheduled = false): Post[] {
-  return (rows ?? [])
-    .map((row) => mapDbRowToPost(row, { requireScheduled }))
+async function mapRows(
+  rows: Record<string, unknown>[] | null,
+  requireScheduled = false
+): Promise<Post[]> {
+  const list = rows ?? []
+  const templates = await fetchTemplatePreviewsById(collectTemplateIds(list))
+  return list
+    .map((row) => {
+      const templateId = row.template_id as string | null | undefined
+      return mapDbRowToPost(row, {
+        requireScheduled,
+        template: templateId ? templates.get(templateId) ?? null : null,
+      })
+    })
     .filter((post): post is Post => post != null)
 }
 
@@ -49,7 +64,7 @@ export async function fetchUserPostsResult(
   }
 
   return {
-    posts: mapRows(data as Record<string, unknown>[] | null, options.requireScheduled),
+    posts: await mapRows(data as Record<string, unknown>[] | null, options.requireScheduled),
     error: null,
   }
 }
@@ -91,10 +106,10 @@ export async function fetchPlannerPostsResult(
   }
 
   return {
-    posts: mapRows(dated.data as Record<string, unknown>[] | null, true),
+    posts: await mapRows(dated.data as Record<string, unknown>[] | null, true),
     undatedDrafts: undated.error
       ? []
-      : mapRows(undated.data as Record<string, unknown>[] | null),
+      : await mapRows(undated.data as Record<string, unknown>[] | null),
     error: null,
   }
 }

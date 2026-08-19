@@ -1,6 +1,5 @@
 'use client'
 
-import './_agent_debug_probe'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -14,10 +13,6 @@ import { PLANS } from '@/lib/billing-utils'
 import { logout } from '@/app/login/actions'
 import type { AccountContext } from '@/types/billing'
 import { CreditCard, LogOut, Settings } from '@/components/dashboard/user-nav-icons'
-
-// #region agent log
-fetch('http://127.0.0.1:7751/ingest/39f00748-ada2-4c19-8c32-a6cb1b9e3c26',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5e9746'},body:JSON.stringify({sessionId:'5e9746',runId:'post-fix',hypothesisId:'B',location:'components/dashboard/user-nav.tsx:after-lucide',message:'user-nav resolved icons via local module, not lucide barrel',data:{icons:[CreditCard?.displayName,LogOut?.displayName,Settings?.displayName],importSource:'user-nav-icons'},timestamp:Date.now()})}).catch(()=>{});
-// #endregion
 
 export function UserNav({ account }: { account: AccountContext }) {
   const handleLogout = async () => {

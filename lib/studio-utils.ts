@@ -197,9 +197,12 @@ export function templateToCanvas(template: StudioTemplate): CanvasData {
 }
 
 export function previewUrlFromCanvas(canvasData: CanvasData): string {
-  const imgLayer = canvasData.layers.find((l) => l.type === 'image') as ImageNode | undefined
-  const src = imgLayer?.src ?? ''
-  return isRasterPreviewUrl(src) ? src : ''
+  for (const layer of canvasData.layers) {
+    if (layer.type !== 'image') continue
+    const src = (layer as ImageNode).src ?? ''
+    if (isRasterPreviewUrl(src)) return src
+  }
+  return ''
 }
 
 export function getTemplatePreviewUrl(template: StudioTemplate): string {
@@ -211,7 +214,7 @@ export function getTemplatePreviewUrl(template: StudioTemplate): string {
   return template.file_url
 }
 
-function isRasterPreviewUrl(url: string | null | undefined): boolean {
+export function isRasterPreviewUrl(url: string | null | undefined): boolean {
   if (!url) return false
   if (url.includes('via.placeholder.com')) return false
   if (url.startsWith('data:image/')) return true

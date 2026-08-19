@@ -18,10 +18,6 @@ import {
 import Link from "next/link"
 import type { AccountContext } from '@/types/billing'
 
-// #region agent log
-fetch('http://127.0.0.1:7751/ingest/39f00748-ada2-4c19-8c32-a6cb1b9e3c26',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5e9746'},body:JSON.stringify({sessionId:'5e9746',runId:'pre-fix',hypothesisId:'B',location:'components/dashboard/app-sidebar.tsx:module',message:'app-sidebar module evaluated; UserNav factory available',data:{hasUserNav:typeof UserNav==='function'},timestamp:Date.now()})}).catch(()=>{});
-// #endregion
-
 function isNavActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') {
     return pathname === '/dashboard'

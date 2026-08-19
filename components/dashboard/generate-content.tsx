@@ -942,11 +942,13 @@ export function GenerateContent({
       const res = await schedulePostsBatchAction({
         platform: setupData.platform,
         posts: toSchedule.map((p) => ({
+          postId: p.id,
           caption: p.caption,
           hashtags: p.hashtags,
           canvasData: p.canvasData,
           scheduledDate: p.scheduledDate,
           templateId: p.templateId ?? null,
+          imageUrl: p.imageUrl ?? null,
         })),
       })
 

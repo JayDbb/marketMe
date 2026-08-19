@@ -16,6 +16,7 @@ import { getUserTemplatesResult } from '@/app/dashboard/studio/actions'
 import { resolveDisplayName, PLANS } from '@/lib/billing-utils'
 import { ensureContentPlanForUser } from '@/lib/ensure-content-plan'
 import { insertScheduledPost } from '@/lib/insert-scheduled-post'
+import { persistCanvasImageLayers } from '@/lib/canvas-persist-images'
 import { rateLimitOrThrow } from '@/lib/rate-limit'
 import { normalizePlatform, toIsoScheduledDate } from '@/lib/generate-utils'
 import { getAuthenticatedUser, isValidUuid } from '@/lib/supabase/server-auth'
@@ -88,6 +89,7 @@ export type SchedulePostPayload = {
   canvasData: CanvasData
   scheduledDate: string
   templateId?: string | null
+  imageUrl?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +169,22 @@ function revalidatePostViews(): void {
   revalidatePath('/dashboard/calendar')
   revalidatePath('/dashboard/posts')
   revalidatePath('/dashboard/generate')
+}
+
+async function resolveScheduleMedia(
+  userId: string,
+  canvasData: CanvasData | undefined,
+  imageUrl?: string | null
+): Promise<{ canvasData?: CanvasData; imageUrl: string | null }> {
+  if (!canvasData) {
+    return { canvasData: undefined, imageUrl: imageUrl ?? null }
+  }
+
+  const persisted = await persistCanvasImageLayers(userId, canvasData)
+  return {
+    canvasData: persisted.canvasData,
+    imageUrl: imageUrl ?? persisted.previewUrl ?? null,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -669,6 +687,7 @@ export async function schedulePostAction(payload: {
   scheduledDate: string
   platform: string
   templateId?: string | null
+  imageUrl?: string | null
 }): Promise<{ success: boolean; error?: string; postId?: string }> {
   const user = await getAuthenticatedUser()
 
@@ -690,6 +709,12 @@ export async function schedulePostAction(payload: {
         ? payload.templateId
         : null
 
+    const media = await resolveScheduleMedia(
+      user.id,
+      payload.canvasData,
+      payload.imageUrl
+    )
+
     if (payload.postId && isValidUuid(payload.postId)) {
       const updateResult = await updateExistingPostForSchedule(
         user.id,
@@ -698,8 +723,9 @@ export async function schedulePostAction(payload: {
           platform,
           content,
           scheduledAt,
-          canvasData: payload.canvasData,
+          canvasData: media.canvasData,
           templateId,
+          imageUrl: media.imageUrl,
         }
       )
 
@@ -728,8 +754,9 @@ export async function schedulePostAction(payload: {
       platform,
       content,
       scheduledAt,
-      canvasData: payload.canvasData,
+      canvasData: media.canvasData,
       templateId,
+      imageUrl: media.imageUrl,
       status: 'draft',
     })
 
@@ -813,6 +840,12 @@ export async function schedulePostsBatchAction(payload: {
           ? post.templateId
           : null
 
+      const media = await resolveScheduleMedia(
+        user.id,
+        post.canvasData,
+        post.imageUrl
+      )
+
       if (post.postId && isValidUuid(post.postId)) {
         const updateResult = await updateExistingPostForSchedule(
           user.id,
@@ -821,8 +854,9 @@ export async function schedulePostsBatchAction(payload: {
             platform,
             content,
             scheduledAt,
-            canvasData: post.canvasData,
+            canvasData: media.canvasData,
             templateId,
+            imageUrl: media.imageUrl,
           }
         )
 
@@ -854,8 +888,9 @@ export async function schedulePostsBatchAction(payload: {
         platform,
         content,
         scheduledAt,
-        canvasData: post.canvasData,
+        canvasData: media.canvasData,
         templateId,
+        imageUrl: media.imageUrl,
         status: 'draft',
       })
 

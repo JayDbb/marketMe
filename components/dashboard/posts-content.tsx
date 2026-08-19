@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import {
   Search,
   Plus,
-  Image as ImageIcon,
   Clock,
   CalendarDays,
   CheckCircle2,
@@ -29,6 +28,7 @@ import {
   type CreatePostPayload,
   type EditPostInitial,
 } from '@/components/dashboard/calendar/create-post-modal'
+import { EventThumb } from '@/components/dashboard/calendar/calendar-post-event'
 import {
   approvePostAction,
   bulkApprovePostsAction,
@@ -596,22 +596,10 @@ export function PostsContent({
                     }
                     className="flex min-w-0 flex-1 items-start gap-4 rounded-xl text-left focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none"
                   >
-                    <div className="relative size-20 shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-white/10 dark:bg-white/5">
-                      {post.media_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={post.media_url}
-                          alt=""
-                          width={80}
-                          height={80}
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex size-full items-center justify-center">
-                          <ImageIcon className="h-5 w-5 text-zinc-400" aria-hidden="true" />
-                        </div>
-                      )}
-                    </div>
+                    <EventThumb
+                      url={post.media_url}
+                      className="size-20 rounded-xl border border-zinc-200 dark:border-white/10"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 text-sm leading-relaxed font-medium text-zinc-900 dark:text-white">
                         {post.caption || 'Untitled post'}

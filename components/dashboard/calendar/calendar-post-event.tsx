@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { ImageIcon } from 'lucide-react'
 import type { Post } from '@/types/content'
 import {
@@ -160,17 +160,21 @@ export function CalendarPostEvent({
 export function EventThumb({
   url,
   compact = false,
+  className,
 }: {
   url?: string | null
   compact?: boolean
+  className?: string
 }) {
+  const [failed, setFailed] = useState(false)
   const size = compact ? 'size-5' : 'size-8'
-  if (!url) {
+
+  if (!url || failed) {
     return (
       <div
         className={cn(
           'flex shrink-0 items-center justify-center rounded border border-zinc-200 bg-zinc-100 dark:border-white/10 dark:bg-white/5',
-          size
+          className ?? size
         )}
       >
         <ImageIcon className="size-3 text-zinc-400" aria-hidden="true" />
@@ -182,7 +186,8 @@ export function EventThumb({
     <img
       src={url}
       alt=""
-      className={cn('shrink-0 rounded object-cover', size)}
+      className={cn('shrink-0 rounded object-cover', className ?? size)}
+      onError={() => setFailed(true)}
     />
   )
 }

@@ -1,8 +1,8 @@
 import type { Post, PostStatus } from '@/types/content'
+import type { CanvasData } from '@/types/canvas'
+import { getActiveLayers } from '@/lib/canvas-pages'
+import { isRasterPreviewUrl, previewUrlFromCanvas } from '@/lib/studio-utils'
 import { formatTimeRange, DEFAULT_POST_DURATION_MIN } from '@/lib/calendar-utils'
-
-type CanvasLayer = { type?: string; src?: string }
-type CanvasData = { layers?: CanvasLayer[] }
 
 export const POST_INBOX_TABS = ['upcoming', 'drafts', 'published', 'failed'] as const
 export type PostInboxTab = (typeof POST_INBOX_TABS)[number]
@@ -41,6 +41,12 @@ const STATUS_STYLES: Record<PostStatus, string> = {
   rejected: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/25',
 }
 
+export type TemplatePreviewSource = {
+  file_url?: string | null
+  template_type?: string | null
+  canvas_data?: CanvasData | null
+}
+
 export function getStatusLabel(status: PostStatus | string): string {
   return STATUS_LABELS[status as PostStatus] ?? String(status)
 }
@@ -49,27 +55,58 @@ export function getStatusStyles(status: PostStatus | string): string {
   return STATUS_STYLES[status as PostStatus] ?? STATUS_STYLES.draft
 }
 
+function previewFromCanvasLayers(canvasData: CanvasData): string | null {
+  const activeLayers = getActiveLayers(canvasData)
+  const fromActive = previewUrlFromCanvas({ ...canvasData, layers: activeLayers })
+  if (fromActive) return fromActive
+
+  const pageLayers =
+    canvasData.pages?.flatMap((page) => page.layers) ?? canvasData.layers ?? []
+  for (const layer of pageLayers) {
+    if (layer.type !== 'image') continue
+    const src = 'src' in layer ? (layer as { src?: string }).src : undefined
+    if (isRasterPreviewUrl(src)) return src!
+  }
+
+  return null
+}
+
 export function extractThumbnail(
   imageUrl?: string | null,
-  canvasData?: CanvasData | null
+  canvasData?: CanvasData | null,
+  template?: TemplatePreviewSource | null
 ): string | null {
-  if (imageUrl) return imageUrl
-  if (canvasData?.layers) {
-    const imgLayer = canvasData.layers.find((l) => l.type === 'image' && l.src)
-    if (imgLayer?.src) return imgLayer.src
+  if (isRasterPreviewUrl(imageUrl)) return imageUrl!
+
+  if (canvasData) {
+    const fromCanvas = previewFromCanvasLayers(canvasData)
+    if (fromCanvas) return fromCanvas
   }
+
+  if (template) {
+    if (isRasterPreviewUrl(template.file_url)) return template.file_url!
+    if (template.template_type === 'canvas' && template.canvas_data) {
+      const fromTemplateCanvas = previewFromCanvasLayers(template.canvas_data)
+      if (fromTemplateCanvas) return fromTemplateCanvas
+    }
+  }
+
   return null
 }
 
 export function mapDbRowToPost(
   row: Record<string, unknown>,
-  options?: { requireScheduled?: boolean }
+  options?: { requireScheduled?: boolean; template?: TemplatePreviewSource | null }
 ): Post | null {
   const scheduledAt = row.scheduled_at as string | null | undefined
   if (options?.requireScheduled && !scheduledAt) return null
 
   const canvasData = row.canvas_data as CanvasData | null | undefined
-  const imageUrl = extractThumbnail(row.image_url as string | null, canvasData)
+  const imageUrl = extractThumbnail(
+    row.image_url as string | null,
+    canvasData,
+    options?.template ?? null
+  )
 
   return {
     post_id: row.id as string,
@@ -90,8 +127,11 @@ export type InboxPost = Post & {
   generationId: string | null
 }
 
-export function mapDbRowToInboxPost(row: Record<string, unknown>): InboxPost | null {
-  const post = mapDbRowToPost(row)
+export function mapDbRowToInboxPost(
+  row: Record<string, unknown>,
+  options?: { template?: TemplatePreviewSource | null }
+): InboxPost | null {
+  const post = mapDbRowToPost(row, { template: options?.template ?? null })
   if (!post) return null
   return {
     ...post,

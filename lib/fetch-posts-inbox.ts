@@ -7,6 +7,10 @@ import {
   type InboxPost,
   type PostInboxTab,
 } from '@/lib/post-utils'
+import {
+  collectTemplateIds,
+  fetchTemplatePreviewsById,
+} from '@/lib/fetch-template-previews'
 
 export type PostsInboxCounts = Record<PostInboxTab, number>
 
@@ -121,8 +125,15 @@ export async function fetchPostsInbox(
     }
   }
 
-  const posts = (listResult.data ?? [])
-    .map((row) => mapDbRowToInboxPost(row as Record<string, unknown>))
+  const rows = (listResult.data ?? []) as Record<string, unknown>[]
+  const templates = await fetchTemplatePreviewsById(collectTemplateIds(rows))
+  const posts = rows
+    .map((row) => {
+      const templateId = row.template_id as string | null | undefined
+      return mapDbRowToInboxPost(row, {
+        template: templateId ? templates.get(templateId) ?? null : null,
+      })
+    })
     .filter((p): p is InboxPost => p !== null)
 
   return {

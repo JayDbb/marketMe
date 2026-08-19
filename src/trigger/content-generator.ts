@@ -552,21 +552,33 @@ export const instagramPublishing = task({
       // Use a deterministic hash of the local post id as a last resort.
       toAiBusinessId(payload.postId)
 
-    const data = await publishToInstagram({
-      post_id: String(backendPostId),
-      // Publish API expects business_profiles.id UUID.
-      business_id: payload.businessId,
-      image_url: payload.imageUrl,
-    })
+    try {
+      const data = await publishToInstagram({
+        post_id: String(backendPostId),
+        // Publish API expects business_profiles.id UUID.
+        business_id: payload.businessId,
+        image_url: payload.imageUrl,
+      })
 
-    await supabaseAdmin.from('posts').update({ status: 'published' }).eq('id', payload.postId)
+      await supabaseAdmin.from('posts').update({ status: 'published', error_message: null }).eq('id', payload.postId)
 
-    await sendNotification.trigger({
-      title: 'Instagram Publish Success',
-      body: `Post ${payload.postId} was successfully published to Instagram!`,
-    })
+      await sendNotification.trigger({
+        title: 'Instagram Publish Success',
+        body: `Post ${payload.postId} was successfully published to Instagram!`,
+      })
 
-    return { success: true, instagramPostId: data.instagram_post_id }
+      return { success: true, instagramPostId: data.instagram_post_id }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Publishing failed'
+      await supabaseAdmin
+        .from('posts')
+        .update({
+          status: 'failed',
+          error_message: message.slice(0, 500),
+        })
+        .eq('id', payload.postId)
+      return { success: false, error: message }
+    }
   },
 })
 
@@ -636,7 +648,13 @@ export const scheduledPublishing = schedules.task({
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
         console.error(`Scheduled publishing failed for post ${post.id}:`, message)
-        await supabaseAdmin.from('posts').update({ status: 'failed' }).eq('id', post.id)
+        await supabaseAdmin
+          .from('posts')
+          .update({
+            status: 'failed',
+            error_message: message.slice(0, 500),
+          })
+          .eq('id', post.id)
       }
     }
 

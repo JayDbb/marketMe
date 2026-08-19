@@ -25,13 +25,13 @@ export function FinalCta() {
         </p>
 
         <div className="flex flex-col items-center justify-center gap-4 pt-2 sm:flex-row">
-          <Link
-            href="/signup"
-            className={cn(
-              buttonVariants({ size: 'lg' }),
-              'group h-14 gap-2 rounded-full border-0 bg-white px-8 text-base font-medium text-black hover:bg-white/90'
-            )}
-          >
+            <Link
+              href="/signup"
+              className={cn(
+                buttonVariants({ size: 'lg' }),
+                'group h-14 gap-2 rounded-full border-0 bg-white px-8 text-base font-medium text-black transition-[transform,background-color] duration-150 hover:bg-white/90 active:scale-[0.97]'
+              )}
+            >
             Get started for free
             <ArrowRight
               className="h-4 w-4 transition-transform group-hover:translate-x-1"

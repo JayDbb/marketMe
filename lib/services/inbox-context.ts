@@ -164,7 +164,7 @@ export function explainInboxReplyError(
     Number.isFinite(ageMs) && ageMs >= 0 && ageMs < 24 * 60 * 60 * 1000
 
   if (within24h) {
-    return 'Instagram rejected this reply even though this DM is still under 24 hours old, so it is not the usual time-window limit. Reply in the Instagram app for now — the publish API needs to send to the customer’s Instagram user id (IGSID) as a response, not a new message.'
+    return 'Instagram allowed MarketMe to read this thread but blocked the send. The publish API must reply to the customer’s Instagram user id (IGSID from the messages webhook), not the conversation id. Reply in the Instagram app until that send path is fixed.'
   }
 
   return 'Instagram only allows MarketMe to reply within 24 hours of the customer’s last DM. Reply in the Instagram app, or ask them to send a new message, then reply here.'

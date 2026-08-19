@@ -34,7 +34,7 @@ const extras: Record<
   },
   team: {
     highlights: [
-      'Unlimited posts & AI credits',
+      '2,000 AI credits per month',
       'Up to 25 social profiles',
       '10 team members / 10 workspaces',
     ],

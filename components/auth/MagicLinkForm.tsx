@@ -14,7 +14,7 @@ function SubmitButton() {
     <Button 
       type="submit" 
       disabled={pending}
-      className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all border-0 flex items-center justify-center gap-2 disabled:opacity-50"
+      className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] ui-transition border-0 flex items-center justify-center gap-2 disabled:opacity-50"
     >
       {pending ? (
         <div className="w-5 h-5 border-2 border-zinc-800 border-t-zinc-950 rounded-full animate-spin" />
@@ -45,7 +45,7 @@ export function MagicLinkForm({
           type="email"
           placeholder="m@example.com"
           required
-          className="h-12 bg-zinc-950/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 transition-all rounded-xl"
+          className="h-12 bg-zinc-950/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 ui-transition rounded-xl"
         />
       </div>
       

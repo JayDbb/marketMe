@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, AuthError } from "@/lib/services/auth.service";
 import { isRateLimitError, rateLimitOrThrow } from "@/lib/rate-limit";
 import { transitionPostStatus } from "@/lib/services/post-lifecycle.service";
+import { runApprovedPostQueueingWorkflows } from "@/lib/services/workflow.service";
 import type { PostStatus } from "@/types/content-plan";
 
 const ALLOWED_STATUSES: PostStatus[] = [
@@ -53,6 +54,10 @@ export async function PATCH(
 
     if (error) {
       throw new Error(error);
+    }
+
+    if (status === 'approved') {
+      await runApprovedPostQueueingWorkflows(session.user.id, id)
     }
 
     return NextResponse.json({ success: true, post });

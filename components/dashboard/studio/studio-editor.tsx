@@ -37,6 +37,8 @@ interface StudioEditorProps {
   onRedo?: () => void
   exportApiRef?: React.MutableRefObject<CanvasExportApi | null>
   initialSelectedLayerId?: string
+  designName?: string
+  onSaveCopyAs?: (formatId: InstagramFormatId) => void
 }
 
 export function StudioEditor({
@@ -49,6 +51,8 @@ export function StudioEditor({
   onRedo,
   exportApiRef,
   initialSelectedLayerId,
+  designName,
+  onSaveCopyAs,
 }: StudioEditorProps) {
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedLayerId ?? null)
   const [toolTab, setToolTab] = useState<StudioToolTab>(
@@ -183,6 +187,7 @@ export function StudioEditor({
             disabled={!canUndo}
             className="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none"
             title="Undo (Ctrl+Z)"
+            aria-label="Undo (Ctrl+Z)"
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>
@@ -192,6 +197,7 @@ export function StudioEditor({
             disabled={!canRedo}
             className="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none"
             title="Redo (Ctrl+Y)"
+            aria-label="Redo (Ctrl+Y)"
           >
             <Redo2 className="w-3.5 h-3.5" />
           </button>
@@ -218,6 +224,7 @@ export function StudioEditor({
               onAddLayer={addLayer}
               onImageUpload={() => fileInputRef.current?.click()}
               brandKit={brandKit}
+              onSaveCopyAs={onSaveCopyAs}
             />
 
             {selectedLayer && (
@@ -249,6 +256,7 @@ export function StudioEditor({
               }
             }}
             exportApiRef={exportApiRef}
+            designName={designName}
           />
         </div>
 

@@ -35,8 +35,9 @@ export default async function OnboardingPage({
 
   const { data: profile } = await getBusinessProfileAction()
 
-  if (isProfileReadyForAI(profile)) {
-    redirect('/dashboard')
+  const allowEdit = query.get('edit') === '1'
+  if (isProfileReadyForAI(profile) && !allowEdit) {
+    redirect('/dashboard/settings?tab=Workspace')
   }
 
   return (

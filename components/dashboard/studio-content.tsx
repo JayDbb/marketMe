@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -24,7 +24,7 @@ import { StudioTemplateCard } from '@/components/dashboard/studio/studio-templat
 import { StudioRecentsSection } from '@/components/dashboard/studio/studio-recents-section'
 import { StudioStarterPicker } from '@/components/dashboard/studio/studio-starter-picker'
 import {
-  STUDIO_CATEGORIES,
+  categoriesPresent,
   filterTemplates,
   getRecentTemplates,
   getStudioStats,
@@ -95,12 +95,34 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
 
   const [starterPickerOpen, setStarterPickerOpen] = useState(false)
 
+  const setTab = (tab: Tab) => {
+    setActiveTab(tab)
+    const params = new URLSearchParams(searchParams.toString())
+    if (tab === 'all') params.delete('tab')
+    else params.set('tab', tab)
+    const query = params.toString()
+    router.replace(query ? `/dashboard/studio?${query}` : '/dashboard/studio', { scroll: false })
+  }
+
   const stats = useMemo(() => getStudioStats(templates), [templates])
 
   const recentItems = useMemo(
     () => getRecentTemplates(templates, recentEntries),
     [templates, recentEntries]
   )
+
+  const pickerLibraryTemplates = useMemo(() => {
+    const recents = recentItems.map((item) => item.template)
+    if (recents.length >= 8) return recents.slice(0, 8)
+    const seen = new Set(recents.map((template) => template.id))
+    const extras: StudioTemplate[] = []
+    for (const template of templates) {
+      if (seen.has(template.id)) continue
+      extras.push(template)
+      if (recents.length + extras.length >= 8) break
+    }
+    return [...recents, ...extras]
+  }, [recentItems, templates])
 
   const refreshRecents = useCallback(() => {
     setRecentEntries(getStudioRecentEntries())
@@ -118,7 +140,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
 
   const filteredTemplates = useMemo(() => {
     const source =
-      activeTab === 'uploads' || activeTab === 'all'
+      activeTab === 'uploads'
         ? 'upload'
         : activeTab === 'saved'
           ? 'saved'
@@ -126,16 +148,28 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
     return filterTemplates(templates, {
       search: searchQuery,
       category: activeCategory,
-      source: source as 'upload' | 'saved' | 'all',
+      source,
     })
   }, [templates, activeTab, searchQuery, activeCategory])
+
+  const tabCategoryOptions = useMemo(() => {
+    const source =
+      activeTab === 'uploads'
+        ? 'upload'
+        : activeTab === 'saved'
+          ? 'saved'
+          : 'all'
+    return categoriesPresent(
+      filterTemplates(templates, { search: searchQuery, category: 'All', source })
+    )
+  }, [templates, activeTab, searchQuery])
 
   const savedRecentItems = useMemo(
     () => recentItems.filter(({ template }) => template.source !== 'upload'),
     [recentItems]
   )
 
-  const handleEdit = (template: StudioTemplate) => {
+  const handleEdit = useCallback((template: StudioTemplate) => {
     recordStudioRecent(template.id)
     refreshRecents()
     const canvasData = templateToCanvas(template)
@@ -146,7 +180,19 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
         ? 'headline'
         : undefined,
     })
-  }
+  }, [refreshRecents])
+
+  const openedTemplateFromUrl = useRef<string | null>(null)
+
+  useEffect(() => {
+    const templateId = searchParams.get('templateId')
+    if (!templateId || editorState) return
+    if (openedTemplateFromUrl.current === templateId) return
+    const template = templates.find((item) => item.id === templateId)
+    if (!template) return
+    openedTemplateFromUrl.current = templateId
+    handleEdit(template)
+  }, [editorState, handleEdit, searchParams, templates])
 
   const handleOpenStockPhoto = useCallback(
     (photo: StockPhoto, template?: StudioTemplate) => {
@@ -237,6 +283,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
         brandKit={brandKit}
         onBack={handleEditorBack}
         onSaved={(template) => handleEditorSaved(template)}
+        onLibraryChange={handleTemplateAdded}
       />
     )
   }
@@ -247,6 +294,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
         open={starterPickerOpen}
         onClose={() => setStarterPickerOpen(false)}
         onSelect={handleStarterSelect}
+        libraryTemplates={pickerLibraryTemplates}
       />
     <motion.div
       initial={{ opacity: 0 }}
@@ -273,8 +321,8 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
           </h1>
           <p className="text-zinc-500 dark:text-white/40 mt-1 text-sm max-w-lg">
             {stats.total === 0
-              ? 'Create feed posts, stories, and carousels with Canva-style tools — then use them in Generate.'
-              : `${stats.total} template${stats.total === 1 ? '' : 's'} · ${stats.canvasDesigns} canvas design${stats.canvasDesigns === 1 ? '' : 's'} · ${stats.uploads} upload${stats.uploads === 1 ? '' : 's'}`}
+              ? 'Create feed posts, stories, and carousels — then use them in Generate.'
+              : `${stats.total} template${stats.total === 1 ? '' : 's'} · ${stats.canvasDesigns} canvas design${stats.canvasDesigns === 1 ? '' : 's'}`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -295,28 +343,6 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {[
-          { label: 'Total', value: stats.total },
-          { label: 'Uploads', value: stats.uploads },
-          { label: 'Saved photos', value: stats.saved },
-          { label: 'Canvas designs', value: stats.canvasDesigns },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className="rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/3 px-4 py-3"
-          >
-            <p className="text-[10px] uppercase tracking-widest text-zinc-500 dark:text-white/40">
-              {s.label}
-            </p>
-            <p className="text-2xl font-mono font-bold text-zinc-900 dark:text-white mt-0.5">
-              {s.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-white/4 border border-zinc-200 dark:border-white/8 rounded-xl p-1 mb-6 w-fit">
         {TABS.map((tab) => {
@@ -326,14 +352,14 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
               ? stats.uploads
               : tab.id === 'saved'
                 ? stats.saved
-                : tab.id === 'all'
-                  ? stats.uploads
+                :             tab.id === 'all'
+                  ? stats.total
                   : undefined
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              onClick={() => setTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ui-transition ${
                 activeTab === tab.id
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-zinc-500 dark:text-white/40 hover:text-zinc-800 dark:hover:text-white/70'
@@ -371,23 +397,29 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
             </div>
             <StudioUploadZone onUploadSuccess={handleTemplateAdded} />
           </div>
-          {filteredTemplates.length > 0 ? (
-            <TemplateGrid
-              templates={filteredTemplates}
-              searchQuery={searchQuery}
-              activeCategory={activeCategory}
-              onSearchChange={setSearchQuery}
-              onCategoryChange={setActiveCategory}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ) : (
-            <EmptyState
-              icon={FolderOpen}
-              title="No uploads yet"
-              description="Upload your first image template above — then edit it or use it in Generate."
-            />
-          )}
+          <TemplateGrid
+            templates={filteredTemplates}
+            categoryOptions={tabCategoryOptions}
+            searchQuery={searchQuery}
+            activeCategory={activeCategory}
+            onSearchChange={setSearchQuery}
+            onCategoryChange={setActiveCategory}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            emptyTitle={
+              activeCategory !== 'All'
+                ? `No ${activeCategory.toLowerCase()} templates`
+                : 'No uploads yet'
+            }
+            emptyDescription={
+              activeCategory !== 'All'
+                ? 'Nothing in this category yet. Choose All to see every template you have saved.'
+                : 'Upload your first image template above — then edit it or use it in Generate.'
+            }
+            onClearCategory={
+              activeCategory !== 'All' ? () => setActiveCategory('All') : undefined
+            }
+          />
         </div>
       ) : (
         <>
@@ -396,47 +428,60 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
               <StudioUploadZone onUploadSuccess={handleTemplateAdded} />
             </div>
           )}
+          {activeTab === 'all' && recentItems.length > 0 && (
+            <StudioRecentsSection items={recentItems} onOpen={handleEdit} />
+          )}
           {activeTab === 'saved' && savedRecentItems.length > 0 && (
             <StudioRecentsSection items={savedRecentItems} onOpen={handleEdit} />
           )}
-          {filteredTemplates.length > 0 ? (
-            <TemplateGrid
-              templates={filteredTemplates}
-              searchQuery={searchQuery}
-              activeCategory={activeCategory}
-              onSearchChange={setSearchQuery}
-              onCategoryChange={setActiveCategory}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ) : (
-            <EmptyState
-              icon={activeTab === 'saved' ? Bookmark : LayoutTemplate}
-              title={activeTab === 'saved' ? 'No saved photos' : 'No templates yet'}
-              description={
-                activeTab === 'saved'
+          <TemplateGrid
+            templates={filteredTemplates}
+            categoryOptions={tabCategoryOptions}
+            searchQuery={searchQuery}
+            activeCategory={activeCategory}
+            onSearchChange={setSearchQuery}
+            onCategoryChange={setActiveCategory}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            emptyTitle={
+              activeCategory !== 'All'
+                ? `No ${activeCategory.toLowerCase()} templates`
+                : activeTab === 'saved'
+                  ? 'No saved photos'
+                  : templates.length > 0
+                    ? 'No matching templates'
+                    : 'No templates yet'
+            }
+            emptyDescription={
+              activeCategory !== 'All'
+                ? 'Nothing in this category yet. Choose All to see every template you have saved.'
+                : activeTab === 'saved'
                   ? 'Browse Pexels and bookmark photos to build your library.'
                   : 'Upload an image, save from Pexels, or create a new canvas design.'
-              }
-              action={
-                activeTab === 'saved' ? (
-                  <button
-                    onClick={() => setActiveTab('stock')}
-                    className="text-sm font-semibold text-blue-400 hover:text-blue-300"
-                  >
-                    Browse Pexels →
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleNewDesign}
-                    className="text-sm font-semibold text-blue-400 hover:text-blue-300"
-                  >
-                    Create new design →
-                  </button>
-                )
-              }
-            />
-          )}
+            }
+            onClearCategory={
+              activeCategory !== 'All' ? () => setActiveCategory('All') : undefined
+            }
+            action={
+              activeCategory === 'All' && activeTab === 'saved' ? (
+                <button
+                  type="button"
+                  onClick={() => setTab('stock')}
+                  className="text-sm font-semibold text-blue-400 hover:text-blue-300"
+                >
+                  Browse Pexels →
+                </button>
+              ) : activeCategory === 'All' && templates.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={handleNewDesign}
+                  className="text-sm font-semibold text-blue-400 hover:text-blue-300"
+                >
+                  Create new design →
+                </button>
+              ) : undefined
+            }
+          />
         </>
       )}
     </motion.div>
@@ -446,20 +491,30 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
 
 function TemplateGrid({
   templates,
+  categoryOptions,
   searchQuery,
   activeCategory,
   onSearchChange,
   onCategoryChange,
   onEdit,
   onDelete,
+  emptyTitle,
+  emptyDescription,
+  onClearCategory,
+  action,
 }: {
   templates: StudioTemplate[]
+  categoryOptions: readonly string[]
   searchQuery: string
   activeCategory: string
   onSearchChange: (v: string) => void
   onCategoryChange: (v: string) => void
   onEdit: (t: StudioTemplate) => void
   onDelete: (id: string) => void
+  emptyTitle: string
+  emptyDescription: string
+  onClearCategory?: () => void
+  action?: React.ReactNode
 }) {
   return (
     <div>
@@ -470,15 +525,19 @@ function TemplateGrid({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search templates…"
+            aria-label="Search templates"
             className="pl-9 h-9 w-52 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 rounded-xl text-sm"
           />
         </div>
-        <div className="flex flex-wrap gap-1">
-          {STUDIO_CATEGORIES.map((cat) => (
+        <div className="flex flex-wrap gap-1" role="tablist" aria-label="Template categories">
+          {categoryOptions.map((cat) => (
             <button
               key={cat}
+              type="button"
+              role="tab"
+              aria-selected={activeCategory === cat}
               onClick={() => onCategoryChange(cat)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium ui-transition ${
                 activeCategory === cat
                   ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-white/60 border border-transparent'
@@ -489,11 +548,32 @@ function TemplateGrid({
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {templates.map((t) => (
-          <StudioTemplateCard key={t.id} template={t} onEdit={onEdit} onDelete={onDelete} />
-        ))}
-      </div>
+      {templates.length > 0 ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {templates.map((t) => (
+            <StudioTemplateCard key={t.id} template={t} onEdit={onEdit} onDelete={onDelete} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={LayoutTemplate}
+          title={emptyTitle}
+          description={emptyDescription}
+          action={
+            onClearCategory ? (
+              <button
+                type="button"
+                onClick={onClearCategory}
+                className="text-sm font-semibold text-blue-400 hover:text-blue-300"
+              >
+                Show all templates →
+              </button>
+            ) : (
+              action
+            )
+          }
+        />
+      )}
     </div>
   )
 }

@@ -7,7 +7,13 @@ import { getSession } from '@/lib/services/auth.service'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { upsertBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import { getBusinessProfile } from '@/lib/services/business.service'
-import { DEFAULT_PREFERENCES, DEFAULT_AI_PREFERENCES } from '@/lib/settings-utils'
+import {
+  DEFAULT_PREFERENCES,
+  DEFAULT_AI_PREFERENCES,
+  MIN_PASSWORD_LENGTH,
+  isValidTimeZone,
+  parseWeekStartsOn,
+} from '@/lib/settings-utils'
 import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
 import {
   isAiProviderPreference,
@@ -15,7 +21,10 @@ import {
   isAllowedImageModel,
   type AiProviderPreference,
 } from '@/lib/ai-models'
-import type { SettingsData, WeekStartsOn } from '@/types/settings'
+import type { SettingsData, SignInMethod } from '@/types/settings'
+import { getClientIp } from '@/lib/client-ip'
+import { rateLimitMessage } from '@/lib/rate-limit'
+import { redirect } from 'next/navigation'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import {
   AVATAR_ALLOWED_TYPES,
@@ -24,6 +33,18 @@ import {
 } from '@/lib/upload-limits'
 
 const AVATAR_BUCKET = 'studio-templates'
+
+function resolveSignInMethods(
+  accounts: Array<{ providerId?: string | null }>
+): SettingsData['auth'] {
+  const hasGoogle = accounts.some((a) => a.providerId === 'google')
+  const hasPassword = accounts.some((a) => a.providerId === 'credential')
+  const methods: SignInMethod[] = []
+  if (hasGoogle) methods.push('google')
+  if (hasPassword) methods.push('password')
+  if (!hasGoogle && !hasPassword) methods.push('magic_link')
+  return { methods, hasPassword }
+}
 
 async function uploadAvatarFile(userId: string, file: File): Promise<string | null> {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
@@ -97,8 +118,10 @@ export async function getUserPreferencesAction(): Promise<SettingsData['preferen
   if (!data) return DEFAULT_PREFERENCES
 
   return {
-    timezone: data.timezone ?? DEFAULT_PREFERENCES.timezone,
-    weekStartsOn: (data.week_starts_on as WeekStartsOn) ?? DEFAULT_PREFERENCES.weekStartsOn,
+    timezone: isValidTimeZone(data.timezone)
+      ? data.timezone
+      : DEFAULT_PREFERENCES.timezone,
+    weekStartsOn: parseWeekStartsOn(data.week_starts_on),
   }
 }
 
@@ -107,7 +130,12 @@ export async function getSettingsData(): Promise<SettingsData | null> {
   if (!session) return null
 
   const user = session.user
-  const [{ data: profile }, { data: prefs }, ai] = await Promise.all([
+  const [
+    { data: profile },
+    { data: prefs },
+    ai,
+    { data: accounts, error: accountsError },
+  ] = await Promise.all([
     getBusinessProfile(user.id),
     supabaseAdmin
       .from('user_preferences')
@@ -115,12 +143,21 @@ export async function getSettingsData(): Promise<SettingsData | null> {
       .eq('user_id', user.id)
       .maybeSingle(),
     getUserAiPreferences(user.id),
+    supabaseAdmin
+      .from('account')
+      .select('providerId')
+      .eq('userId', user.id),
   ])
+
+  if (accountsError) {
+    console.error('[settings] sign-in methods query failed', accountsError.message)
+  }
 
   return {
     displayName: user.name ?? user.email?.split('@')[0] ?? 'User',
     email: user.email ?? '',
     avatarUrl: user.image ?? null,
+    auth: resolveSignInMethods(accounts ?? []),
     business: {
       businessName: profile?.business_name ?? '',
       industry: profile?.industry ?? '',
@@ -136,7 +173,7 @@ export async function getSettingsData(): Promise<SettingsData | null> {
       primaryFont:
         Array.isArray(profile?.brand_fonts) && profile.brand_fonts[0]
           ? profile.brand_fonts[0]
-          : 'Inter',
+          : 'Geist',
       secondaryFont:
         Array.isArray(profile?.brand_fonts) && profile.brand_fonts[1]
           ? profile.brand_fonts[1]
@@ -144,9 +181,11 @@ export async function getSettingsData(): Promise<SettingsData | null> {
       hasProfile: Boolean(profile?.business_name),
     },
     preferences: {
-      timezone: prefs?.timezone ?? DEFAULT_PREFERENCES.timezone,
-      weekStartsOn:
-        (prefs?.week_starts_on as WeekStartsOn) ?? DEFAULT_PREFERENCES.weekStartsOn,
+      timezone:
+        prefs?.timezone && isValidTimeZone(prefs.timezone)
+          ? prefs.timezone
+          : DEFAULT_PREFERENCES.timezone,
+      weekStartsOn: parseWeekStartsOn(prefs?.week_starts_on),
     },
     ai: prefs
       ? {
@@ -221,8 +260,11 @@ export async function updateCalendarPreferencesAction(formData: FormData) {
   const user = await getAuthenticatedUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const timezone = formData.get('timezone') as string
-  const weekStartsOn = formData.get('weekStartsOn') as WeekStartsOn
+  const timezone = String(formData.get('timezone') || '').trim()
+  const weekStartsOn = parseWeekStartsOn(formData.get('weekStartsOn'))
+  if (!isValidTimeZone(timezone)) {
+    return { error: 'Choose a valid timezone' }
+  }
   const ai = await getUserAiPreferences(user.id)
 
   const { error } = await supabaseAdmin.from('user_preferences').upsert(
@@ -242,6 +284,7 @@ export async function updateCalendarPreferencesAction(formData: FormData) {
 
   revalidatePath('/dashboard/settings')
   revalidatePath('/dashboard/calendar')
+  revalidatePath('/dashboard')
   return {
     success: true,
     preferences: { timezone, weekStartsOn },
@@ -256,7 +299,7 @@ export async function updateWorkspaceAction(formData: FormData) {
     .filter((c) => /^#[0-9A-Fa-f]{6}$/.test(c))
     .slice(0, 5)
 
-  const primaryFont = String(formData.get('primaryFont') || 'Inter').trim()
+  const primaryFont = String(formData.get('primaryFont') || 'Geist').trim()
   const secondaryFont = String(formData.get('secondaryFont') || 'Georgia').trim()
 
   const result = await upsertBusinessProfileAction({
@@ -339,4 +382,149 @@ export async function updateAiPreferencesAction(formData: FormData): Promise<
       imageModel: imageRaw,
     },
   }
+}
+
+export async function changePasswordAction(formData: FormData) {
+  const user = await getAuthenticatedUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const ip = await getClientIp()
+  const limited = rateLimitMessage(`settings:password:${user.id}:${ip}`, 5, 15 * 60_000)
+  if (limited) return { error: limited }
+
+  const currentPassword = String(formData.get('currentPassword') || '')
+  const newPassword = String(formData.get('newPassword') || '')
+  const confirmPassword = String(formData.get('confirmPassword') || '')
+
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return { error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters` }
+  }
+  if (newPassword !== confirmPassword) {
+    return { error: 'New passwords do not match' }
+  }
+  if (currentPassword === newPassword) {
+    return { error: 'Choose a different password from the current one' }
+  }
+
+  try {
+    await auth.api.changePassword({
+      body: {
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: true,
+      },
+      headers: await headers(),
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Could not change password'
+    return { error: message }
+  }
+
+  return { success: true }
+}
+
+async function deleteRows(
+  table: string,
+  column: string,
+  value: string
+): Promise<string | null> {
+  const { error } = await supabaseAdmin.from(table).delete().eq(column, value)
+  if (error && !/schema cache|does not exist|could not find/i.test(error.message)) {
+    return `${table}: ${error.message}`
+  }
+  return null
+}
+
+export async function deleteAccountAction(formData: FormData) {
+  const user = await getAuthenticatedUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const ip = await getClientIp()
+  const limited = rateLimitMessage(`settings:delete:${user.id}:${ip}`, 3, 15 * 60_000)
+  if (limited) return { error: limited }
+
+  const confirmation = String(formData.get('confirmEmail') || '').trim().toLowerCase()
+  const email = (user.email ?? '').trim().toLowerCase()
+  if (!email || confirmation !== email) {
+    return { error: 'Type your email address to confirm deletion' }
+  }
+
+  const { data: profiles } = await supabaseAdmin
+    .from('business_profiles')
+    .select('id')
+    .eq('user_id', user.id)
+
+  const profileIds = (profiles ?? []).map((p) => p.id as string)
+
+  const failures: string[] = []
+  for (const table of [
+    'inbox_messages',
+    'business_social_connections',
+    'instagram_account_insights',
+    'posts',
+    'content_plans',
+    'studio_templates',
+    'generations',
+    'credit_transactions',
+    'moderation_flags',
+    'user_preferences',
+    'user_subscriptions',
+  ]) {
+    const err = await deleteRows(table, 'user_id', user.id)
+    if (err) failures.push(err)
+  }
+
+  if (profileIds.length > 0) {
+    const { error: profileError } = await supabaseAdmin
+      .from('business_profiles')
+      .delete()
+      .in('id', profileIds)
+    if (profileError) failures.push(`business_profiles: ${profileError.message}`)
+  } else {
+    const err = await deleteRows('business_profiles', 'user_id', user.id)
+    if (err) failures.push(err)
+  }
+
+  try {
+    await auth.api.deleteUser({
+      body: {},
+      headers: await headers(),
+    })
+  } catch {
+    const { data: stillThere } = await supabaseAdmin
+      .from('user')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (stillThere) {
+      const { error: userError } = await supabaseAdmin.from('user').delete().eq('id', user.id)
+      if (userError) {
+        console.error('[settings] deleteAccount login still present', {
+          userId: user.id,
+          failures,
+          error: userError.message,
+        })
+        return { error: 'Could not delete this login. Try again or contact support.' }
+      }
+
+      const { data: remains } = await supabaseAdmin
+        .from('user')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (remains) {
+        return { error: 'Could not delete this login. Try again or contact support.' }
+      }
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error('[settings] deleteAccount partial data cleanup', {
+      userId: user.id,
+      failures,
+    })
+  }
+
+  redirect('/login?message=Your+account+has+been+deleted&type=success')
 }

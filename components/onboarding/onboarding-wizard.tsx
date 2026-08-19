@@ -15,49 +15,43 @@ import {
   Users,
   Target,
   Megaphone,
-  X,
   Loader2,
-  CheckCircle2,
-  Activity,
   Palette,
   Upload,
+  Activity,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   completeOnboardingAction,
   uploadBusinessLogoAction,
 } from '@/app/onboarding/actions'
 import { toast } from 'sonner'
-import type { BusinessProfile } from '@/types/business-profile'
+import type { BusinessProfile, BusinessProfileInput } from '@/types/business-profile'
 import { SMB_INDUSTRIES, OTHER_INDUSTRY, normalizeIndustry } from '@/lib/industries'
 import { getIndustryPalette } from '@/lib/studio-brand-kit'
 import { STUDIO_FONT_FAMILIES } from '@/lib/instagram-formats'
 import { AppSelect } from '@/components/ui/app-select'
+import { cn } from '@/lib/utils'
+import { InlineNotice } from '@/components/ui/inline-notice'
+
+const AFTER_ONBOARDING_HREF = '/dashboard'
 
 const steps = [
   {
     id: 'business',
     title: 'Your business',
-    description: 'Four quick answers — enough for the AI to write relevant posts.',
+    description: 'Name, industry, and what you sell — enough for the AI to write relevant posts.',
   },
   {
     id: 'marketing',
     title: 'Marketing focus',
-    description: 'Who you reach, how you sound, where you publish, and who you compete with.',
+    description: 'Who you reach, how you sound, and where you publish.',
   },
   {
     id: 'brand',
     title: 'Brand assets',
-    description: 'Logo, colours, and fonts so Studio and AI stay on-brand.',
+    description: 'Optional — skip and add a logo, colours, and fonts later in Settings.',
   },
-]
-
-const saveSteps = [
-  'Saving your marketing profile…',
-  'Uploading brand assets…',
-  'Tuning AI to your brand…',
-  'Opening your dashboard…',
 ]
 
 const primaryGoals = [
@@ -75,10 +69,13 @@ const toneOptions = [
   'Luxury & refined',
 ]
 
-const contentChannels = ['Instagram', 'LinkedIn', 'Twitter / X', 'Email Newsletter', 'TikTok']
+const contentChannels = ['Instagram']
+
+const DEFAULT_PRIMARY_FONT = 'Geist'
+const DEFAULT_SECONDARY_FONT = 'Georgia'
 
 const inputClass =
-  'h-12 bg-white/8 border-white/15 focus-visible:border-blue-400/60 focus-visible:ring-0 text-white placeholder:text-white/25 rounded-xl transition-all text-base shadow-none'
+  'h-12 bg-white/8 border-white/15 focus-visible:border-blue-400/60 focus-visible:ring-0 text-white placeholder:text-white/25 rounded-xl ui-transition text-base shadow-none'
 const labelClass =
   'text-white/45 font-medium text-xs uppercase tracking-wider flex items-center gap-2'
 
@@ -109,11 +106,11 @@ function profileToFormData(profile: BusinessProfile | null | undefined): Onboard
       primaryGoal: '',
       targetCustomers: '',
       tone: '',
-      channels: [],
+      channels: ['Instagram'],
       competitors: '',
       brandColors: getIndustryPalette(null),
-      primaryFont: 'Inter',
-      secondaryFont: 'Georgia',
+      primaryFont: DEFAULT_PRIMARY_FONT,
+      secondaryFont: DEFAULT_SECONDARY_FONT,
     }
   }
 
@@ -133,12 +130,38 @@ function profileToFormData(profile: BusinessProfile | null | undefined): Onboard
     primaryGoal: profile.primary_goal ?? '',
     targetCustomers: profile.target_customers ?? '',
     tone: profile.tone ?? '',
-    channels: profile.channels ?? [],
+    channels: profile.channels?.length ? profile.channels : ['Instagram'],
     competitors: profile.competitors ?? '',
     brandColors: colors.length >= 3 ? colors : getIndustryPalette(industry),
-    primaryFont: fonts[0] || 'Inter',
-    secondaryFont: fonts[1] || 'Georgia',
+    primaryFont: fonts[0] || DEFAULT_PRIMARY_FONT,
+    secondaryFont: fonts[1] || DEFAULT_SECONDARY_FONT,
   }
+}
+
+function formToInput(
+  form: OnboardingFormData,
+  opts: { includeBrand: boolean }
+): BusinessProfileInput {
+  const input: BusinessProfileInput = {}
+  if (form.businessName.trim()) input.business_name = form.businessName.trim()
+  if (form.industry.trim()) input.industry = form.industry.trim()
+  if (form.industry === OTHER_INDUSTRY) {
+    input.industry_detail = form.industryDetail.trim() || null
+  } else if (form.industry.trim()) {
+    input.industry_detail = null
+  }
+  if (form.website.trim()) input.website = form.website.trim()
+  if (form.services.trim()) input.services = form.services.trim()
+  if (form.primaryGoal) input.primary_goal = form.primaryGoal
+  if (form.targetCustomers.trim()) input.target_customers = form.targetCustomers.trim()
+  if (form.tone) input.tone = form.tone
+  if (form.channels.length) input.channels = form.channels
+  if (form.competitors.trim()) input.competitors = form.competitors.trim()
+  if (opts.includeBrand) {
+    input.brand_colors = form.brandColors.slice(0, 5)
+    input.brand_fonts = [form.primaryFont, form.secondaryFont].filter(Boolean)
+  }
+  return input
 }
 
 export function OnboardingWizard({
@@ -149,7 +172,8 @@ export function OnboardingWizard({
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [isSaving, setIsSaving] = useState(false)
-  const [saveStep, setSaveStep] = useState(0)
+  const [isSkipping, setIsSkipping] = useState(false)
+  const [isStepSaving, setIsStepSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [formData, setFormData] = useState<OnboardingFormData>(() =>
     profileToFormData(initialProfile)
@@ -159,6 +183,8 @@ export function OnboardingWizard({
     initialProfile?.logo_url ?? null
   )
   const [direction, setDirection] = useState<1 | -1>(1)
+
+  const isBusy = isSaving || isSkipping || isStepSaving
 
   useEffect(() => {
     return () => {
@@ -185,77 +211,83 @@ export function OnboardingWizard({
         formData.channels.length > 0
       )
     }
-    // Brand step is optional beyond colours (prefilled)
-    return formData.brandColors.length >= 1 && formData.primaryFont.length > 0
+    return true
   }, [currentStep, formData])
 
-  const finishOnboarding = async () => {
+  const goToDashboard = () => {
+    router.push(AFTER_ONBOARDING_HREF)
+    router.refresh()
+  }
+
+  const persistProfile = async (includeBrand: boolean) => {
+    const result = await completeOnboardingAction(formToInput(formData, { includeBrand }))
+    if (result.error || !result.data?.id) {
+      throw new Error(result.error ?? 'Could not save profile. Try again.')
+    }
+    if (logoFile) {
+      const fd = new FormData()
+      fd.set('logo', logoFile)
+      const upload = await uploadBusinessLogoAction(fd)
+      if ('error' in upload) {
+        toast.message('Profile saved', { description: upload.error })
+      }
+    }
+  }
+
+  const finishOnboarding = async (includeBrand: boolean) => {
     setIsSaving(true)
     setSaveError(null)
-    setSaveStep(0)
-
     try {
-      const result = await completeOnboardingAction({
-        business_name: formData.businessName.trim(),
-        industry: formData.industry.trim(),
-        industry_detail:
-          formData.industry === OTHER_INDUSTRY
-            ? formData.industryDetail.trim()
-            : null,
-        website: formData.website.trim() || undefined,
-        services: formData.services.trim(),
-        primary_goal: formData.primaryGoal,
-        target_customers: formData.targetCustomers.trim(),
-        tone: formData.tone,
-        channels: formData.channels,
-        competitors: formData.competitors.trim() || undefined,
-        brand_colors: formData.brandColors.slice(0, 5),
-        brand_fonts: [formData.primaryFont, formData.secondaryFont].filter(Boolean),
-      })
-
-      if (result.error || !result.data?.business_name) {
-        const message =
-          result.error ?? 'Profile saved but could not be verified. Refresh the page or try again.'
-        setSaveError(message)
-        toast.error(message)
-        setIsSaving(false)
-        return
-      }
-
-      setSaveStep(1)
-      if (logoFile) {
-        const fd = new FormData()
-        fd.set('logo', logoFile)
-        const upload = await uploadBusinessLogoAction(fd)
-        if ('error' in upload) {
-          toast.message('Profile saved', { description: upload.error })
-        }
-      }
-
-      setSaveStep(2)
-      await new Promise((resolve) => setTimeout(resolve, 400))
-      setSaveStep(3)
-      await new Promise((resolve) => setTimeout(resolve, 350))
-
+      await persistProfile(includeBrand)
       toast.success('Profile saved')
-      router.push('/dashboard')
-      router.refresh()
+      goToDashboard()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save profile'
+      const message = formatOnboardingError(
+        err instanceof Error ? err.message : 'Failed to save profile',
+        'finish'
+      )
       setSaveError(message)
-      toast.error(message)
       setIsSaving(false)
     }
   }
 
-  const handleNext = () => {
-    if (!canContinue) return
-    setDirection(1)
-    if (currentStep < steps.length - 1) {
-      setCurrentStep((prev) => prev + 1)
-    } else {
-      void finishOnboarding()
+  const handleSkip = async () => {
+    setIsSkipping(true)
+    setSaveError(null)
+    try {
+      await persistProfile(currentStep === 2)
+      goToDashboard()
+    } catch (err) {
+      const message = formatOnboardingError(
+        err instanceof Error ? err.message : 'Could not skip setup',
+        'skip'
+      )
+      setSaveError(message)
+      setIsSkipping(false)
     }
+  }
+
+  const handleNext = async () => {
+    if (!canContinue || isBusy) return
+    if (currentStep < steps.length - 1) {
+      setIsStepSaving(true)
+      setSaveError(null)
+      try {
+        await persistProfile(false)
+        setDirection(1)
+        setCurrentStep((prev) => prev + 1)
+      } catch (err) {
+        const message = formatOnboardingError(
+          err instanceof Error ? err.message : 'Failed to save progress',
+          'progress'
+        )
+        setSaveError(message)
+      } finally {
+        setIsStepSaving(false)
+      }
+      return
+    }
+    void finishOnboarding(true)
   }
 
   const handleBack = () => {
@@ -263,6 +295,12 @@ export function OnboardingWizard({
       setDirection(-1)
       setCurrentStep((prev) => prev - 1)
     }
+  }
+
+  const jumpToStep = (index: number) => {
+    if (index >= currentStep || isBusy) return
+    setDirection(-1)
+    setCurrentStep(index)
   }
 
   const updateFields = (fields: Partial<typeof formData>) => {
@@ -287,9 +325,7 @@ export function OnboardingWizard({
   const toggleChannel = (channel: string) => {
     setFormData((prev) => ({
       ...prev,
-      channels: prev.channels.includes(channel)
-        ? prev.channels.filter((c) => c !== channel)
-        : [...prev.channels, channel],
+      channels: [channel],
     }))
   }
 
@@ -299,104 +335,97 @@ export function OnboardingWizard({
     setLogoPreview(file ? URL.createObjectURL(file) : initialProfile?.logo_url ?? null)
   }
 
-  const cardClass =
-    'w-full max-w-2xl bg-[#0d1117]/95 border border-white/15 shadow-2xl z-10 p-8 md:p-10 rounded-2xl relative'
-
-  if (isSaving) {
-    return (
-      <div className="flex flex-col min-h-dvh font-sans items-center justify-center py-12 px-4 relative w-full">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md bg-[#0d1117]/95 border border-white/15 shadow-2xl z-10 p-10 rounded-2xl flex flex-col items-center"
-        >
-          <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/30 mb-6">
-            <Loader2 className="w-7 h-7 text-blue-400 animate-spin" />
-          </div>
-          <h2 className="text-xl font-serif font-light text-white mb-6 text-center tracking-tight">
-            Setting up your workspace
-          </h2>
-          <div className="w-full space-y-4">
-            {saveSteps.map((step, idx) => {
-              const isCompleted = idx < saveStep
-              const isActive = idx === saveStep
-              return (
-                <div
-                  key={step}
-                  className={`flex items-center gap-3 transition-opacity ${idx > saveStep ? 'opacity-35' : 'opacity-100'}`}
-                >
-                  {isCompleted ? (
-                    <CheckCircle2 className="w-5 h-5 text-blue-400 shrink-0" />
-                  ) : isActive ? (
-                    <Loader2 className="w-5 h-5 text-blue-400 animate-spin shrink-0" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full border border-white/20 shrink-0" />
-                  )}
-                  <span className={`text-sm ${isActive ? 'text-white' : 'text-white/55'}`}>
-                    {step}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-          {saveError ? (
-            <div className="mt-6 w-full rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 text-center">
-              {saveError}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSaving(false)
-                  setSaveError(null)
-                }}
-                className="block w-full mt-3 text-xs font-semibold text-red-200 hover:text-white"
-              >
-                Go back and try again
-              </button>
-            </div>
-          ) : null}
-        </motion.div>
-      </div>
-    )
+  const formatOnboardingError = (
+    fallback: string,
+    action: 'finish' | 'skip' | 'progress'
+  ) => {
+    if (action === 'skip') {
+      return `${fallback}. Your answers are still here, so try Skip again or continue to the next step.`
+    }
+    if (action === 'progress') {
+      return `${fallback}. Review the current step and try Next again.`
+    }
+    return `${fallback}. Your changes are still on this page, so try again when ready.`
   }
 
-  return (
-    <div className="flex flex-col min-h-dvh font-sans items-center justify-center py-12 px-4 relative w-full">
-      <Link
-        href="/dashboard"
-        className="absolute top-6 right-6 text-white/35 hover:text-white/70 transition-colors flex items-center gap-1.5 text-sm z-10"
-        aria-label="Skip and go to dashboard"
-      >
-        Skip <X className="w-4 h-4" aria-hidden="true" />
-      </Link>
+  const continueLabel =
+    currentStep === steps.length - 1
+      ? isSaving
+        ? logoFile
+          ? 'Uploading logo…'
+          : 'Saving…'
+        : 'Open dashboard'
+      : isStepSaving
+        ? 'Saving…'
+        : 'Continue'
 
-      <div className="absolute top-6 left-6 flex items-center gap-3 z-10">
-        <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.4)]">
-          <Activity className="w-5 h-5 text-white" />
+  return (
+    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center px-4 py-12 font-sans">
+      <button
+        type="button"
+        onClick={() => void handleSkip()}
+        disabled={isBusy}
+        className="absolute top-6 right-6 z-10 inline-flex min-h-11 items-center text-sm text-white/35 ui-transition hover:text-white/70 disabled:opacity-40"
+      >
+        {isSkipping ? 'Opening dashboard…' : 'Skip'}
+      </button>
+
+      <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
+        <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500">
+          <Activity className="size-5 text-white" aria-hidden="true" />
         </div>
-        <span className="font-serif font-light text-xl tracking-tighter text-white">Marketme</span>
+        <span className="font-sans text-xl font-semibold tracking-tight text-white">
+          Marketme
+        </span>
       </div>
 
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          handleNext()
+          void handleNext()
         }}
-        className={cardClass}
+        className="relative z-10 w-full max-w-2xl rounded-2xl border border-white/15 bg-[#0d1117]/95 p-8 md:p-10"
       >
-        <div className="flex items-center gap-2 mb-8">
-          {steps.map((step, i) => (
-            <div key={step.id} className="flex-1 flex flex-col gap-1.5">
-              <div
-                className={`h-1 w-full rounded-full transition-colors duration-500 ${i <= currentStep ? 'bg-blue-500' : 'bg-white/8'}`}
-              />
-              <span
-                className={`text-[9px] uppercase tracking-widest font-bold transition-colors ${i <= currentStep ? 'text-white/70' : 'text-white/20'}`}
+        <div className="mb-2 text-xs font-medium uppercase tracking-widest text-white/40">
+          Step {currentStep + 1} of {steps.length}
+          <span className="normal-case tracking-normal text-white/30"> · about 2 minutes</span>
+        </div>
+
+        <div className="mb-8 flex items-center gap-2" role="navigation" aria-label="Onboarding steps">
+          {steps.map((step, i) => {
+            const isReached = i <= currentStep
+            const isClickable = i < currentStep && !isBusy
+            return (
+              <button
+                key={step.id}
+                type="button"
+                disabled={!isClickable}
+                onClick={() => jumpToStep(i)}
+                aria-current={i === currentStep ? 'step' : undefined}
+                aria-label={`${step.title}${i < currentStep ? ', completed, go back' : i === currentStep ? ', current step' : ''}`}
+                className={cn(
+                  'flex min-h-11 flex-1 flex-col justify-center gap-1.5 text-left',
+                  isClickable && 'cursor-pointer'
+                )}
               >
-                {step.title}
-              </span>
-            </div>
-          ))}
+                <span
+                  className={cn(
+                    'h-1 w-full rounded-full ui-transition',
+                    isReached ? 'bg-blue-500' : 'bg-white/8',
+                    isClickable && 'hover:bg-blue-400'
+                  )}
+                />
+                <span
+                  className={cn(
+                    'text-[9px] font-bold uppercase tracking-widest',
+                    isReached ? 'text-white/70' : 'text-white/20'
+                  )}
+                >
+                  {step.title}
+                </span>
+              </button>
+            )
+          })}
         </div>
 
         <AnimatePresence mode="wait">
@@ -409,21 +438,22 @@ export function OnboardingWizard({
             className="min-h-[300px]"
           >
             <div className="mb-8">
-              <h2 className="text-2xl md:text-3xl font-serif font-light tracking-tight text-white mb-1.5">
+              <h2 className="mb-1.5 font-sans text-2xl font-semibold tracking-tight text-white md:text-3xl">
                 {steps[currentStep].title}
               </h2>
-              <p className="text-white/40 text-sm">{steps[currentStep].description}</p>
+              <p className="text-sm text-white/40">{steps[currentStep].description}</p>
             </div>
 
             {currentStep === 0 && (
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <Label className={labelClass}>
-                      <Briefcase className="w-3.5 h-3.5 text-blue-400" />
+              <div className="flex flex-col gap-5">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label className={labelClass} htmlFor="onboarding-business-name">
+                      <Briefcase className="size-3.5 text-blue-400" />
                       Business name
                     </Label>
                     <Input
+                      id="onboarding-business-name"
                       value={formData.businessName}
                       onChange={(e) => updateFields({ businessName: e.target.value })}
                       placeholder="e.g. Vanguard Atelier"
@@ -431,9 +461,9 @@ export function OnboardingWizard({
                       className={inputClass}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <Label className={labelClass}>
-                      <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                      <Building2 className="size-3.5 text-blue-400" />
                       Industry
                     </Label>
                     <AppSelect
@@ -456,27 +486,29 @@ export function OnboardingWizard({
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className={labelClass}>
-                    <Briefcase className="w-3.5 h-3.5 text-blue-400" />
+                <div className="flex flex-col gap-2">
+                  <Label className={labelClass} htmlFor="onboarding-services">
+                    <Briefcase className="size-3.5 text-blue-400" />
                     What you sell or do
                   </Label>
                   <Textarea
+                    id="onboarding-services"
                     value={formData.services}
                     onChange={(e) => updateFields({ services: e.target.value })}
                     placeholder="One sentence is fine — e.g. Custom suits and personal styling for professionals."
                     required
-                    className="min-h-[88px] bg-white/8 border-white/15 focus-visible:ring-0 focus-visible:border-blue-400/60 text-white placeholder:text-white/20 rounded-xl text-sm p-4 resize-y shadow-none"
+                    className="min-h-[88px] resize-y rounded-xl border-white/15 bg-white/8 p-4 text-sm text-white shadow-none placeholder:text-white/20 focus-visible:border-blue-400/60 focus-visible:ring-0"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label className={labelClass}>
-                    <Globe className="w-3.5 h-3.5 text-blue-400" />
+                <div className="flex flex-col gap-2">
+                  <Label className={labelClass} htmlFor="onboarding-website">
+                    <Globe className="size-3.5 text-blue-400" />
                     Website{' '}
-                    <span className="text-white/25 normal-case tracking-normal">(optional)</span>
+                    <span className="normal-case tracking-normal text-white/25">(optional)</span>
                   </Label>
                   <Input
+                    id="onboarding-website"
                     value={formData.website}
                     onChange={(e) => updateFields({ website: e.target.value })}
                     placeholder="https://"
@@ -487,24 +519,25 @@ export function OnboardingWizard({
             )}
 
             {currentStep === 1 && (
-              <div className="space-y-6">
-                <div className="space-y-2">
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
                   <Label className={labelClass}>
-                    <Target className="w-3.5 h-3.5 text-blue-400" />
+                    <Target className="size-3.5 text-blue-400" />
                     Main marketing goal
                   </Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {primaryGoals.map((goal) => (
                       <button
                         key={goal}
                         type="button"
                         aria-pressed={formData.primaryGoal === goal}
                         onClick={() => updateFields({ primaryGoal: goal })}
-                        className={`h-11 px-3 rounded-xl border text-sm font-medium transition-all text-left ${
+                        className={cn(
+                          'h-11 rounded-xl border px-3 text-left text-sm font-medium ui-transition',
                           formData.primaryGoal === goal
-                            ? 'bg-blue-500/12 border-blue-500/50 text-blue-300'
-                            : 'bg-white/8 border-white/10 text-white/50 hover:border-white/20'
-                        }`}
+                            ? 'border-blue-500/50 bg-blue-500/12 text-blue-300'
+                            : 'border-white/10 bg-white/8 text-white/50 hover:border-white/20'
+                        )}
                       >
                         {goal}
                       </button>
@@ -512,12 +545,13 @@ export function OnboardingWizard({
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className={labelClass}>
-                    <Users className="w-3.5 h-3.5 text-blue-400" />
+                <div className="flex flex-col gap-2">
+                  <Label className={labelClass} htmlFor="onboarding-audience">
+                    <Users className="size-3.5 text-blue-400" />
                     Target audience
                   </Label>
                   <Input
+                    id="onboarding-audience"
                     value={formData.targetCustomers}
                     onChange={(e) => updateFields({ targetCustomers: e.target.value })}
                     placeholder="e.g. Busy founders aged 30–45 in the US"
@@ -526,7 +560,7 @@ export function OnboardingWizard({
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label className={labelClass}>Brand voice</Label>
                   <div className="flex flex-wrap gap-2">
                     {toneOptions.map((tone) => (
@@ -535,11 +569,12 @@ export function OnboardingWizard({
                         type="button"
                         aria-pressed={formData.tone === tone}
                         onClick={() => updateFields({ tone })}
-                        className={`h-9 px-3 rounded-xl border text-xs font-medium transition-all ${
+                        className={cn(
+                          'h-9 rounded-xl border px-3 text-xs font-medium ui-transition',
                           formData.tone === tone
-                            ? 'bg-blue-500/15 text-blue-300 border-blue-500/40'
-                            : 'bg-white/8 border-white/10 text-white/45 hover:border-white/20'
-                        }`}
+                            ? 'border-blue-500/40 bg-blue-500/15 text-blue-300'
+                            : 'border-white/10 bg-white/8 text-white/45 hover:border-white/20'
+                        )}
                       >
                         {tone}
                       </button>
@@ -547,9 +582,9 @@ export function OnboardingWizard({
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label className={labelClass}>
-                    <Megaphone className="w-3.5 h-3.5 text-blue-400" />
+                    <Megaphone className="size-3.5 text-blue-400" />
                     Where you post
                   </Label>
                   <div className="flex flex-wrap gap-2">
@@ -561,11 +596,12 @@ export function OnboardingWizard({
                           type="button"
                           aria-pressed={isActive}
                           onClick={() => toggleChannel(channel)}
-                          className={`h-9 px-3 rounded-xl border text-xs font-medium transition-all ${
+                          className={cn(
+                            'h-9 rounded-xl border px-3 text-xs font-medium ui-transition',
                             isActive
-                              ? 'bg-blue-500/15 text-blue-300 border-blue-500/40'
-                              : 'bg-white/8 border-white/10 text-white/45 hover:border-white/20'
-                          }`}
+                              ? 'border-blue-500/40 bg-blue-500/15 text-blue-300'
+                              : 'border-white/10 bg-white/8 text-white/45 hover:border-white/20'
+                          )}
                         >
                           {channel}
                         </button>
@@ -573,51 +609,55 @@ export function OnboardingWizard({
                     })}
                   </div>
                   <p className="text-[11px] text-white/30">
-                    Instagram is live for connect &amp; publish today. Other channels inform
-                    planning copy.
+                    Instagram is the live channel today. More publishing channels will appear here
+                    after they ship.
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className={labelClass}>
+                <div className="flex flex-col gap-2">
+                  <Label className={labelClass} htmlFor="onboarding-competitors">
                     Competitors{' '}
-                    <span className="text-white/25 normal-case tracking-normal">
+                    <span className="normal-case tracking-normal text-white/25">
                       (optional — up to 5)
                     </span>
                   </Label>
                   <Textarea
+                    id="onboarding-competitors"
                     value={formData.competitors}
                     onChange={(e) => updateFields({ competitors: e.target.value })}
                     placeholder={'@rivalbarbershop\nhttps://competitor-salon.com\n@anotherfade'}
-                    className="min-h-[88px] bg-white/8 border-white/15 focus-visible:ring-0 focus-visible:border-blue-400/60 text-white placeholder:text-white/20 rounded-xl text-sm p-4 resize-y shadow-none"
+                    className="min-h-[88px] resize-y rounded-xl border-white/15 bg-white/8 p-4 text-sm text-white shadow-none placeholder:text-white/20 focus-visible:border-blue-400/60 focus-visible:ring-0"
                   />
                 </div>
               </div>
             )}
 
             {currentStep === 2 && (
-              <div className="space-y-6">
-                <div className="space-y-2">
+              <div className="flex flex-col gap-6">
+                <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/55">
+                  Next on the dashboard: connect Instagram, then generate your first posts.
+                </p>
+                <div className="flex flex-col gap-2">
                   <Label className={labelClass}>
-                    <Upload className="w-3.5 h-3.5 text-blue-400" />
+                    <Upload className="size-3.5 text-blue-400" />
                     Logo{' '}
-                    <span className="text-white/25 normal-case tracking-normal">(optional)</span>
+                    <span className="normal-case tracking-normal text-white/25">(optional)</span>
                   </Label>
                   <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-xl border border-white/15 bg-white/8 overflow-hidden flex items-center justify-center">
+                    <div className="flex size-16 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/8">
                       {logoPreview ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={logoPreview}
                           alt="Logo preview"
-                          className="h-full w-full object-contain"
+                          className="size-full object-contain"
                         />
                       ) : (
-                        <Palette className="w-6 h-6 text-white/30" />
+                        <Palette className="size-6 text-white/30" />
                       )}
                     </div>
-                    <label className="cursor-pointer h-10 px-4 rounded-xl border border-white/15 bg-white/8 text-sm text-white/80 hover:border-white/30 inline-flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
+                    <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-white/15 bg-white/8 px-4 text-sm text-white/80 hover:border-white/30">
+                      <Upload className="size-4" />
                       Upload
                       <input
                         type="file"
@@ -638,9 +678,9 @@ export function OnboardingWizard({
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label className={labelClass}>
-                    <Palette className="w-3.5 h-3.5 text-blue-400" />
+                    <Palette className="size-3.5 text-blue-400" />
                     Brand colours
                   </Label>
                   <div className="flex flex-wrap gap-3">
@@ -650,9 +690,9 @@ export function OnboardingWizard({
                           type="color"
                           value={color}
                           onChange={(e) => setBrandColor(i, e.target.value)}
-                          className="h-10 w-10 cursor-pointer rounded-lg border border-white/15 bg-transparent p-0.5"
+                          className="size-10 cursor-pointer rounded-lg border border-white/15 bg-transparent p-0.5"
                         />
-                        <span className="text-[10px] text-white/35 font-mono">{color}</span>
+                        <span className="font-mono text-[10px] text-white/35">{color}</span>
                       </label>
                     ))}
                   </div>
@@ -661,8 +701,8 @@ export function OnboardingWizard({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
                     <Label className={labelClass}>Primary font</Label>
                     <AppSelect
                       tone="onboarding"
@@ -672,7 +712,7 @@ export function OnboardingWizard({
                       onChange={(primaryFont) => updateFields({ primaryFont })}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-2">
                     <Label className={labelClass}>Secondary font</Label>
                     <AppSelect
                       tone="onboarding"
@@ -688,40 +728,55 @@ export function OnboardingWizard({
           </motion.div>
         </AnimatePresence>
 
-        {saveError && !isSaving ? (
-          <div
-            role="alert"
-            className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-          >
-            {saveError}
-          </div>
+        {saveError ? (
+          <InlineNotice
+            tone="error"
+            title="Could not save onboarding"
+            description={saveError}
+            className="mt-6"
+          />
         ) : null}
 
-        <div className="mt-10 flex items-center justify-between border-t border-white/10 pt-6">
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6">
           <Button
             type="button"
             variant="ghost"
             onClick={handleBack}
-            disabled={currentStep === 0}
-            className="text-white/35 hover:text-white disabled:opacity-0 rounded-xl text-sm"
+            disabled={currentStep === 0 || isBusy}
+            className="rounded-xl text-sm text-white/35 hover:bg-white/8 hover:text-white disabled:opacity-0"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft data-icon="inline-start" />
             Back
           </Button>
 
-          <button
-            type="submit"
-            disabled={!canContinue}
-            className="h-11 px-8 bg-white hover:bg-white/90 disabled:opacity-40 disabled:pointer-events-none text-zinc-950 font-bold rounded-xl shadow-xl transition-all flex items-center justify-center gap-2 text-sm border-0 active:scale-[0.97]"
-          >
-            {currentStep === steps.length - 1 ? 'Finish setup' : 'Continue'}
-            {currentStep < steps.length - 1 && <ArrowRight className="w-4 h-4" />}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {currentStep === steps.length - 1 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isBusy}
+                onClick={() => void finishOnboarding(false)}
+                className="rounded-xl text-sm text-white/45 hover:bg-white/8 hover:text-white"
+              >
+                Skip brand
+              </Button>
+            ) : null}
+            <button
+              type="submit"
+              disabled={!canContinue || isBusy}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-500 px-8 text-sm font-semibold text-white ui-transition hover:bg-blue-400 disabled:pointer-events-none disabled:opacity-40 active:scale-[0.97]"
+            >
+              {isBusy && currentStep === steps.length - 1 ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : null}
+              {isStepSaving ? <Loader2 className="size-4 animate-spin" /> : null}
+              {continueLabel}
+              {currentStep < steps.length - 1 && !isStepSaving ? (
+                <ArrowRight className="size-4" />
+              ) : null}
+            </button>
+          </div>
         </div>
-
-        <p className="text-center text-[11px] text-white/25 mt-4">
-          Built for all small businesses — barbers & salons get smarter defaults first.
-        </p>
       </form>
     </div>
   )

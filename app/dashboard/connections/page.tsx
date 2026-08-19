@@ -1,5 +1,9 @@
 import { redirect } from 'next/navigation'
-import { ConnectionsContent } from '@/components/dashboard/connections-content'
+import { Suspense } from 'react'
+import {
+  ConnectionsContent,
+  ConnectionsSkeleton,
+} from '@/components/dashboard/connections-content'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 
 export default async function ConnectionsPage() {
@@ -11,7 +15,9 @@ export default async function ConnectionsPage() {
 
   return (
     <div className="relative min-h-full font-sans">
-      <ConnectionsContent />
+      <Suspense fallback={<ConnectionsSkeleton />}>
+        <ConnectionsContent />
+      </Suspense>
     </div>
   )
 }

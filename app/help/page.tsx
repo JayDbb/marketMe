@@ -20,7 +20,7 @@ const topics = [
     items: [
       {
         q: 'How do I create an account?',
-        a: 'Sign up with Google or an email magic link. No password required on login. After signup you can complete onboarding and open the dashboard.',
+        a: 'Sign up with Google or email and password. On login, use Google, a magic link, or your password. After signup you can complete onboarding and open the dashboard.',
         href: '/signup',
         linkLabel: 'Sign up',
       },
@@ -53,8 +53,8 @@ const topics = [
     title: 'Connections & billing',
     items: [
       {
-        q: 'How do I connect Instagram or Facebook?',
-        a: 'Use Connections and complete the official Meta OAuth flow. Never enter your social password into Marketme. If a token expires, reconnect before a big launch week.',
+        q: 'How do I connect Instagram?',
+        a: 'Use Connections and complete the official Meta OAuth flow for your Instagram Business or Creator account. Never enter your social password into Marketme. If a token expires, reconnect before a big launch week.',
         href: '/blog/connecting-instagram-the-right-way',
         linkLabel: 'OAuth guide',
       },

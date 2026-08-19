@@ -8,6 +8,8 @@ export interface GenerateSetupInput {
   platform: string
   numPosts: number
   tone: string
+  /** User brief from the composer / ?prompt= — not the brand voice. */
+  topic?: string
 }
 
 export interface GeneratedPostDraft {
@@ -48,6 +50,7 @@ export interface GenerateContext {
   templateUsageCounts: Record<string, number>
   creditsBalance: number
   creditsLimit: number | null
+  creditsResetAt?: string | null
   creditCostPerGeneration: number
 }
 

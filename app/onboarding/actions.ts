@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { upsertBusinessProfileAction } from '@/app/api/business-profile/_actions'
 import type { BusinessProfile, BusinessProfileInput } from '@/types/business-profile'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
@@ -13,10 +14,18 @@ import {
 
 const LOGO_BUCKET = 'studio-templates'
 
+function revalidateOnboardingPaths() {
+  revalidatePath('/dashboard')
+  revalidatePath('/onboarding')
+  revalidatePath('/dashboard/settings')
+}
+
 export async function completeOnboardingAction(
   input: BusinessProfileInput
 ): Promise<{ data: BusinessProfile | null; error: string | null }> {
-  return upsertBusinessProfileAction(input)
+  const result = await upsertBusinessProfileAction(input)
+  if (result.data?.id) revalidateOnboardingPaths()
+  return result
 }
 
 export async function uploadBusinessLogoAction(

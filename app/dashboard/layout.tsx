@@ -65,7 +65,7 @@ export default async function DashboardLayout({
         <SocialConnectionsProvider
           businessProfileId={businessProfileId}
         >
-          <div className="fixed inset-0 z-10 flex overflow-hidden bg-background">
+          <div className="fixed inset-0 z-10 flex overflow-hidden bg-background dashboard-canvas font-sans">
             <SidebarProvider className="h-full min-h-0 w-full overflow-hidden">
               <AppSidebar account={account} />
 
@@ -79,9 +79,9 @@ export default async function DashboardLayout({
                   className="pointer-events-none absolute inset-0 overflow-hidden"
                   aria-hidden="true"
                 >
-                  <div className="absolute right-0 top-0 -mr-20 -mt-20 h-[500px] w-[min(500px,45%)] rounded-full bg-blue-500/10 blur-[120px]" />
+                  <div className="absolute right-0 top-0 -mr-20 -mt-20 h-[500px] w-[min(500px,45%)] rounded-full bg-primary/10 blur-[120px]" />
 
-                  <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-[600px] w-[min(600px,55%)] rounded-full bg-zinc-600/10 blur-[150px]" />
+                  <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-[600px] w-[min(600px,55%)] rounded-full bg-muted/40 blur-[150px]" />
                 </div>
 
                 <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl sm:px-6">

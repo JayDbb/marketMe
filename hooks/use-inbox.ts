@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, startTransition } from 'react'
 import type { InboxConversation, InboxMessage, InboxMessageType } from '@/types/social'
 import {
+  archiveInboxItem,
   fetchInboxConversation,
   fetchInboxMessages,
   markMessageRead,
@@ -11,6 +12,10 @@ import {
 } from '@/lib/social/inbox-api'
 import { useSocialConnections } from '@/components/dashboard/social-connections-provider'
 import { getInstagramAccountLabel } from '@/lib/social/instagram-account'
+
+function matchesMessageId(message: InboxMessage, messageId: string) {
+  return message.id === messageId || message.externalId === messageId
+}
 
 export function useInbox() {
   const {
@@ -136,8 +141,19 @@ export function useInbox() {
   const markRead = useCallback(async (messageId: string) => {
     setMessages((prev) =>
       prev.map((m) =>
-        m.id === messageId ? { ...m, status: 'read' as const } : m
+        matchesMessageId(m, messageId) ? { ...m, status: 'read' as const } : m
       )
+    )
+    setConversations((prev) =>
+      prev.map((c) => {
+        const latest = c.latestMessage
+        if (!latest || !matchesMessageId(latest, messageId)) return c
+        return {
+          ...c,
+          unreadCount: 0,
+          latestMessage: { ...latest, status: 'read' as const },
+        }
+      })
     )
     try {
       await markMessageRead(messageId)
@@ -145,6 +161,43 @@ export function useInbox() {
       // Keep optimistic UI; refresh will reconcile.
     }
   }, [])
+
+  const archive = useCallback(async (messageId: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        matchesMessageId(m, messageId)
+          ? { ...m, status: 'archived' as const }
+          : m
+      )
+    )
+    setConversations((prev) =>
+      prev.map((c) => {
+        const latest = c.latestMessage
+        if (!latest || !matchesMessageId(latest, messageId)) return c
+        return {
+          ...c,
+          unreadCount: 0,
+          latestMessage: { ...latest, status: 'archived' as const },
+        }
+      })
+    )
+    setActiveConversation((prev) => {
+      if (!prev) return prev
+      const latest = prev.latestMessage
+      if (!latest || !matchesMessageId(latest, messageId)) return prev
+      return {
+        ...prev,
+        unreadCount: 0,
+        latestMessage: { ...latest, status: 'archived' as const },
+      }
+    })
+    try {
+      await archiveInboxItem(messageId)
+    } catch (error) {
+      void loadMessages()
+      throw error
+    }
+  }, [loadMessages])
 
   const openConversation = useCallback(async (conversation: InboxConversation) => {
     setActiveConversation(conversation)
@@ -239,6 +292,7 @@ export function useInbox() {
     hasInstagram,
     refresh: loadMessages,
     markRead,
+    archive,
     openConversation,
     closeConversation,
     appendOutgoing,

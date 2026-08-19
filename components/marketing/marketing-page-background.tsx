@@ -12,7 +12,7 @@ export function MarketingPageBackground({ children, className }: MarketingPageBa
       className={cn(
         // overflow-x stays on body — clipping here turns fixed nav into a
         // containing-block child and chops the condensed pill on scroll.
-        'relative min-h-dvh bg-[#0d1117] text-zinc-50 font-sans selection:bg-blue-500/30 selection:text-white',
+        'marketing-canvas relative min-h-dvh bg-[#0d1117] font-sans text-zinc-50 selection:bg-sky-500/30 selection:text-white',
         className
       )}
     >
@@ -21,7 +21,7 @@ export function MarketingPageBackground({ children, className }: MarketingPageBa
         aria-hidden="true"
       />
       <div
-        className="fixed top-0 right-0 -mt-20 -mr-20 w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none"
+        className="fixed top-0 right-0 -mt-20 -mr-20 w-[500px] h-[500px] bg-sky-500/10 blur-[120px] rounded-full pointer-events-none"
         aria-hidden="true"
       />
       <div

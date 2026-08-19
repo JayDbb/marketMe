@@ -61,6 +61,7 @@ export interface Post {
 
   scheduled_at: string | null
   status: PostStatus
+  error_message?: string | null
 
   canvas_data?: Record<string, unknown> | null
 

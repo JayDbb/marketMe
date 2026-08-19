@@ -15,6 +15,7 @@ import {
   CanvasNode as CanvasLayer,
 } from '@/types/canvas'
 import { INSTAGRAM_FORMATS } from '@/lib/instagram-formats'
+import { designDownloadFilename } from '@/lib/studio-utils'
 
 interface CanvasEditorProps {
   canvasData: CanvasData
@@ -25,6 +26,7 @@ interface CanvasEditorProps {
   exportApiRef?: React.MutableRefObject<CanvasExportApi | null>
   /** Read-only embed (e.g. Generate review) — no toolbar clutter */
   variant?: 'editor' | 'preview'
+  designName?: string
 }
 
 export interface CanvasExportApi {
@@ -110,6 +112,7 @@ export function CanvasEditor({
   maxWidth = 520,
   exportApiRef,
   variant = 'editor',
+  designName = 'design',
 }: CanvasEditorProps) {
   const isPreview = variant === 'preview'
   const mounted = useIsClient()
@@ -161,7 +164,7 @@ export function CanvasEditor({
       const dataURL = captureDataUrl(format)
       if (!dataURL) return
       const link = document.createElement('a')
-      link.download = format === 'jpeg' ? 'instagram-post.jpg' : 'instagram-post.png'
+      link.download = designDownloadFilename(designName, format === 'jpeg' ? 'jpg' : 'png')
       link.href = dataURL
       document.body.appendChild(link)
       link.click()
@@ -322,6 +325,7 @@ export function CanvasEditor({
                   : 'border-black/10 dark:border-white/10 text-zinc-500'
               }`}
               title="Feed preview mockup"
+              aria-label="Feed preview mockup"
             >
               <Smartphone className="w-3.5 h-3.5" />
             </button>
@@ -334,6 +338,7 @@ export function CanvasEditor({
                   : 'border-black/10 dark:border-white/10 text-zinc-500'
               }`}
               title="Toggle safe zone guides"
+              aria-label="Toggle safe zone guides"
             >
               <Grid3X3 className="w-3.5 h-3.5" />
             </button>
@@ -342,6 +347,7 @@ export function CanvasEditor({
               onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
               className="w-8 h-8 rounded-lg border border-black/10 dark:border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-400"
               title="Zoom out"
+              aria-label="Zoom out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
@@ -353,19 +359,22 @@ export function CanvasEditor({
               onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}
               className="w-8 h-8 rounded-lg border border-black/10 dark:border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-400"
               title="Zoom in"
+              aria-label="Zoom in"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => handleExport('png')}
-              className="ml-1 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors shadow-lg flex items-center gap-1"
+              className="ml-1 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold ui-transition flex items-center gap-1"
             >
               <ImageDown className="w-3 h-3" />
               PNG
             </button>
             <button
+              type="button"
               onClick={() => handleExport('jpeg')}
-              className="px-2.5 py-1.5 border border-blue-500/40 text-blue-400 hover:bg-blue-500/10 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+              className="px-2.5 py-1.5 border border-blue-500/40 text-blue-400 hover:bg-blue-500/10 rounded-lg text-xs font-bold ui-transition flex items-center gap-1"
             >
               JPG
             </button>
@@ -375,7 +384,7 @@ export function CanvasEditor({
 
       <div className="flex-1 min-h-0 overflow-auto w-full flex items-center justify-center custom-scrollbar">
         <div
-          className={`relative shrink-0 transition-all ${
+          className={`relative shrink-0 ui-transition ${
             showFeedMockup ? 'p-4 rounded-[2rem] bg-zinc-900 border-4 border-zinc-800 shadow-2xl' : ''
           }`}
         >

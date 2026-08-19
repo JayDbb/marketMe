@@ -102,7 +102,7 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
             onDrop={onDrop}
             onClick={() => inputRef.current?.click()}
             className={`
-              w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-200
+              w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer ui-transition duration-200
               ${isDragging 
                 ? 'border-blue-400 bg-blue-400/5' 
                 : 'border-black/10 dark:border-white/10 dark:hover:border-white/20 bg-white dark:bg-white/5 hover:bg-white/10'}

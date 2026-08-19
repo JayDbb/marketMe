@@ -1,4 +1,5 @@
 import { INSTAGRAM_BRAND_COLORS } from '@/lib/instagram-formats'
+import type { CanvasData } from '@/types/canvas'
 import type { SmbIndustry } from '@/lib/industries'
 import { normalizeIndustry } from '@/lib/industries'
 
@@ -24,6 +25,8 @@ export interface StudioBrandKit {
   colors: string[]
   fonts: string[]
   logoUrl?: string | null
+  /** Profile colors/fonts were saved by the user; otherwise this is an industry fallback. */
+  source: 'profile' | 'industry'
 }
 
 function parseHexColors(raw: unknown): string[] | null {
@@ -68,9 +71,41 @@ export function getStudioBrandKit(
   const profileColors = parseHexColors(brand?.brandColors)
   const profileFonts = parseFonts(brand?.brandFonts)
 
+  const fromProfile = Boolean(profileColors || profileFonts || brand?.logoUrl)
+
   return {
     colors: profileColors ?? getIndustryPalette(industry),
-    fonts: profileFonts ?? ['Inter', 'Georgia', 'Impact'],
+    fonts: profileFonts ?? ['Helvetica', 'Georgia', 'Impact'],
     logoUrl: brand?.logoUrl ?? null,
+    source: fromProfile ? 'profile' : 'industry',
+  }
+}
+
+export function brandTextDefaults(kit?: StudioBrandKit): { fontFamily: string; fill: string } {
+  const fontFamily = kit?.fonts[0] ?? 'Helvetica'
+  const fill = kit?.colors[1] ?? '#ffffff'
+  return { fontFamily, fill }
+}
+
+export function applyBrandFonts(data: CanvasData, kit: StudioBrandKit): CanvasData {
+  const heading = kit.fonts[0] ?? 'Helvetica'
+  const body = kit.fonts[1] ?? heading
+  return {
+    ...data,
+    layers: data.layers.map((layer) => {
+      if (layer.type !== 'text') return layer
+      const isHeading = (layer.fontStyle ?? '').includes('bold') || layer.fontSize >= 48
+      return { ...layer, fontFamily: isHeading ? heading : body }
+    }),
+  }
+}
+
+export function applyBrandColors(data: CanvasData, kit: StudioBrandKit): CanvasData {
+  const background = kit.colors[0] ?? data.canvas.backgroundColor
+  const fill = kit.colors[1] ?? '#ffffff'
+  return {
+    ...data,
+    canvas: { ...data.canvas, backgroundColor: background },
+    layers: data.layers.map((layer) => (layer.type === 'text' ? { ...layer, fill } : layer)),
   }
 }

@@ -4,6 +4,7 @@ import { createPageMetadata } from "@/lib/metadata";
 import { OrganizationJsonLd } from "@/components/marketing/organization-json-ld";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeScript } from "@/components/theme-script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -55,16 +56,17 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans relative bg-background text-foreground">
+        <ThemeScript />
+        <OrganizationJsonLd />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
-          <OrganizationJsonLd />
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-blue-500 focus:text-white focus:font-bold focus:text-sm focus:tracking-wide focus:rounded-md"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-sky-500 focus:text-white focus:font-bold focus:text-sm focus:tracking-wide focus:rounded-md"
           >
             Skip to content
           </a>

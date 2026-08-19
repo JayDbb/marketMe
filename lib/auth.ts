@@ -110,6 +110,11 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    deleteUser: {
+      enabled: true,
+    },
+  },
   accountLinking: {
     enabled: true,
     trustedProviders: ["google"],

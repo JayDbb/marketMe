@@ -1,7 +1,7 @@
 "use client"
 
 import { Moon, Sun } from "lucide-react"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/theme-provider"
 import { motion } from "framer-motion"
 import { useIsClient } from "@/hooks/use-is-client"
 

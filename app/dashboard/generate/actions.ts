@@ -20,8 +20,9 @@ import { rateLimitOrThrow } from '@/lib/rate-limit'
 import { normalizePlatform, toIsoScheduledDate } from '@/lib/generate-utils'
 import { getAuthenticatedUser, isValidUuid } from '@/lib/supabase/server-auth'
 import {
-  assertCreditsAvailable,
   getCreditsBalance,
+  getCreditsBalanceDetails,
+  spendGenerationCredits,
 } from '@/lib/services/credits.service'
 import {
   approveAndSchedulePost,
@@ -46,7 +47,7 @@ import { buildGenerationContext } from '@/lib/services/generation-context.servic
 import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
 import { resolveImageModel } from '@/lib/ai-models'
 import { openai } from '@/lib/openai'
-import { PIPELINE_CREDIT_COSTS } from '@/types/pipeline'
+import { calculateGenerationCreditCost } from '@/types/pipeline'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 // ---------------------------------------------------------------------------
@@ -180,13 +181,13 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
   const [
     { data: profile },
     { templates },
-    creditsBalance,
+    creditDetails,
     subscriptionResult,
     pipelineAvailable,
   ] = await Promise.all([
     getBusinessProfileAction(),
     getUserTemplatesResult(),
-    getCreditsBalance(user.id),
+    getCreditsBalanceDetails(user.id),
     supabaseAdmin
       .from('user_subscriptions')
       .select('plan')
@@ -245,13 +246,11 @@ export async function getGenerateContextAction(): Promise<GenerateContext | null
     templateCount: templates.length,
     templateUsageCounts: {},
 
-    creditsBalance,
+    creditsBalance: creditDetails.credits_balance,
     creditsLimit,
+    creditsResetAt: creditDetails.credits_reset_at,
 
-    creditCostPerGeneration:
-      PIPELINE_CREDIT_COSTS.marketing_strategy_generation +
-      PIPELINE_CREDIT_COSTS.content_schedule_generation +
-      PIPELINE_CREDIT_COSTS.post_generation,
+    creditCostPerGeneration: calculateGenerationCreditCost(1),
   }
 }
 
@@ -270,7 +269,6 @@ export async function generatePostsAction(
 
   try {
     rateLimitOrThrow(`generate:${user.id}`, 10, 60_000)
-    await assertCreditsAvailable(user.id, 'post_generation')
   } catch (error) {
     return {
       success: false,
@@ -289,6 +287,22 @@ export async function generatePostsAction(
 
   const pipelineInput = input as PipelineGenerateSetupInput
   const numPosts = Math.max(1, Math.min(14, input.numPosts || 3))
+  const requiredCredits = calculateGenerationCreditCost(numPosts)
+
+  try {
+    const balance = await getCreditsBalance(user.id)
+    if (balance < requiredCredits) {
+      return {
+        success: false,
+        error: `Insufficient credits: need ${requiredCredits}, have ${balance}`,
+      }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unable to verify credits',
+    }
+  }
 
   let templateSelection: ReturnType<typeof resolveTemplateSelection>
 
@@ -319,7 +333,7 @@ export async function generatePostsAction(
     const generationContext = await buildGenerationContext({
       userId: user.id,
       profile: businessProfile,
-      userTopic: pipelineInput.topic,
+      userTopic: input.topic?.trim() || pipelineInput.topic,
       syncInsights: true,
     })
 
@@ -341,6 +355,20 @@ export async function generatePostsAction(
         ? { end_date: pipelineInput.endDate ?? pipelineInput.end_date }
         : {}),
     })
+
+    try {
+      await spendGenerationCredits(user.id, numPosts, {
+        businessProfileId: businessProfile.id,
+        generationId: result.generation_id,
+        metadata: {
+          flow: 'dashboard-generate',
+          templateSource: templateSelection.templateSource,
+          platform,
+        },
+      })
+    } catch (creditError) {
+      console.error('Generation started but credit ledger update failed:', creditError)
+    }
 
     return {
       success: true,

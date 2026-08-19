@@ -3,8 +3,10 @@ import {
   CalendarDays,
   ImageIcon,
   Link2,
+  Mail,
   Sparkles,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const capabilities = [
   {
@@ -12,24 +14,35 @@ const capabilities = [
     label: 'Generate',
     body: 'AI drafts matched to your brand — you review before publish.',
     icon: Sparkles,
+    className: 'md:col-span-4 md:row-span-2 min-h-[220px]',
   },
   {
     href: '/features#studio',
     label: 'Studio',
     body: 'Templates and layouts for visuals that stay on-brand.',
     icon: ImageIcon,
+    className: 'md:col-span-2',
   },
   {
     href: '/features#calendar',
     label: 'Calendar',
     body: 'See the week, drag posts, and keep channels organized.',
     icon: CalendarDays,
+    className: 'md:col-span-2',
+  },
+  {
+    href: '/features#inbox',
+    label: 'Inbox',
+    body: 'Triage DMs and comments without leaving the workspace.',
+    icon: Mail,
+    className: 'md:col-span-3',
   },
   {
     href: '/features#connections',
     label: 'Connections',
     body: 'Link accounts with OAuth — never by sharing passwords.',
     icon: Link2,
+    className: 'md:col-span-3',
   },
 ] as const
 
@@ -52,18 +65,23 @@ export function HomeCapabilities() {
               Everything you need to ship the week
             </h2>
           </div>
-          <p className="max-w-md text-sm leading-relaxed text-white/45 md:text-base md:justify-self-end">
-            The same capabilities as the Features page — short version. Pick a lane or
-            open the full map.
+          <p className="max-w-md text-sm leading-relaxed text-white/45 md:justify-self-end md:text-base">
+            Generate, Studio, Calendar, Inbox, and Connections — the same map as the
+            Features page, in short form.
           </p>
         </div>
 
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-6">
           {capabilities.map((item) => (
-            <li key={item.href}>
+            <li key={item.href} className={item.className}>
               <Link
                 href={item.href}
-                className="group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-sky-400/35 hover:bg-sky-500/[0.06]"
+                className={cn(
+                  'group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5',
+                  'transition-[border-color,background-color,color] duration-200',
+                  'hover:border-sky-400/35 hover:bg-sky-500/[0.06]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80'
+                )}
               >
                 <item.icon
                   className="mb-4 h-5 w-5 text-sky-400/90"
@@ -77,19 +95,19 @@ export function HomeCapabilities() {
                   {item.body}
                 </p>
                 <span className="mt-4 text-xs font-medium text-sky-300/80">
-                  Learn more →
+                  Learn more
                 </span>
               </Link>
             </li>
           ))}
         </ul>
 
-        <div className="mt-8 text-center md:text-left">
+        <div className="mt-8">
           <Link
             href="/features"
-            className="text-sm font-medium text-white/50 transition-colors hover:text-sky-300"
+            className="text-sm font-medium text-white/50 transition-colors duration-200 hover:text-sky-300"
           >
-            Full feature map →
+            Full feature map
           </Link>
         </div>
       </div>

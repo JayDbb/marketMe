@@ -42,21 +42,16 @@ export function ThemeProvider({
   attribute?: string
   disableTransitionOnChange?: boolean
 }) {
-  const [theme, setThemeState] = React.useState<string | undefined>(undefined)
-  const [systemTheme, setSystemTheme] = React.useState<ResolvedTheme | undefined>(
-    undefined
-  )
-
-  React.useEffect(() => {
-    let stored: string | undefined
+  const [theme, setThemeState] = React.useState<string | undefined>(() => {
     try {
-      stored = localStorage.getItem(STORAGE_KEY) || undefined
+      return localStorage.getItem(STORAGE_KEY) || defaultTheme
     } catch {
-      stored = undefined
+      return defaultTheme
     }
-    setThemeState(stored || defaultTheme)
-    setSystemTheme(getSystemTheme())
-  }, [defaultTheme])
+  })
+  const [systemTheme, setSystemTheme] = React.useState<ResolvedTheme | undefined>(() =>
+    getSystemTheme()
+  )
 
   React.useEffect(() => {
     if (!theme) return

@@ -47,9 +47,11 @@ export function StudioStarterPicker({
 
   useEffect(() => {
     if (!open) {
-      setSearchQuery('')
-      setFormatId('portrait')
-      setCategory('All')
+      queueMicrotask(() => {
+        setSearchQuery('')
+        setFormatId('portrait')
+        setCategory('All')
+      })
     }
   }, [open])
 

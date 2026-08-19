@@ -550,16 +550,18 @@ export function GenerateContent({
     const run = searchParams.get('run')
     if (run && (step === 'generating' || step === 'review')) {
       resumedRun.current = true
-      setGenerationId(run)
-      setGenerationStatus('queued')
-      setGenerationMessage('Resuming your generation…')
-      setFlowState('generating')
+      queueMicrotask(() => {
+        setGenerationId(run)
+        setGenerationStatus('queued')
+        setGenerationMessage('Resuming your generation…')
+        setFlowState('generating')
+      })
     }
   }, [searchParams])
 
   useEffect(() => {
     if (flowState === 'setup') {
-      setSetupNotice(null)
+      queueMicrotask(() => setSetupNotice(null))
     }
   }, [flowState, setupData.numPosts, setupData.goal, setupData.topic, selectedTemplateId, templateSource])
 

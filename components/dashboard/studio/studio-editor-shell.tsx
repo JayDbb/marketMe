@@ -95,8 +95,6 @@ export function StudioEditorShell({
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [])
 
-  const activeTemplateId = savedTemplate?.id ?? template?.id
-
   const resolvePreviewUrl = useCallback(() => {
     const rendered = exportApiRef.current?.getPreviewDataUrl('jpeg')
     if (rendered) return rendered

@@ -191,7 +191,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
     const template = templates.find((item) => item.id === templateId)
     if (!template) return
     openedTemplateFromUrl.current = templateId
-    handleEdit(template)
+    queueMicrotask(() => handleEdit(template))
   }, [editorState, handleEdit, searchParams, templates])
 
   const handleOpenStockPhoto = useCallback(

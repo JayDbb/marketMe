@@ -97,13 +97,10 @@ function SettingsContentInner({
   const [accountEdits, setAccountEdits] = useState<Partial<AccountContext>>({})
   const account: AccountContext = { ...initialAccount, ...accountEdits }
   const [settings, setSettings] = useState(initialSettings)
-  const [activeTab, setActiveTab] = useState<TabId>(() =>
-    parseTab(searchParams.get('tab'))
-  )
+  const activeTab = parseTab(searchParams.get('tab'))
 
   useEffect(() => {
     const canonical = parseTab(searchParams.get('tab'))
-    setActiveTab(canonical)
     const raw = searchParams.get('tab')
     if (raw && raw !== canonical) {
       const params = new URLSearchParams(searchParams.toString())
@@ -116,7 +113,6 @@ function SettingsContentInner({
     if (tab === activeTab) return
     if (!confirmLeave()) return
     setDirty(false)
-    setActiveTab(tab)
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', tab)
     router.push(`${pathname}?${params.toString()}`, { scroll: false })

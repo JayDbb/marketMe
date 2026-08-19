@@ -39,7 +39,9 @@ export function Navbar() {
   })
 
   const [user, setUser] = useState<{ id: string } | null>(null)
-  const [isCondensed, setIsCondensed] = useState(false)
+  const [isCondensed, setIsCondensed] = useState(
+    () => typeof window !== 'undefined' && window.scrollY > ENTER_SCROLL
+  )
   const [menuOpen, setMenuOpen] = useState(false)
   const menuId = useId()
   const layoutTransition = reduceMotion ? snapTransition : islandSpring
@@ -60,10 +62,6 @@ export function Navbar() {
     return () => {
       cancelled = true
     }
-  }, [])
-
-  useEffect(() => {
-    setIsCondensed(window.scrollY > ENTER_SCROLL)
   }, [])
 
   useMotionValueEvent(scrollY, 'change', (latest) => {

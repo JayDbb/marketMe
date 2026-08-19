@@ -128,7 +128,8 @@ export function PostsContent({
   } | null>(null)
 
   useEffect(() => {
-    setSearchValue(query)
+    const frame = setTimeout(() => setSearchValue(query), 0)
+    return () => clearTimeout(frame)
   }, [query])
 
   useEffect(() => {
@@ -136,11 +137,13 @@ export function PostsContent({
   }, [])
 
   useEffect(() => {
-    setSelectedIds([])
+    const frame = setTimeout(() => setSelectedIds([]), 0)
+    return () => clearTimeout(frame)
   }, [tab, platform, query, page])
 
   useEffect(() => {
-    setNotice(null)
+    const frame = setTimeout(() => setNotice(null), 0)
+    return () => clearTimeout(frame)
   }, [tab, platform, query, page])
 
   const hrefFor = useCallback(

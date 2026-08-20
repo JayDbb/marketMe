@@ -29,6 +29,7 @@ export interface AccountContext {
   initials: string
   email: string
   avatarUrl: string | null
+  isAdmin: boolean
   plan: PlanId
   planLabel: string
   planBadge: string

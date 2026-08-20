@@ -1,6 +1,6 @@
 'use client'
 
-import { Activity, LayoutDashboard, Mail, Rocket, Calendar as CalendarIcon, Edit3, Link2, MonitorPlay, Workflow, Sparkles } from "lucide-react"
+import { Activity, LayoutDashboard, Mail, Rocket, Calendar as CalendarIcon, Edit3, Link2, MonitorPlay, Workflow, Sparkles, ShieldCheck } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import { UserNav } from "@/components/dashboard/user-nav"
 import {
@@ -47,6 +47,10 @@ const workspaceItems = [
   { href: '/onboarding', label: 'Setup Profile', tooltip: 'Setup Profile', icon: Rocket },
 ] as const
 
+const administrationItems = [
+  { href: '/dashboard/admin', label: 'Admin Console', tooltip: 'Admin Console', icon: ShieldCheck },
+] as const
+
 export function AppSidebar({ account }: { account: AccountContext }) {
   const pathname = usePathname()
 
@@ -67,6 +71,9 @@ export function AppSidebar({ account }: { account: AccountContext }) {
         <NavGroup label="Publish" items={publishItems} pathname={pathname} />
         <NavGroup label="Automate" items={automateItems} pathname={pathname} className="mt-3" />
         <NavGroup label="Workspace" items={workspaceItems} pathname={pathname} className="mt-3" />
+        {account.isAdmin ? (
+          <NavGroup label="Administration" items={administrationItems} pathname={pathname} className="mt-3" />
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border bg-sidebar p-3">

@@ -138,12 +138,19 @@ export const getAccountContext = cache(async (): Promise<AccountContext | null> 
   const displayName = resolveDisplayName(authUser, profileResult.data)
 
   const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY)
+  const allowedAdminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+  const userEmail = (user.email ?? '').trim().toLowerCase()
+  const isAdmin = allowedAdminEmails.length > 0 && allowedAdminEmails.includes(userEmail)
 
   return {
     displayName,
     initials: getInitials(displayName),
     email: user.email ?? '',
     avatarUrl: user.image ?? null,
+    isAdmin,
     plan,
     planLabel: planConfig.label,
     planBadge: planConfig.badge,

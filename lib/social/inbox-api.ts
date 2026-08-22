@@ -7,7 +7,7 @@
 import type { InboxMessage, SocialConnection } from '@/types/social'
 import { getDemoInboxMessages } from '@/lib/social/demo-inbox'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://marketme-api-9oap.onrender.com'
 
 export interface FetchInboxOptions {
   connections: SocialConnection[]

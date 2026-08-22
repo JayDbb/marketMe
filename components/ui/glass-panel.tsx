@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface GlassPanelProps extends React.HTMLAttributes<HTMLDivElement> {}
+type GlassPanelProps = React.HTMLAttributes<HTMLDivElement>
 
 export function GlassPanel({ className, children, ...props }: GlassPanelProps) {
   return (

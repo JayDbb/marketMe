@@ -1,4 +1,4 @@
-export type PostStatus = 'draft' | 'pending_approval' | 'approved' | 'published' | 'scheduled' | 'failed';
+export type PostStatus = 'draft' | 'pending_approval' | 'approved' | 'published' | 'scheduled' | 'failed' | 'rejected';
 export type Platform = 'twitter' | 'linkedin' | 'instagram' | string;
 
 export interface Post {

@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Send, Clock, CheckCircle2, FileEdit } from 'lucide-react';
 
 const mockPosts = [
@@ -25,11 +25,13 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function HeroCalendarVisual() {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <div className="relative w-full max-w-[800px] mx-auto mt-16 aspect-video perspective-[1000px]">
       <motion.div 
-        initial={{ rotateX: 20, rotateY: -10, opacity: 0, y: 40 }}
-        animate={{ rotateX: 10, rotateY: -5, opacity: 1, y: 0 }}
+        initial={prefersReducedMotion ? false : { rotateX: 20, rotateY: -10, opacity: 0, y: 40 }}
+        animate={prefersReducedMotion ? undefined : { rotateX: 10, rotateY: -5, opacity: 1, y: 0 }}
         transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
         className="w-full h-full bg-[#1c2128] border border-[#30363d] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{ transformStyle: 'preserve-3d' }}
@@ -63,8 +65,8 @@ export function HeroCalendarVisual() {
                 {mockPosts.filter(p => p.day === day).map((post, j) => (
                   <motion.div
                     key={j}
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 10, scale: 0.95 }}
+                    animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
                     transition={{ delay: 0.6 + post.delay, duration: 0.5 }}
                     className="relative bg-[#0d1117] border border-[#30363d] rounded-lg p-2.5 shadow-xl shrink-0"
                   >

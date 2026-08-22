@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react';
 import { DaySchedule } from '@/types/content';
 import { PostCard } from './post-card';
 

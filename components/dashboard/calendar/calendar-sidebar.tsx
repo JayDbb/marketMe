@@ -1,125 +1,322 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Clock, User, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import type { Post } from '@/types/content'
+import {
+  DEFAULT_POST_DURATION_MIN,
+  formatTimeRange,
+  getPostsForDay,
+  isDateInWeek,
+  isSameDay,
+  isToday,
+} from '@/lib/calendar-utils'
+import { getPlatformEventStyle } from '@/components/dashboard/calendar/calendar-post-event'
+import { CalendarPostDetail } from '@/components/dashboard/calendar/calendar-post-detail'
+import { PostStatusBadge } from '@/components/dashboard/post-status-badge'
+import { cn } from '@/lib/utils'
+
+import type { WeekStartsOn } from '@/types/settings'
 
 interface CalendarSidebarProps {
-  currentDate: Date;
-  onDateChange: (date: Date) => void;
+  selectedDate: Date
+  onDateChange: (date: Date) => void
+  posts: Post[]
+  selectedPostId?: string | number | null
+  onPostSelect: (post: Post) => void
+  onCreatePost: () => void
+  onApprovePost: (postId: string) => Promise<{ success: boolean; error?: string }>
+  onSchedulePost: (postId: string) => Promise<{ success: boolean; error?: string }>
+  onClearSelection?: () => void
+  onPostsUpdated?: () => void
+  viewMode: 'Month' | 'Week' | 'Day'
+  weekStartsOn?: WeekStartsOn
 }
 
-export function CalendarSidebar({ currentDate, onDateChange }: CalendarSidebarProps) {
-  const days = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+function CalendarPostListItem({
+  post,
+  selected,
+  onSelect,
+}: {
+  post: Post
+  selected: boolean
+  onSelect: () => void
+}) {
+  const platform = post.social_account?.platform ?? 'Social'
+  const styles = getPlatformEventStyle(platform)
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'w-full text-left rounded-xl border px-3 py-2.5 transition-all',
+        selected
+          ? 'border-blue-500/50 bg-blue-500/10 ring-1 ring-blue-500/30'
+          : 'bg-white/60 dark:bg-white/5 border-zinc-200 dark:border-white/8 hover:bg-white dark:hover:bg-white/8'
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-[11px] font-mono text-zinc-500 dark:text-white/40">
+          {formatTimeRange(
+            new Date(post.scheduled_date),
+            DEFAULT_POST_DURATION_MIN
+          )}
+        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <PostStatusBadge status={post.status} compact />
+          <span
+            className={cn(
+              'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md text-white',
+              styles.bg
+            )}
+          >
+            {platform.slice(0, 3)}
+          </span>
+        </div>
+      </div>
+      <p className="text-xs text-zinc-700 dark:text-white/70 line-clamp-2 leading-relaxed">
+        {post.caption || 'Scheduled post'}
+      </p>
+    </button>
+  )
+}
 
-  const firstDayOfMonth = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  
-  // JavaScript getDay(): Sun=0, Mon=1...Sat=6
-  // Our grid: Mo=0, Tu=1...Su=6
-  let startingDayOfWeek = firstDayOfMonth.getDay() - 1;
-  if (startingDayOfWeek === -1) startingDayOfWeek = 6; // Sunday
+export function CalendarSidebar({
+  selectedDate,
+  onDateChange,
+  posts,
+  selectedPostId,
+  onPostSelect,
+  onCreatePost,
+  onApprovePost,
+  onSchedulePost,
+  onClearSelection,
+  onPostsUpdated,
+  viewMode,
+  weekStartsOn = 'monday',
+}: CalendarSidebarProps) {
+  const dayLabels =
+    weekStartsOn === 'sunday'
+      ? ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+      : ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
-  const prevMonthDays = new Date(year, month, 0).getDate();
-  const prevMonthDates = Array.from({ length: startingDayOfWeek }, (_, i) => prevMonthDays - startingDayOfWeek + i + 1);
-  const currentMonthDates = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const year = selectedDate.getFullYear()
+  const month = selectedDate.getMonth()
+
+  const firstDayOfMonth = new Date(year, month, 1)
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  let startingDayOfWeek =
+    weekStartsOn === 'sunday'
+      ? firstDayOfMonth.getDay()
+      : firstDayOfMonth.getDay() - 1
+  if (startingDayOfWeek === -1) startingDayOfWeek = 6
+
+  const prevMonthDays = new Date(year, month, 0).getDate()
+  const prevMonthDates = Array.from(
+    { length: startingDayOfWeek },
+    (_, i) => prevMonthDays - startingDayOfWeek + i + 1
+  )
+  const currentMonthDates = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+
+  const remainingCells =
+    (7 - ((startingDayOfWeek + daysInMonth) % 7)) % 7
+  const nextMonthDates = Array.from({ length: remainingCells }, (_, i) => i + 1)
 
   const handlePrevMonth = () => {
-    const d = new Date(currentDate);
-    d.setMonth(d.getMonth() - 1);
-    onDateChange(d);
-  };
+    const d = new Date(selectedDate)
+    d.setMonth(d.getMonth() - 1)
+    onDateChange(d)
+  }
 
   const handleNextMonth = () => {
-    const d = new Date(currentDate);
-    d.setMonth(d.getMonth() + 1);
-    onDateChange(d);
-  };
+    const d = new Date(selectedDate)
+    d.setMonth(d.getMonth() + 1)
+    onDateChange(d)
+  }
 
-  const handleDateClick = (d: number) => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(d);
-    onDateChange(newDate);
-  };
-  
+  const handleDateClick = (day: number, monthOffset: 0 | -1 | 1 = 0) => {
+    const d = new Date(selectedDate)
+    d.setMonth(d.getMonth() + monthOffset, day)
+    onDateChange(d)
+  }
+
+  const dayPosts = getPostsForDay(posts, selectedDate)
+  const selectedPost =
+    selectedPostId != null
+      ? posts.find((p) => p.post_id === selectedPostId) ?? null
+      : null
+
+  const dayLabel = isToday(selectedDate)
+    ? 'Today'
+    : selectedDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      })
+
   return (
-    <div className="w-[320px] shrink-0 bg-zinc-50/90 dark:bg-[#0c0c18]/90 backdrop-blur-3xl border border-zinc-200 dark:border-white/10 rounded-[2rem] flex flex-col p-6 overflow-y-auto overflow-x-hidden custom-scrollbar shadow-[0_20px_60px_rgba(0,0,0,0.5)] relative z-10">
-      
-
-      {/* Mini Calendar Picker */}
-      <div className="mb-8">
+    <div className="w-[320px] shrink-0 bg-card/90 dark:bg-[#161b22]/90 backdrop-blur-3xl border border-border dark:border-white/10 rounded-[2rem] flex flex-col p-6 overflow-y-auto overflow-x-hidden custom-scrollbar shadow-[0_20px_60px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] relative z-10">
+      {/* Mini Calendar */}
+      <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h4 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wide">
-            {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
           </h4>
           <div className="flex gap-1">
-            <button onClick={handlePrevMonth} className="w-7 h-7 rounded-lg bg-white dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:bg-white dark:hover:bg-white/10 transition-colors">
+            <button
+              onClick={handlePrevMonth}
+              aria-label="Previous month"
+              className="w-7 h-7 rounded-lg bg-white dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
+            >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={handleNextMonth} className="w-7 h-7 rounded-lg bg-white dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:bg-white dark:hover:bg-white/10 transition-colors">
+            <button
+              onClick={handleNextMonth}
+              aria-label="Next month"
+              className="w-7 h-7 rounded-lg bg-white dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-white/50 hover:bg-zinc-100 dark:hover:bg-white/10 transition-colors"
+            >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-y-3 mb-2">
-          {days.map(d => (
-            <div key={d} className="text-[10px] font-bold text-zinc-500 dark:text-white/30 text-center uppercase tracking-wider">{d}</div>
+        <div className="grid grid-cols-7 gap-y-2 mb-1">
+          {dayLabels.map((d) => (
+            <div
+              key={d}
+              className="text-[10px] font-bold text-zinc-500 dark:text-white/30 text-center uppercase tracking-wider"
+            >
+              {d}
+            </div>
           ))}
-          
-          {prevMonthDates.map(d => (
-            <div key={`prev-${d}`} className="text-xs text-zinc-500 dark:text-white/10 text-center font-medium py-1">{d}</div>
-          ))}
-          
-          {currentMonthDates.map(d => {
-            const isSelected = d === currentDate.getDate();
+
+          {prevMonthDates.map((d) => {
+            const cellDate = new Date(year, month - 1, d)
+            const selected = isSameDay(cellDate, selectedDate)
+            const inVisibleWeek = viewMode === 'Week' && isDateInWeek(cellDate, selectedDate, weekStartsOn)
+            return (
+            <div key={`prev-${d}`} className="flex justify-center">
+              <button
+                onClick={() => handleDateClick(d, -1)}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors ${
+                  selected
+                    ? 'bg-blue-500 text-white'
+                    : inVisibleWeek
+                      ? 'bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/25'
+                      : 'text-zinc-400 dark:text-white/20 hover:bg-zinc-100 dark:hover:bg-white/5'
+                }`}
+              >
+                {d}
+              </button>
+            </div>
+            )
+          })}
+
+          {currentMonthDates.map((d) => {
+            const cellDate = new Date(year, month, d)
+            const selected = isSameDay(cellDate, selectedDate)
+            const today = cellDate.toDateString() === new Date().toDateString()
+            const inVisibleWeek = viewMode === 'Week' && isDateInWeek(cellDate, selectedDate, weekStartsOn)
+            const hasPosts = getPostsForDay(posts, cellDate).length > 0
+
             return (
               <div key={d} className="flex justify-center">
-                <button 
+                <button
                   onClick={() => handleDateClick(d)}
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
-                    isSelected 
-                      ? 'bg-purple-500 text-zinc-900 dark:text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
-                      : 'text-zinc-500 dark:text-white/70 hover:bg-white dark:bg-white/10 border-zinc-200'
+                  className={`relative w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
+                    selected
+                      ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                      : inVisibleWeek
+                        ? 'bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/25'
+                        : today
+                          ? 'text-blue-400 ring-1 ring-blue-400/50 hover:bg-blue-500/10'
+                          : 'text-zinc-600 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/10'
                   }`}
                 >
                   {d}
+                  {hasPosts && !selected && (
+                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-blue-400" />
+                  )}
                 </button>
               </div>
+            )
+          })}
+
+          {nextMonthDates.map((d) => {
+            const cellDate = new Date(year, month + 1, d)
+            const selected = isSameDay(cellDate, selectedDate)
+            const inVisibleWeek = viewMode === 'Week' && isDateInWeek(cellDate, selectedDate, weekStartsOn)
+            return (
+            <div key={`next-${d}`} className="flex justify-center">
+              <button
+                onClick={() => handleDateClick(d, 1)}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-colors ${
+                  selected
+                    ? 'bg-blue-500 text-white'
+                    : inVisibleWeek
+                      ? 'bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/25'
+                      : 'text-zinc-400 dark:text-white/20 hover:bg-zinc-100 dark:hover:bg-white/5'
+                }`}
+              >
+                {d}
+              </button>
+            </div>
             )
           })}
         </div>
       </div>
 
-      {/* Upcoming Event Card (Floating Glassmorphism) */}
-      <div className="relative rounded-2xl bg-white dark:bg-[#0c0c18] border border-black/5 dark:border-white/10 p-5 mb-8 overflow-hidden group shadow-xl shadow-black/5 dark:shadow-none">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-2xl rounded-full pointer-events-none" />
-        
-        <div className="flex items-center justify-between mb-3 relative z-10">
-          <span className="text-[11px] font-mono text-zinc-500 dark:text-white/50">12:00 - 13:30</span>
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-50 dark:bg-white/5 rounded-full text-[10px] font-bold text-purple-600 dark:text-purple-400 border border-purple-500/20">
-            <Clock className="w-3 h-3" /> 14 min
+      {/* Selected day — compact list only */}
+      <div className="flex flex-col flex-1 min-h-0">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-white/40 mb-3">
+          {dayLabel}
+        </p>
+
+        {dayPosts.length > 0 ? (
+          <div className="space-y-2 mb-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-white/30 px-1">
+              {dayPosts.length} post{dayPosts.length !== 1 ? 's' : ''} this day
+            </p>
+            {dayPosts.map((post) => (
+              <CalendarPostListItem
+                key={post.post_id}
+                post={post}
+                selected={selectedPostId === post.post_id}
+                onSelect={() => onPostSelect(post)}
+              />
+            ))}
           </div>
-        </div>
-        
-        <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-6 pr-8 leading-snug relative z-10">
-          Meet Gabriel at the International Library
-        </h4>
-        
-        <div className="flex gap-2 relative z-10">
-          <button className="flex-1 py-2 rounded-xl bg-transparent border border-black/10 dark:border-white/10 text-xs font-bold text-zinc-500 dark:text-white/70 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
-            Later
-          </button>
-          <button className="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-colors">
-            Details
-          </button>
-        </div>
+        ) : (
+          <div className="mb-4">
+            <p className="text-sm text-zinc-500 dark:text-white/50 mb-1">No posts scheduled</p>
+            <p className="text-xs text-zinc-400 dark:text-white/30">
+              Click a time slot in the calendar or create a new post.
+            </p>
+          </div>
+        )}
+
+        {selectedPost ? (
+          <div className="mb-4">
+            <CalendarPostDetail
+              post={selectedPost}
+              onClose={() => onClearSelection?.()}
+              onApprove={onApprovePost}
+              onSchedule={onSchedulePost}
+              onUpdated={onPostsUpdated}
+            />
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={onCreatePost}
+          className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-colors flex items-center justify-center gap-1.5 mt-auto"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Schedule Post
+        </button>
       </div>
-
-
-
     </div>
   )
 }

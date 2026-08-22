@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { transitionPostStatus } from "@/lib/services/post-lifecycle.service"
 import type {
   ContentPlan,
   Post,
@@ -87,16 +88,27 @@ export async function updatePostStatus(
   status: PostStatus,
   scheduledAt?: string
 ): Promise<{ data: Post | null; error: string | null }> {
-  const updateData: Record<string, unknown> = { status }
-  if (scheduledAt) {
-    updateData.scheduled_at = scheduledAt
-  }
+  return transitionPostStatus(userId, postId, status, { scheduledAt })
+}
 
+/**
+ * Update post fields for the authenticated user.
+ */
+export async function updatePost(
+  userId: string,
+  postId: string,
+  updates: {
+    content?: string
+    platform?: string
+    scheduled_at?: string
+    image_url?: string | null
+  }
+): Promise<{ data: Post | null; error: string | null }> {
   const { data, error } = await supabaseAdmin
-    .from("posts")
-    .update(updateData)
-    .eq("id", postId)
-    .eq("user_id", userId)
+    .from('posts')
+    .update(updates)
+    .eq('id', postId)
+    .eq('user_id', userId)
     .select()
     .single()
 
@@ -105,4 +117,24 @@ export async function updatePostStatus(
   }
 
   return { data: data as Post, error: null }
+}
+
+/**
+ * Delete a post owned by the user.
+ */
+export async function deletePost(
+  userId: string,
+  postId: string
+): Promise<{ success: boolean; error: string | null }> {
+  const { error } = await supabaseAdmin
+    .from('posts')
+    .delete()
+    .eq('id', postId)
+    .eq('user_id', userId)
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  return { success: true, error: null }
 }

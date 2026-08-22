@@ -1,54 +1,110 @@
 'use client'
 
-import { Post } from '@/types/content'
-import { motion } from 'framer-motion'
+import type { Post } from '@/types/content'
+import {
+  CALENDAR_END_HOUR,
+  CALENDAR_START_HOUR,
+  DEFAULT_POST_DURATION_MIN,
+  getCalendarHours,
+  getEventHeightPx,
+  getEventTopPx,
+  getPostsForDay,
+  HOUR_HEIGHT_PX,
+} from '@/lib/calendar-utils'
+import { CalendarPostEvent } from '@/components/dashboard/calendar/calendar-post-event'
 
-export function DayView({ posts, currentDate }: { posts: Post[], currentDate: Date }) {
-  const hours = Array.from({ length: 14 }, (_, i) => i + 6); // 6 AM to 7 PM
+interface DayViewProps {
+  posts: Post[]
+  selectedDate: Date
+  selectedPostId?: string | number | null
+  onPostSelect: (post: Post) => void
+  onSlotClick: (date: Date) => void
+}
+
+export function DayView({
+  posts,
+  selectedDate,
+  selectedPostId,
+  onPostSelect,
+  onSlotClick,
+}: DayViewProps) {
+  const hours = getCalendarHours()
+  const dayPosts = getPostsForDay(posts, selectedDate)
+  const totalHeight = hours.length * HOUR_HEIGHT_PX
+
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const y = e.clientY - rect.top
+    const hourFraction = y / HOUR_HEIGHT_PX
+    const hour = Math.floor(hourFraction + CALENDAR_START_HOUR)
+    const minute = Math.round(((hourFraction % 1) * 60) / 15) * 15
+    const slotDate = new Date(selectedDate)
+    slotDate.setHours(
+      Math.min(CALENDAR_END_HOUR - 1, Math.max(CALENDAR_START_HOUR, hour)),
+      minute,
+      0,
+      0
+    )
+    onSlotClick(slotDate)
+  }
 
   return (
-    <div className="flex-1 w-full flex flex-col space-y-4 overflow-y-auto custom-scrollbar pr-4">
-      {hours.map((hour) => {
-        // Find posts for this exact hour and day
-        const hourPosts = posts.filter(p => {
-          const pd = new Date(p.scheduled_date);
-          return pd.getFullYear() === currentDate.getFullYear() && 
-                 pd.getMonth() === currentDate.getMonth() && 
-                 pd.getDate() === currentDate.getDate() && 
-                 pd.getHours() === hour;
-        });
-        
-        return (
-          <div key={hour} className="flex gap-6 min-h-[80px]">
-            <div className="w-16 text-right text-[11px] font-medium text-zinc-500 dark:text-white/30 pt-2 shrink-0">
-              {hour > 12 ? `${hour - 12} pm` : `${hour} am`}
-            </div>
-            
-            <div className="flex-1 border-t border-zinc-200 dark:border-white/5 pt-2 relative">
-              {hourPosts.map((post, idx) => (
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  key={post.post_id} 
-                  className="w-full max-w-2xl bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-2 flex items-center justify-between shadow-lg"
-                >
-                  <div>
-                    <h4 className="text-sm font-bold text-blue-100 capitalize">{post.social_account?.platform || 'Social'} Post</h4>
-                    <p className="text-xs text-blue-200/60 mt-1 line-clamp-1">{post.caption}</p>
-                  </div>
-                  <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 bg-blue-500/20 text-blue-300 rounded-md">
-                    {post.status.replace('_', ' ')}
-                  </span>
-                </motion.div>
-              ))}
-              
-              {hourPosts.length === 0 && (
-                <div className="flex-1 min-h-[4rem] group relative border border-dashed border-zinc-200 dark:border-white/5 rounded-xl hover:bg-white dark:bg-white/5 transition-colors cursor-pointer flex items-center justify-center"></div>
-              )}
-            </div>
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-0">
+        <div className="flex" style={{ height: totalHeight }}>
+          <div className="w-[52px] shrink-0 relative">
+            {hours.map((hour, idx) => (
+              <div
+                key={hour}
+                className="absolute right-2 text-[10px] font-medium text-zinc-500 dark:text-white/30 -translate-y-1/2"
+                style={{ top: idx * HOUR_HEIGHT_PX }}
+              >
+                {hour === 12 ? '12 pm' : hour < 12 ? `${hour} am` : `${hour - 12} pm`}
+              </div>
+            ))}
           </div>
-        )
-      })}
+
+          <div
+            className="flex-1 relative min-w-0 overflow-hidden border-l border-zinc-200 dark:border-white/5 cursor-pointer group"
+            style={{ height: totalHeight }}
+            onClick={handleTimelineClick}
+          >
+            {hours.map((_, idx) => (
+              <div
+                key={idx}
+                className="absolute left-0 right-0 border-t border-zinc-200 dark:border-white/5 pointer-events-none"
+                style={{ top: idx * HOUR_HEIGHT_PX }}
+              />
+            ))}
+
+            {dayPosts.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-zinc-400 dark:text-white/20 text-sm pointer-events-none">
+                Click a time slot to schedule a post
+              </div>
+            )}
+
+            {dayPosts.map((post, idx) => {
+              const start = new Date(post.scheduled_date)
+              const top = getEventTopPx(start)
+              const height = getEventHeightPx(DEFAULT_POST_DURATION_MIN)
+
+              if (top < 0 || top >= totalHeight) return null
+
+              return (
+                <CalendarPostEvent
+                  key={post.post_id}
+                  post={post}
+                  top={top}
+                  height={height}
+                  index={idx}
+                  selected={selectedPostId === post.post_id}
+                  onSelect={onPostSelect}
+                />
+              )
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

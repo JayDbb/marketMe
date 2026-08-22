@@ -1,75 +1,105 @@
 'use client'
 
-import React, { useState } from 'react'
-import { CanvasData, CanvasNode, TextNode, RectNode, ImageNode } from '@/types/canvas'
-import { CanvasEditor } from './canvas-editor'
-import { ChevronUp, ChevronDown, Trash2, Plus, Type, Square, Image as ImageIcon } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
+import { Undo2, Redo2 } from 'lucide-react'
+import { CanvasData, CanvasNode, ImageNode } from '@/types/canvas'
+import { StudioToolsPanel, type StudioToolTab } from './studio-tools-panel'
+import { StudioElementProperties } from './studio-element-properties'
+import { StudioLayersPanel } from './studio-layers-panel'
+import { StudioPageTabs } from './studio-page-tabs'
+import { getInstagramFormat, type InstagramFormatId } from '@/lib/instagram-formats'
+import { nextZIndex, resizeCanvasData } from '@/lib/canvas-layer-utils'
+import { getActiveLayers, withActiveLayers } from '@/lib/canvas-pages'
+import type { StudioBrandKit } from '@/lib/studio-brand-kit'
+import type { CanvasExportApi } from './canvas-editor'
+import { Loader2 } from 'lucide-react'
+
+const CanvasEditor = dynamic(
+  () => import('./canvas-editor').then((m) => m.CanvasEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center w-full h-full min-h-[320px]">
+        <Loader2 className="w-8 h-8 text-blue-400/60 animate-spin" />
+      </div>
+    ),
+  }
+)
 
 interface StudioEditorProps {
-  initialData: CanvasData;
+  canvasData: CanvasData
+  onChange: (data: CanvasData) => void
+  brandKit?: StudioBrandKit
+  canUndo?: boolean
+  canRedo?: boolean
+  onUndo?: () => void
+  onRedo?: () => void
+  exportApiRef?: React.MutableRefObject<CanvasExportApi | null>
+  initialSelectedLayerId?: string
 }
 
-export function StudioEditor({ initialData }: StudioEditorProps) {
-  const [canvasData, setCanvasData] = useState<CanvasData>(initialData)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
+export function StudioEditor({
+  canvasData,
+  onChange,
+  brandKit,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  exportApiRef,
+  initialSelectedLayerId,
+}: StudioEditorProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedLayerId ?? null)
+  const [toolTab, setToolTab] = useState<StudioToolTab>(
+    initialSelectedLayerId ? 'text' : 'design'
+  )
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const selectedLayer = canvasData.layers.find(l => l.id === selectedId)
+  const layers = getActiveLayers(canvasData)
+  const selectedLayer = layers.find((l) => l.id === selectedId)
 
-  // ─── Actions ─────────────────────────────────────────────────────────────────
+  const patchLayers = useCallback(
+    (nextLayers: CanvasNode[]) => {
+      onChange(withActiveLayers(canvasData, nextLayers))
+    },
+    [canvasData, onChange]
+  )
+
   const updateLayer = (updatedLayer: CanvasNode) => {
-    setCanvasData(prev => ({
-      ...prev,
-      layers: prev.layers.map(l => l.id === updatedLayer.id ? updatedLayer : l)
-    }))
+    patchLayers(layers.map((l) => (l.id === updatedLayer.id ? updatedLayer : l)))
   }
 
-  const deleteLayer = (id: string) => {
-    setCanvasData(prev => ({
-      ...prev,
-      layers: prev.layers.filter(l => l.id !== id)
-    }))
-    if (selectedId === id) setSelectedId(null)
-  }
+  const addLayer = useCallback(
+    (layer: CanvasNode) => {
+      patchLayers([...layers, layer])
+      setSelectedId(layer.id)
+    },
+    [layers, patchLayers]
+  )
 
-  const moveLayer = (id: string, direction: 'up' | 'down') => {
-    setCanvasData(prev => {
-      const sorted = [...prev.layers].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
-      sorted.forEach((l, i) => l.zIndex = i + 1)
-      
-      const idx = sorted.findIndex(l => l.id === id)
-      if (idx < 0) return prev
-      if (direction === 'up' && idx < sorted.length - 1) {
-        const temp = sorted[idx]
-        sorted[idx] = sorted[idx + 1]
-        sorted[idx + 1] = temp
-      } else if (direction === 'down' && idx > 0) {
-        const temp = sorted[idx]
-        sorted[idx] = sorted[idx - 1]
-        sorted[idx - 1] = temp
+  const deleteLayer = useCallback(
+    (id: string) => {
+      patchLayers(layers.filter((l) => l.id !== id))
+      if (selectedId === id) setSelectedId(null)
+    },
+    [layers, patchLayers, selectedId]
+  )
+
+  const handleDuplicate = useCallback(
+    (layer: CanvasNode) => {
+      const copy = {
+        ...layer,
+        id: `${layer.type}-${Date.now()}`,
+        zIndex: nextZIndex(layers),
       }
-      
-      sorted.forEach((l, i) => l.zIndex = i + 1)
-      return { ...prev, layers: sorted }
-    })
-  }
+      addLayer(copy)
+    },
+    [addLayer, layers]
+  )
 
-  const addTextLayer = () => {
-    const newLayer: TextNode = {
-      id: `text-${Date.now()}`,
-      type: 'text',
-      content: 'New Text',
-      x: 50,
-      y: 50,
-      fontSize: 48,
-      fontFamily: 'Inter',
-      fill: '#ffffff',
-      zIndex: Math.max(0, ...canvasData.layers.map(l => l.zIndex || 0)) + 1
-    }
-    setCanvasData(prev => ({ ...prev, layers: [...prev.layers, newLayer] }))
-    setSelectedId(newLayer.id)
+  const handleFormatChange = (formatId: InstagramFormatId) => {
+    onChange(resizeCanvasData(canvasData, getInstagramFormat(formatId)))
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,228 +109,158 @@ export function StudioEditor({ initialData }: StudioEditorProps) {
     const reader = new FileReader()
     reader.onload = (event) => {
       const src = event.target?.result as string
-      // Load image to get dimensions
       const img = new Image()
       img.onload = () => {
-        // Calculate scale to fit within canvas (max width 500)
+        const maxW = canvasData.canvas.width * 0.6
         let w = img.width
         let h = img.height
-        if (w > 500) {
-          h = h * (500 / w)
-          w = 500
+        if (w > maxW) {
+          h = h * (maxW / w)
+          w = maxW
         }
-        
+
         const newLayer: ImageNode = {
           id: `img-${Date.now()}`,
           type: 'image',
-          src: src,
-          x: 50,
-          y: 50,
+          src,
+          x: (canvasData.canvas.width - w) / 2,
+          y: (canvasData.canvas.height - h) / 2,
           width: w,
           height: h,
-          zIndex: Math.max(0, ...canvasData.layers.map(l => l.zIndex || 0)) + 1
+          zIndex: nextZIndex(layers),
         }
-        setCanvasData(prev => ({ ...prev, layers: [...prev.layers, newLayer] }))
-        setSelectedId(newLayer.id)
+        addLayer(newLayer)
+        setToolTab('elements')
       }
       img.src = src
     }
     reader.readAsDataURL(file)
-    // reset input
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // ─── Render Helpers ────────────────────────────────────────────────────────
-  const renderProperties = () => {
-    if (!selectedLayer) {
-      return (
-        <div className="space-y-4">
-          <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Canvas Settings</h4>
-          <div className="space-y-2">
-            <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Background Color</Label>
-            <div className="flex gap-2">
-              <input 
-                type="color" 
-                value={canvasData.canvas.backgroundColor} 
-                onChange={e => setCanvasData(prev => ({ ...prev, canvas: { ...prev.canvas, backgroundColor: e.target.value } }))}
-                className="w-10 h-10 rounded-lg bg-transparent border-0 cursor-pointer"
-              />
-              <Input 
-                value={canvasData.canvas.backgroundColor} 
-                onChange={e => setCanvasData(prev => ({ ...prev, canvas: { ...prev.canvas, backgroundColor: e.target.value } }))}
-                className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase"
-              />
-            </div>
-          </div>
-        </div>
-      )
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
+      const mod = e.metaKey || e.ctrlKey
+
+      if (mod && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        onUndo?.()
+        return
+      }
+      if ((mod && e.key === 'y') || (mod && e.shiftKey && e.key === 'z')) {
+        e.preventDefault()
+        onRedo?.()
+        return
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedId) {
+          e.preventDefault()
+          deleteLayer(selectedId)
+        }
+        return
+      }
+      if (mod && e.key === 'd' && selectedLayer) {
+        e.preventDefault()
+        handleDuplicate(selectedLayer)
+      }
     }
 
-    return (
-      <div className="space-y-6">
-        <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-4 capitalize">{selectedLayer.type} Properties</h4>
-        
-        {selectedLayer.type === 'text' && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Text Content</Label>
-              <textarea 
-                value={(selectedLayer as TextNode).content}
-                onChange={e => updateLayer({ ...selectedLayer, content: e.target.value })}
-                className="w-full bg-white dark:bg-white/5 border-transparent border dark:border-white/10 text-zinc-900 dark:text-white p-3 rounded-xl min-h-[100px] resize-y text-sm"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Font Size</Label>
-                <Input 
-                  type="number"
-                  value={(selectedLayer as TextNode).fontSize}
-                  onChange={e => updateLayer({ ...selectedLayer, fontSize: Number(e.target.value) })}
-                  className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Color</Label>
-                <div className="flex gap-2 h-10">
-                  <input 
-                    type="color" 
-                    value={(selectedLayer as TextNode).fill as string} 
-                    onChange={e => updateLayer({ ...selectedLayer, fill: e.target.value })}
-                    className="w-10 h-10 rounded-lg bg-transparent border-0 cursor-pointer shrink-0"
-                  />
-                  <Input 
-                    value={(selectedLayer as TextNode).fill as string} 
-                    onChange={e => updateLayer({ ...selectedLayer, fill: e.target.value })}
-                    className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase h-full"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedLayer.type === 'rect' && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Fill Color</Label>
-              <div className="flex gap-2">
-                <input 
-                  type="color" 
-                  value={(selectedLayer as RectNode).fill as string} 
-                  onChange={e => updateLayer({ ...selectedLayer, fill: e.target.value })}
-                  className="w-10 h-10 rounded-lg bg-transparent border-0 cursor-pointer"
-                />
-                <Input 
-                  value={(selectedLayer as RectNode).fill as string} 
-                  onChange={e => updateLayer({ ...selectedLayer, fill: e.target.value })}
-                  className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white font-mono uppercase"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Border Radius</Label>
-              <Input 
-                type="number"
-                value={(selectedLayer as RectNode).cornerRadius as number || 0}
-                onChange={e => updateLayer({ ...selectedLayer, cornerRadius: Number(e.target.value) })}
-                className="bg-white dark:bg-white/5 border-transparent dark:border-white/10 text-zinc-900 dark:text-white"
-              />
-            </div>
-          </div>
-        )}
-        
-        {/* Opacity slider common for all */}
-        <div className="space-y-2 pt-4 border-t border-transparent dark:border-white/5">
-          <div className="flex justify-between">
-             <Label className="text-xs text-zinc-500 dark:text-white/50 uppercase tracking-wider">Opacity</Label>
-             <span className="text-xs text-zinc-500 dark:text-white/50">{Math.round((selectedLayer.opacity ?? 1) * 100)}%</span>
-          </div>
-          <input 
-            type="range" min="0" max="1" step="0.05"
-            value={selectedLayer.opacity ?? 1}
-            onChange={e => updateLayer({ ...selectedLayer, opacity: Number(e.target.value) })}
-            className="w-full accent-blue-500"
-          />
-        </div>
-      </div>
-    )
-  }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [selectedId, selectedLayer, onUndo, onRedo, deleteLayer, handleDuplicate])
 
   return (
-    <div className="w-full h-full min-h-[600px] flex gap-4">
-      {/* Left Sidebar: Layers */}
-      <div className="w-64 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-white dark:bg-white/2">
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Layers</h3>
-          <div className="flex gap-1">
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImageUpload} 
-              accept="image/*" 
-              className="hidden" 
+    <div className="w-full h-full min-h-0 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3 shrink-0">
+        <StudioPageTabs canvasData={canvasData} onChange={onChange} />
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none"
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none"
+            title="Redo (Ctrl+Y)"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 flex gap-4">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          accept="image/*"
+          className="hidden"
+        />
+
+        <div className="w-72 shrink-0 flex flex-col min-h-0 overflow-hidden bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl shadow-xl">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+            <StudioToolsPanel
+              canvasData={canvasData}
+              activeTab={toolTab}
+              onTabChange={setToolTab}
+              onCanvasChange={onChange}
+              onFormatChange={handleFormatChange}
+              onAddLayer={addLayer}
+              onImageUpload={() => fileInputRef.current?.click()}
+              brandKit={brandKit}
             />
-            <button 
-              onClick={() => fileInputRef.current?.click()} 
-              title="Add Image"
-              className="w-6 h-6 rounded-md bg-purple-500/20 text-purple-400 flex items-center justify-center hover:bg-purple-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            >
-              <ImageIcon className="w-3.5 h-3.5" />
-            </button>
-            <button 
-              onClick={addTextLayer} 
-              title="Add Text"
-              className="w-6 h-6 rounded-md bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            >
-              <Type className="w-3.5 h-3.5" />
-            </button>
+
+            {selectedLayer && (
+              <div className="border-t border-black/8 dark:border-white/10">
+                <StudioElementProperties
+                  canvasData={canvasData}
+                  selectedLayer={selectedLayer}
+                  onUpdateLayer={updateLayer}
+                  onDeleteLayer={deleteLayer}
+                  onDuplicateLayer={handleDuplicate}
+                />
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-          {[...canvasData.layers].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0)).map((layer) => (
-            <div 
-              key={layer.id}
-              onClick={() => setSelectedId(layer.id)}
-              className={`flex items-center justify-between p-2 rounded-xl cursor-pointer border transition-colors ${
-                selectedId === layer.id ? 'bg-white dark:bg-white/10 border-black/10 dark:border-white/20 shadow-sm' : 'bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-white/5'
-              }`}
-            >
-              <div className="flex items-center gap-2 overflow-hidden">
-                {layer.type === 'text' && <Type className="w-4 h-4 text-zinc-500 dark:text-white/50 shrink-0" />}
-                {layer.type === 'image' && <ImageIcon className="w-4 h-4 text-zinc-500 dark:text-white/50 shrink-0" />}
-                {layer.type === 'rect' && <Square className="w-4 h-4 text-zinc-500 dark:text-white/50 shrink-0" />}
-                <span className="text-xs text-zinc-900 dark:text-white truncate">
-                  {layer.type === 'text' ? (layer as TextNode).content : layer.id}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity">
-                <div className="flex flex-col">
-                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'up') }} className="text-zinc-500 dark:text-white/40 hover:text-zinc-900 dark:hover:text-white"><ChevronUp className="w-3 h-3" /></button>
-                  <button onClick={(e) => { e.stopPropagation(); moveLayer(layer.id, 'down') }} className="text-zinc-500 dark:text-white/40 hover:text-zinc-900 dark:hover:text-white"><ChevronDown className="w-3 h-3" /></button>
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); deleteLayer(layer.id) }} className="w-6 h-6 flex items-center justify-center text-red-400 hover:bg-red-500/20 rounded-md">
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          ))}
+
+        <div className="flex-1 min-w-0 bg-zinc-100 dark:bg-black/40 border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden p-4 md:p-6 flex items-center justify-center min-h-0">
+          <CanvasEditor
+            canvasData={canvasData}
+            onChange={(data) => patchLayers(data.layers)}
+            selectedId={selectedId}
+            onSelect={(id) => {
+              setSelectedId(id)
+              if (id) {
+                const layer = layers.find((l) => l.id === id)
+                if (layer?.type === 'text') setToolTab('text')
+                else if (layer?.type === 'image') setToolTab('photos')
+                else if (layer?.type === 'rect' || layer?.type === 'circle') setToolTab('elements')
+              }
+            }}
+            exportApiRef={exportApiRef}
+          />
         </div>
-      </div>
 
-      {/* Center: Canvas Area */}
-      <div className="flex-1 bg-zinc-100 dark:bg-black/40 border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden p-8 flex items-center justify-center relative">
-        <CanvasEditor 
-          canvasData={canvasData} 
-          onChange={setCanvasData}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-        />
-      </div>
-
-      {/* Right Sidebar: Properties */}
-      <div className="w-72 shrink-0 bg-zinc-50/80 dark:bg-[#0c0c18]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl p-6 overflow-y-auto custom-scrollbar shadow-xl">
-        {renderProperties()}
+        <div className="w-64 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl min-h-0">
+          <StudioLayersPanel
+            canvasData={{ ...canvasData, layers }}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onChange={(data) => patchLayers(data.layers)}
+            onDeleteLayer={deleteLayer}
+          />
+        </div>
       </div>
     </div>
   )

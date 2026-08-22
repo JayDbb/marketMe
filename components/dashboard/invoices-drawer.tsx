@@ -16,14 +16,14 @@ interface InvoicesDrawerProps {
 export function InvoicesDrawer({ open, onOpenChange }: InvoicesDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl bg-[#0c0c18] border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-white p-0">
-        <SheetHeader className="p-6 border-b border-zinc-200 dark:border-white/10 bg-white dark:bg-white/2">
-          <SheetTitle className="text-zinc-900 dark:text-white font-bold tracking-tight">Invoices</SheetTitle>
+      <SheetContent className="w-full sm:max-w-xl bg-background border-border text-foreground p-0">
+        <SheetHeader className="p-6 border-b border-border bg-card">
+          <SheetTitle className="text-foreground font-bold tracking-tight">Invoices</SheetTitle>
         </SheetHeader>
         
-        <div className="flex flex-col h-full bg-[#0c0c18]">
+        <div className="flex flex-col h-full bg-background">
           {/* Table Header */}
-          <div className="grid grid-cols-5 text-xs font-bold text-zinc-500 dark:text-white/50 uppercase tracking-wider px-6 py-4 border-b border-zinc-200 dark:border-white/5 bg-white dark:bg-white/2">
+          <div className="grid grid-cols-5 text-xs font-bold text-muted-foreground uppercase tracking-wider px-6 py-4 border-b border-border bg-card">
             <div className="col-span-1">Status</div>
             <div className="col-span-1">Type</div>
             <div className="col-span-1">Date</div>

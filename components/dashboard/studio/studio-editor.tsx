@@ -37,6 +37,11 @@ interface StudioEditorProps {
   onRedo?: () => void
   exportApiRef?: React.MutableRefObject<CanvasExportApi | null>
   initialSelectedLayerId?: string
+<<<<<<< HEAD
+=======
+  designName?: string
+  onSaveCopyAs?: (formatId: InstagramFormatId) => void
+>>>>>>> origin/development
 }
 
 export function StudioEditor({
@@ -49,6 +54,11 @@ export function StudioEditor({
   onRedo,
   exportApiRef,
   initialSelectedLayerId,
+<<<<<<< HEAD
+=======
+  designName,
+  onSaveCopyAs,
+>>>>>>> origin/development
 }: StudioEditorProps) {
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedLayerId ?? null)
   const [toolTab, setToolTab] = useState<StudioToolTab>(
@@ -183,6 +193,10 @@ export function StudioEditor({
             disabled={!canUndo}
             className="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none"
             title="Undo (Ctrl+Z)"
+<<<<<<< HEAD
+=======
+            aria-label="Undo (Ctrl+Z)"
+>>>>>>> origin/development
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>
@@ -192,6 +206,10 @@ export function StudioEditor({
             disabled={!canRedo}
             className="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none"
             title="Redo (Ctrl+Y)"
+<<<<<<< HEAD
+=======
+            aria-label="Redo (Ctrl+Y)"
+>>>>>>> origin/development
           >
             <Redo2 className="w-3.5 h-3.5" />
           </button>
@@ -207,7 +225,11 @@ export function StudioEditor({
           className="hidden"
         />
 
+<<<<<<< HEAD
         <div className="w-72 shrink-0 flex flex-col min-h-0 overflow-hidden bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl shadow-xl">
+=======
+        <div className="w-72 shrink-0 flex flex-col min-h-0 overflow-hidden bg-zinc-50 dark:bg-[#161b22] border border-black/5 dark:border-white/10 rounded-2xl shadow-xl">
+>>>>>>> origin/development
           <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
             <StudioToolsPanel
               canvasData={canvasData}
@@ -218,6 +240,10 @@ export function StudioEditor({
               onAddLayer={addLayer}
               onImageUpload={() => fileInputRef.current?.click()}
               brandKit={brandKit}
+<<<<<<< HEAD
+=======
+              onSaveCopyAs={onSaveCopyAs}
+>>>>>>> origin/development
             />
 
             {selectedLayer && (
@@ -249,10 +275,18 @@ export function StudioEditor({
               }
             }}
             exportApiRef={exportApiRef}
+<<<<<<< HEAD
           />
         </div>
 
         <div className="w-64 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl min-h-0">
+=======
+            designName={designName}
+          />
+        </div>
+
+        <div className="w-64 shrink-0 flex flex-col bg-zinc-50 dark:bg-[#161b22] border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl min-h-0">
+>>>>>>> origin/development
           <StudioLayersPanel
             canvasData={{ ...canvasData, layers }}
             selectedId={selectedId}

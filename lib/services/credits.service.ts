@@ -91,6 +91,13 @@ export async function getCreditsBalance(userId: string): Promise<number> {
   return sub.credits_balance
 }
 
+<<<<<<< HEAD
+=======
+export async function getCreditsBalanceDetails(userId: string): Promise<SubscriptionCredits> {
+  return getSubscriptionCredits(userId)
+}
+
+>>>>>>> origin/development
 export async function assertCreditsAvailable(
   userId: string,
   stage: PipelineStage
@@ -160,3 +167,38 @@ export async function spendCredits(
 
   return { transactionId: tx.id as string, newBalance }
 }
+<<<<<<< HEAD
+=======
+
+export async function spendGenerationCredits(
+  userId: string,
+  postCount: number,
+  options?: {
+    businessProfileId?: string
+    generationId?: string
+    metadata?: Record<string, unknown>
+  }
+): Promise<{ newBalance: number }> {
+  const posts = Math.max(1, Math.min(14, Math.floor(postCount || 1)))
+
+  let latestBalance = (await spendCredits(userId, 'marketing_strategy_generation', options))
+    .newBalance
+
+  latestBalance = (await spendCredits(userId, 'content_schedule_generation', options)).newBalance
+
+  for (let i = 0; i < posts; i += 1) {
+    latestBalance = (
+      await spendCredits(userId, 'post_generation', {
+        ...options,
+        metadata: {
+          ...(options?.metadata ?? {}),
+          draftIndex: i + 1,
+          totalDrafts: posts,
+        },
+      })
+    ).newBalance
+  }
+
+  return { newBalance: latestBalance }
+}
+>>>>>>> origin/development

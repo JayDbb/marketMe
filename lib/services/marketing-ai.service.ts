@@ -1511,6 +1511,8 @@ export async function listPosts(
     {
       method: "GET",
     }
+<<<<<<< HEAD
+=======
   )
 }
 
@@ -1520,6 +1522,136 @@ export async function listPosts(
 // ---------------------------------------------------------------------------
 
 /**
+ * Return the backend Meta OAuth login URL.
+ *
+ * This URL must be navigated to in the browser. It should not be fetched
+ * through fetchWithRetry because the endpoint redirects to Facebook.
+ */
+export async function getPublishAuthUrl(
+  businessProfileId: string
+): Promise<string> {
+  const normalizedProfileId =
+    normalizeRequiredId(
+      businessProfileId,
+      "Business profile ID"
+    )
+
+  const params =
+    new URLSearchParams({
+      business_profile_id:
+        normalizedProfileId,
+    })
+
+  // Hint preferred return path when the AI API supports it (ignored if not).
+  params.set("return_path", "/dashboard/connections")
+  params.set("redirect_path", "/dashboard/connections")
+  const appUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    ""
+  ).replace(/\/+$/, "")
+  if (appUrl) {
+    params.set("frontend_url", appUrl)
+  }
+
+  return (
+    `${API_URL}/api/v1/auth/meta/login?` +
+    params.toString()
+  )
+}
+
+export async function getInstagramOAuthUrl(
+  businessProfileId: string
+): Promise<string> {
+  return getPublishAuthUrl(businessProfileId)
+}
+
+
+/**
+ * Fetch connected accounts belonging to one business profile.
+ */
+export async function getSocialConnections(
+  businessProfileId: string
+): Promise<RawSocialConnection[]> {
+  const normalizedProfileId =
+    normalizeRequiredId(
+      businessProfileId,
+      "Business profile ID"
+    )
+
+  const params =
+    new URLSearchParams({
+      business_profile_id:
+        normalizedProfileId,
+    })
+
+  return fetchWithRetry(
+    `/api/v1/publish/connections?${params.toString()}`,
+    {
+      method: "GET",
+    }
+  )
+}
+
+
+/**
+ * Publish one approved post to Instagram.
+ */
+export async function publishToInstagram(
+  input: PublishRequest
+): Promise<PublishResponse> {
+  const businessProfileId =
+    normalizeRequiredId(
+      input.business_profile_id ??
+      input.business_id,
+      "Business profile ID"
+    )
+
+  const postId =
+    normalizeRequiredId(
+      input.post_id,
+      "Post ID"
+    )
+
+  const imageUrl =
+    input.image_url.trim()
+
+  if (!imageUrl) {
+    throw new Error(
+      "An image URL is required."
+    )
+  }
+
+  return fetchWithRetry(
+    "/api/v1/publish/instagram",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        post_id:
+          postId,
+
+        business_profile_id:
+          businessProfileId,
+
+        image_url:
+          imageUrl,
+      }),
+    }
+>>>>>>> origin/development
+  )
+}
+
+
+// ---------------------------------------------------------------------------
+// Meta OAuth and social connections
+// ---------------------------------------------------------------------------
+
+/**
+<<<<<<< HEAD
  * Return the backend Meta OAuth login URL.
  *
  * This URL must be navigated to in the browser. It should not be fetched
@@ -1626,10 +1758,322 @@ export async function publishToInstagram(
         image_url:
           imageUrl,
       }),
+=======
+ * Fetch Instagram inbox items (DMs / mentions / comments) for a business profile.
+ * Tries publish inbox first, then generic inbox path (MarketMe AI may expose either).
+ */
+export async function getInboxMessages(
+  businessProfileId: string,
+  options?: { platform?: string }
+): Promise<unknown> {
+  const normalizedProfileId = normalizeRequiredId(
+    businessProfileId,
+    "Business profile ID"
+  )
+  const params = new URLSearchParams({
+    business_profile_id: normalizedProfileId,
+  })
+  if (options?.platform) {
+    params.set("platform", options.platform)
+  }
+
+  const paths = [
+    `/api/v1/inbox/messages?${params.toString()}`,
+    `/api/v1/publish/inbox?${params.toString()}`,
+  ]
+
+  try {
+    return await Promise.any(
+      paths.map((path) =>
+        fetchWithRetry(path, { method: "GET" }, { retries: 1, timeoutMs: 10_000 })
+      )
+    )
+  } catch (error) {
+    const aggregate = error as AggregateError
+    const first =
+      Array.isArray(aggregate?.errors) && aggregate.errors[0] instanceof Error
+        ? aggregate.errors[0]
+        : error instanceof Error
+          ? error
+          : new Error(String(error))
+
+    if (first instanceof MarketingAIError) throw first
+
+    throw new MarketingAIError(
+      first.message || "Inbox endpoint is not available on MarketMe AI yet.",
+      502,
+      paths[0]
+    )
+  }
+}
+
+async function postInboxReplyJson(
+  path: string,
+  payload: Record<string, unknown>
+): Promise<unknown> {
+  try {
+    return await fetchWithRetry(
+      path,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      { retries: 1, timeoutMs: 25_000 }
+    )
+  } catch (error) {
+    if (
+      error instanceof MarketingAIError &&
+      error.status === 422 &&
+      "recipient_id" in payload
+    ) {
+      const { recipient_id: _recipientId, ...base } = payload
+      return await fetchWithRetry(
+        path,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(base),
+        },
+        { retries: 1, timeoutMs: 25_000 }
+      )
+    }
+    throw error
+  }
+}
+
+export async function replyToInboxMessageAi(input: {
+  businessProfileId: string
+  messageId: string
+  body: string
+  recipientId?: string
+}): Promise<unknown> {
+  const businessProfileId = normalizeRequiredId(
+    input.businessProfileId,
+    "Business profile ID"
+  )
+  const messageId = normalizeRequiredId(input.messageId, "Message ID")
+  const body = input.body.trim()
+  if (!body) throw new Error("Reply body is required.")
+
+  const recipientId = input.recipientId?.trim()
+  const inboxPayload = {
+    business_profile_id: businessProfileId,
+    body,
+    ...(recipientId ? { recipient_id: recipientId } : {}),
+  }
+
+  const paths = [
+    {
+      path: `/api/v1/inbox/messages/${encodeURIComponent(messageId)}/reply`,
+      body: inboxPayload,
+    },
+    {
+      path: `/api/v1/publish/inbox/${encodeURIComponent(messageId)}/reply`,
+      body: { ...inboxPayload, message_id: messageId },
+    },
+  ]
+
+  let lastError: Error | null = null
+  for (const candidate of paths) {
+    try {
+      return await postInboxReplyJson(candidate.path, candidate.body)
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error(String(error))
+      if (error instanceof MarketingAIError && error.status === 404) {
+        continue
+      }
+      throw error
+    }
+  }
+
+  throw (
+    lastError ??
+    new MarketingAIError("Inbox reply endpoint is not available.", 404, paths[0].path)
+  )
+}
+
+export async function markInboxMessageReadAi(input: {
+  businessProfileId: string
+  messageId: string
+}): Promise<unknown> {
+  const businessProfileId = normalizeRequiredId(
+    input.businessProfileId,
+    "Business profile ID"
+  )
+  const messageId = normalizeRequiredId(input.messageId, "Message ID")
+
+  const paths = [
+    `/api/v1/inbox/messages/${encodeURIComponent(messageId)}`,
+    `/api/v1/publish/inbox/${encodeURIComponent(messageId)}`,
+  ]
+
+  let lastError: Error | null = null
+  for (const path of paths) {
+    try {
+      return await fetchWithRetry(path, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          path.startsWith("/api/v1/inbox/")
+            ? { business_profile_id: businessProfileId }
+            : { business_profile_id: businessProfileId, status: "read" }
+        ),
+      }, { retries: 1, timeoutMs: 15_000 })
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error(String(error))
+      if (error instanceof MarketingAIError && error.status === 404) {
+        continue
+      }
+      throw error
+    }
+  }
+
+  throw (
+    lastError ??
+    new MarketingAIError("Inbox mark-read endpoint is not available.", 404, paths[0])
+  )
+}
+
+/**
+ * List Instagram inbox conversations/threads for a business profile.
+ * GET /api/v1/inbox/conversations
+ */
+export async function getInboxConversations(
+  businessProfileId: string,
+  options?: { platform?: string }
+): Promise<unknown> {
+  const normalizedProfileId = normalizeRequiredId(
+    businessProfileId,
+    "Business profile ID"
+  )
+  const params = new URLSearchParams({
+    business_profile_id: normalizedProfileId,
+  })
+  if (options?.platform) {
+    params.set("platform", options.platform)
+  }
+
+  return fetchWithRetry(
+    `/api/v1/inbox/conversations?${params.toString()}`,
+    { method: "GET" },
+    { retries: 1, timeoutMs: 10_000 }
+  )
+}
+
+/**
+ * Fetch one conversation thread, including messages.
+ * GET /api/v1/inbox/conversations/{conversation_id}
+ */
+export async function getInboxConversation(
+  businessProfileId: string,
+  conversationId: string
+): Promise<unknown> {
+  const normalizedProfileId = normalizeRequiredId(
+    businessProfileId,
+    "Business profile ID"
+  )
+  const id = normalizeRequiredId(conversationId, "Conversation ID")
+  const params = new URLSearchParams({
+    business_profile_id: normalizedProfileId,
+  })
+
+  return fetchWithRetry(
+    `/api/v1/inbox/conversations/${encodeURIComponent(id)}?${params.toString()}`,
+    { method: "GET" },
+    { retries: 1, timeoutMs: 15_000 }
+  )
+}
+
+export async function replyToInboxConversationAi(input: {
+  businessProfileId: string
+  conversationId: string
+  body: string
+  recipientId?: string
+}): Promise<unknown> {
+  const businessProfileId = normalizeRequiredId(
+    input.businessProfileId,
+    "Business profile ID"
+  )
+  const conversationId = normalizeRequiredId(
+    input.conversationId,
+    "Conversation ID"
+  )
+  const body = input.body.trim()
+  if (!body) throw new Error("Reply body is required.")
+  const recipientId = input.recipientId?.trim()
+
+  return postInboxReplyJson(
+    `/api/v1/inbox/conversations/${encodeURIComponent(conversationId)}/reply`,
+    {
+      business_profile_id: businessProfileId,
+      body,
+      ...(recipientId ? { recipient_id: recipientId } : {}),
+>>>>>>> origin/development
     }
   )
 }
 
+<<<<<<< HEAD
+=======
+/**
+ * Fetch Instagram Graph insights for a connected business profile.
+ * Implemented on MarketMe AI as GET /api/v1/publish/insights (teammate / Render).
+ * Frontend treats 404 as "not enabled yet".
+ */
+export async function getPublishInsights(
+  businessProfileId: string,
+  options?: { platform?: string; periodDays?: number }
+): Promise<unknown> {
+  const normalizedProfileId = normalizeRequiredId(
+    businessProfileId,
+    "Business profile ID"
+  )
+  const params = new URLSearchParams({
+    business_profile_id: normalizedProfileId,
+  })
+  if (options?.platform) {
+    params.set("platform", options.platform)
+  }
+  if (options?.periodDays && Number.isFinite(options.periodDays)) {
+    params.set("period_days", String(Math.round(options.periodDays)))
+  }
+
+  const paths = [
+    `/api/v1/publish/insights?${params.toString()}`,
+    `/api/v1/insights?${params.toString()}`,
+  ]
+
+  let lastError: Error | null = null
+  for (const path of paths) {
+    try {
+      return await fetchWithRetry(
+        path,
+        { method: "GET" },
+        { retries: 1, timeoutMs: 20_000 }
+      )
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error(String(error))
+      if (error instanceof MarketingAIError && error.status === 404) {
+        continue
+      }
+      throw error
+    }
+  }
+
+  throw (
+    lastError ??
+    new MarketingAIError(
+      "Publish insights endpoint is not available on MarketMe AI yet.",
+      404,
+      paths[0]
+    )
+  )
+}
+>>>>>>> origin/development
 
 export function flattenHashtags(
   hashtags: GeneratedPostContent["hashtags"] | undefined

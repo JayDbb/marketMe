@@ -20,7 +20,11 @@ export function AuthBackdrop() {
           `,
         }}
       />
+<<<<<<< HEAD
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-size-[48px_48px] opacity-60" />
+=======
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-size-[48px_48px] opacity-25" />
+>>>>>>> origin/development
       <div className="absolute top-[12%] left-[8%] h-28 w-44 rotate-[-8deg] rounded-2xl border border-sky-400/15 bg-sky-500/8 blur-[0.5px] shadow-[0_20px_60px_rgba(14,165,233,0.12)]" />
       <div className="absolute bottom-[18%] right-[10%] h-32 w-48 rotate-[6deg] rounded-2xl border border-blue-400/12 bg-blue-500/6 blur-[0.5px] shadow-[0_24px_70px_rgba(59,130,246,0.1)]" />
       <div className="absolute top-[42%] right-[18%] h-20 w-32 rotate-[12deg] rounded-xl border border-white/6 bg-white/4" />
@@ -56,7 +60,11 @@ export function AuthShell({
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 120, damping: 24 }}
+<<<<<<< HEAD
           className="w-full max-w-[440px] rounded-2xl border border-zinc-200/80 bg-white p-8 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.45)] sm:p-10"
+=======
+          className="w-full max-w-md rounded-3xl border border-zinc-200/80 bg-white p-8 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.45)] sm:p-10"
+>>>>>>> origin/development
         >
           <div className="mb-8 flex items-center justify-between gap-3">
             <Link href="/" className="group inline-flex items-center gap-2.5">
@@ -74,8 +82,15 @@ export function AuthShell({
             </Link>
           </div>
 
+<<<<<<< HEAD
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{headline}</h1>
           <p className="mt-2 text-sm text-zinc-500">
+=======
+          <h1 className="text-balance text-2xl font-semibold tracking-tight text-zinc-900">
+            {headline}
+          </h1>
+          <p className="mt-2 text-pretty text-sm leading-relaxed text-zinc-500">
+>>>>>>> origin/development
             {alternatePrompt}{' '}
             <Link
               href={alternateHref}
@@ -87,8 +102,13 @@ export function AuthShell({
 
           <div className="mt-8">{children}</div>
 
+<<<<<<< HEAD
           <p className="mt-8 text-center text-[11px] text-zinc-400">
             {mode === 'login' ? 'Secure sign-in' : '14-day free trial'} · Marketme
+=======
+          <p className="mt-8 text-center text-xs text-zinc-400">
+            {mode === 'login' ? 'Secure Sign-In' : '14-Day Free Trial'} · Marketme
+>>>>>>> origin/development
           </p>
         </motion.div>
       </div>

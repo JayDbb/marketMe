@@ -61,6 +61,10 @@ export interface Post {
 
   scheduled_at: string | null
   status: PostStatus
+<<<<<<< HEAD
+=======
+  error_message?: string | null
+>>>>>>> origin/development
 
   canvas_data?: Record<string, unknown> | null
 

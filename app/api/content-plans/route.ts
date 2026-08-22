@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/services/auth.service'
 import { createContentPlan } from '@/lib/services/content.service'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { isRateLimitError, rateLimitOrThrow } from '@/lib/rate-limit'
 import type { CreateContentPlanInput } from '@/types/content-plan'
 
 /**
@@ -19,6 +20,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: e.message }, { status: e.status })
     }
     return NextResponse.json({ error: 'Authentication error' }, { status: 401 })
+  }
+
+  try {
+    rateLimitOrThrow(`content-plans:create:${session.user.id}`, 20, 60_000)
+  } catch (e) {
+    if (isRateLimitError(e)) {
+      return NextResponse.json({ error: e.message }, { status: 429 })
+    }
+    throw e
   }
 
   let body: CreateContentPlanInput

@@ -1,7 +1,12 @@
 'use server'
 
 import { getSession } from '@/lib/services/auth.service'
-import { getBusinessProfile, upsertBusinessProfile, deleteBusinessProfile } from '@/lib/services/business.service'
+import {
+  getBusinessProfile,
+  upsertBusinessProfile,
+  deleteBusinessProfile,
+} from '@/lib/services/business.service'
+import { rateLimitMessage } from '@/lib/rate-limit'
 import type { BusinessProfile, BusinessProfileInput } from '@/types/business-profile'
 
 /**
@@ -17,6 +22,13 @@ export async function getBusinessProfileAction(): Promise<{
   if (!session) {
     return { data: null, error: 'Not authenticated' }
   }
+
+  const limited = rateLimitMessage(
+    `business-profile:action-get:${session.user.id}`,
+    60,
+    60_000
+  )
+  if (limited) return { data: null, error: limited }
 
   return getBusinessProfile(session.user.id)
 }
@@ -37,6 +49,13 @@ export async function upsertBusinessProfileAction(
     return { data: null, error: 'Not authenticated' }
   }
 
+  const limited = rateLimitMessage(
+    `business-profile:action-put:${session.user.id}`,
+    20,
+    60_000
+  )
+  if (limited) return { data: null, error: limited }
+
   return upsertBusinessProfile(session.user.id, input)
 }
 
@@ -52,6 +71,13 @@ export async function deleteBusinessProfileAction(): Promise<{
   if (!session) {
     return { success: false, error: 'Not authenticated' }
   }
+
+  const limited = rateLimitMessage(
+    `business-profile:action-delete:${session.user.id}`,
+    5,
+    60_000
+  )
+  if (limited) return { success: false, error: limited }
 
   return deleteBusinessProfile(session.user.id)
 }

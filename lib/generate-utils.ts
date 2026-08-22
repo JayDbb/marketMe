@@ -1,4 +1,8 @@
 import { toDatetimeLocalValue } from '@/lib/calendar-utils'
+<<<<<<< HEAD
+=======
+import { parseDatetimeLocal } from '@/lib/post-schedule-utils'
+>>>>>>> origin/development
 import type { CanvasData } from '@/types/canvas'
 
 export interface GenerateSetupInput {
@@ -7,6 +11,11 @@ export interface GenerateSetupInput {
   platform: string
   numPosts: number
   tone: string
+<<<<<<< HEAD
+=======
+  /** User brief from the composer / ?prompt= — not the brand voice. */
+  topic?: string
+>>>>>>> origin/development
 }
 
 export interface GeneratedPostDraft {
@@ -26,6 +35,17 @@ export interface GenerateContext {
   defaultTone: string
   defaultGoal: string
   defaultPlatform: string
+<<<<<<< HEAD
+=======
+  /** True when onboarding profile fields will seed generation prompts. */
+  usesOnboardingBrandKit?: boolean
+  /** Which learning layers are active for this workspace. */
+  learningLayers?: {
+    brandMemory: boolean
+    insights: boolean
+    insightsStatus: string
+  }
+>>>>>>> origin/development
   /** True when MarketMe AI API and/or OpenAI/OpenRouter is configured. */
   hasLiveAi: boolean
   /** @deprecated Use hasLiveAi */
@@ -39,6 +59,10 @@ export interface GenerateContext {
   templateUsageCounts: Record<string, number>
   creditsBalance: number
   creditsLimit: number | null
+<<<<<<< HEAD
+=======
+  creditsResetAt?: string | null
+>>>>>>> origin/development
   creditCostPerGeneration: number
 }
 
@@ -52,7 +76,11 @@ export function normalizePlatform(platform: string): string {
 }
 
 export function toIsoScheduledDate(value: string): string {
+<<<<<<< HEAD
   const d = new Date(value)
+=======
+  const d = parseDatetimeLocal(value)
+>>>>>>> origin/development
   if (Number.isNaN(d.getTime())) {
     throw new Error('Invalid scheduled date')
   }

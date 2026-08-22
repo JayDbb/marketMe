@@ -64,6 +64,11 @@ export async function transitionPostStatus(
     skipModeration?: boolean
     /** Optional “why” when rejecting — stored as brand memory */
     feedback?: string
+<<<<<<< HEAD
+=======
+    /** Stored on the post when moving to failed; cleared when leaving failed */
+    errorMessage?: string
+>>>>>>> origin/development
   }
 ): Promise<{ data: Post | null; error: string | null }> {
   try {
@@ -131,6 +136,17 @@ export async function transitionPostStatus(
       updateData.approved_by = null
     }
 
+<<<<<<< HEAD
+=======
+    if (nextStatus === 'failed') {
+      updateData.error_message =
+        options?.errorMessage?.trim().slice(0, 500) ||
+        'Publishing failed. Retry only if this post is not already live.'
+    } else if (current === 'failed') {
+      updateData.error_message = null
+    }
+
+>>>>>>> origin/development
     const { data, error } = await supabaseAdmin
       .from('posts')
       .update(updateData)
@@ -214,6 +230,33 @@ export async function approveAndSchedulePost(
   })
 }
 
+<<<<<<< HEAD
+=======
+/** Re-queue a failed post, or return it to draft if it has no time. */
+export async function retryFailedPost(
+  userId: string,
+  postId: string
+): Promise<{ data: Post | null; error: string | null }> {
+  try {
+    const post = await getOwnedPost(userId, postId)
+    if (post.status !== 'failed') {
+      throw new PostLifecycleError('Only failed posts can be retried')
+    }
+
+    const nextStatus: PostStatus = post.scheduled_at ? 'scheduled' : 'draft'
+    return transitionPostStatus(userId, postId, nextStatus)
+  } catch (error) {
+    if (error instanceof PostLifecycleError) {
+      return { data: null, error: error.message }
+    }
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+>>>>>>> origin/development
 export type UpdateExistingPostForScheduleInput = {
   platform: string
   content: string

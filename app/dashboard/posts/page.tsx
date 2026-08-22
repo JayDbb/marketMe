@@ -1,28 +1,50 @@
 import { PostsContent } from '@/components/dashboard/posts-content'
-import { getUserAndProfile } from '@/lib/user'
 import { redirect } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import { fetchPostsInbox } from '@/lib/fetch-posts-inbox'
+import {
+  firstSearchParam,
+  parsePostInboxTab,
+  parsePostsPage,
+  parsePostsPlatform,
+} from '@/lib/post-utils'
 
-export default async function PostsPage() {
-  const { user } = await getUserAndProfile()
-  
+export default async function PostsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const user = await getAuthenticatedUser()
+
   if (!user) {
     return redirect('/login')
   }
 
-  const { data: posts, error } = await supabaseAdmin
-    .from('posts')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('scheduled_at', { ascending: false })
+  const params = (await searchParams) ?? {}
+  const tab = parsePostInboxTab(firstSearchParam(params.tab))
+  const page = parsePostsPage(firstSearchParam(params.page))
+  const query = firstSearchParam(params.q) ?? ''
+  const platform = parsePostsPlatform(firstSearchParam(params.platform))
 
-  if (error) {
-    console.error('Error fetching posts:', error.message, error.details, error.hint, error.code)
-  }
+  const inbox = await fetchPostsInbox(user.id, {
+    tab,
+    page,
+    query,
+    platform,
+  })
 
   return (
-    <div className="relative min-h-full font-sans">
-      <PostsContent initialPosts={posts || []} />
-    </div>
+    <PostsContent
+      posts={inbox.posts}
+      counts={inbox.counts}
+      total={inbox.total}
+      workspaceTotal={inbox.workspaceTotal}
+      page={inbox.page}
+      pageSize={inbox.pageSize}
+      tab={tab}
+      query={query}
+      platform={platform}
+      loadError={inbox.error}
+    />
   )
 }

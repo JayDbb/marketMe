@@ -172,7 +172,11 @@ function buildAssistantReply(
 
 function AssistantReplyCard({ reply }: { reply: AiReply }) {
   return (
+<<<<<<< HEAD
     <div className="rounded-[1.75rem] border border-zinc-200 bg-white/90 p-5 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.35)] backdrop-blur dark:border-white/10 dark:bg-[#0f1117]/85">
+=======
+    <div className="rounded-[1.75rem] border border-zinc-200 bg-white p-5 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0f1117]">
+>>>>>>> origin/development
       <div className="mb-3 flex items-center gap-2">
         <Badge
           variant="outline"
@@ -307,7 +311,11 @@ export function DashboardAiAssistant({
 
   if (variant === "hero") {
     return (
+<<<<<<< HEAD
       <section className="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white/90 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-white/10 dark:bg-[#0f1117]/90 md:p-7">
+=======
+      <section className="relative overflow-hidden rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0f1117] md:p-7">
+>>>>>>> origin/development
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_30%)] pointer-events-none" />
         <div className="relative">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -339,7 +347,11 @@ export function DashboardAiAssistant({
             </Link>
           </div>
 
+<<<<<<< HEAD
           <div className="mt-6 rounded-[1.5rem] border border-zinc-200 bg-zinc-50/80 p-2 dark:border-white/10 dark:bg-white/5">
+=======
+          <div className="mt-6 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-2 dark:border-white/10 dark:bg-white/5">
+>>>>>>> origin/development
             <div className="flex flex-col gap-2 md:flex-row md:items-center">
               <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-600 text-white">
                 <Sparkles className="size-5" />
@@ -385,7 +397,11 @@ export function DashboardAiAssistant({
 
   return (
     <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_380px]">
+<<<<<<< HEAD
       <div className="rounded-[2rem] border border-zinc-200 bg-white/90 p-4 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)] backdrop-blur dark:border-white/10 dark:bg-[#0f1117]/90 md:p-5">
+=======
+      <div className="rounded-[2rem] border border-zinc-200 bg-white p-4 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0f1117] md:p-5">
+>>>>>>> origin/development
         <div className="mb-4 flex items-center justify-between gap-3 border-b border-zinc-200 px-2 pb-4 dark:border-white/10">
           <div>
             <Badge
@@ -427,7 +443,11 @@ export function DashboardAiAssistant({
           ))}
         </div>
 
+<<<<<<< HEAD
         <div className="mt-5 rounded-[1.5rem] border border-zinc-200 bg-zinc-50/90 p-3 dark:border-white/10 dark:bg-white/5">
+=======
+        <div className="mt-5 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-white/5">
+>>>>>>> origin/development
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-2">
               {QUICK_PROMPTS.map((quickPrompt) => (
@@ -469,7 +489,11 @@ export function DashboardAiAssistant({
       <div className="space-y-4">
         <AssistantReplyCard reply={activeReply} />
 
+<<<<<<< HEAD
         <div className="rounded-[1.75rem] border border-zinc-200 bg-white/90 p-5 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.35)] backdrop-blur dark:border-white/10 dark:bg-[#0f1117]/85">
+=======
+        <div className="rounded-[1.75rem] border border-zinc-200 bg-white p-5 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0f1117]">
+>>>>>>> origin/development
           <div className="mb-3 flex items-center gap-2">
             <Badge variant="outline" className="border-zinc-200 text-zinc-600 dark:border-white/10 dark:text-white/60">
               <Wand2 className="size-3" />

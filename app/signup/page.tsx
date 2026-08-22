@@ -1,182 +1,155 @@
 'use client'
 
-import { useFormStatus } from 'react-dom'
-import { signup } from '@/app/login/actions'
-import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Suspense, useActionState, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Activity, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
-import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { signup, type AuthActionState } from '@/app/login/actions'
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton'
+import { AuthShell } from '@/components/auth/auth-shell'
+import {
+  AuthAlert,
+  AuthDivider,
+  AuthField,
+  AuthPasswordField,
+  AuthPrimaryButton,
+} from '@/components/auth/auth-ui'
+import { Label } from '@/components/ui/label'
 
-function SubmitButton() {
-  const { pending } = useFormStatus()
+function SignupForm() {
+  const searchParams = useSearchParams()
+  const queryMessage = searchParams.get('message')
+  const queryType = searchParams.get('type')
+  const [state, formAction] = useActionState(signup, {} as AuthActionState)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
+  const message = state.error ?? state.success ?? queryMessage
+  const type = state.error ? 'error' : state.success ? 'success' : queryType
+
   return (
-    <Button
-      type="submit"
-      disabled={pending}
-      aria-disabled={pending}
-      className="w-full h-12 bg-white hover:bg-white/90 text-zinc-950 font-bold tracking-wide rounded-xl transition-all border-0 flex items-center justify-center gap-2 mt-6 shadow-[0_0_30px_rgba(99,130,255,0.2)] active:scale-[0.97] disabled:opacity-60"
+    <AuthShell
+      mode="signup"
+      headline="Create Your Account"
+      alternatePrompt="Already have an account?"
+      alternateHref="/login"
+      alternateLabel="Sign in"
     >
-      {pending ? (
-        <><Loader2 className="w-4 h-4 animate-spin" /> Creating account…</>
-      ) : (
-        <>Create Account <ArrowRight className="w-4 h-4 ml-2" /></>
-      )}
-    </Button>
+      <AuthAlert message={message} type={type} />
+      <div className="mb-5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[11px] leading-relaxed text-zinc-600">
+        Start with the fewest steps possible. Business details and profile setup can wait until onboarding.
+      </div>
+
+      <div className="space-y-3">
+        <GoogleAuthButton disabled={!acceptedTerms} />
+        {!acceptedTerms ? (
+          <p className="text-center text-[11px] text-zinc-500">
+            Accept the Terms to continue with Google.
+          </p>
+        ) : null}
+      </div>
+
+      <AuthDivider />
+
+      <form id="signup-form" action={formAction} className="space-y-4">
+        <AuthField
+          id="email"
+          label="Email"
+          name="email"
+          type="email"
+          placeholder="name@company.com"
+          autoComplete="email"
+          required
+        />
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-medium text-zinc-700">
+            Password
+          </Label>
+          <AuthPasswordField
+            id="password"
+            name="password"
+            autoComplete="new-password"
+            placeholder="Create a password"
+            minLength={6}
+            hint="Use at least 6 characters. You can add business details after you get in."
+          />
+        </div>
+
+        <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <label className="flex items-start gap-3 text-xs leading-relaxed text-zinc-600">
+            <input
+              type="checkbox"
+              name="accepted_terms"
+              value="yes"
+              required
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 accent-zinc-900"
+            />
+            <span>
+              I agree to the{' '}
+              <Link
+                href="/terms"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
+              >
+                Terms of Service
+              </Link>
+              ,{' '}
+              <Link
+                href="/privacy"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
+              >
+                Privacy Policy
+              </Link>
+              , and{' '}
+              <Link
+                href="/acceptable-use"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
+              >
+                Acceptable Use Policy
+              </Link>
+              .
+            </span>
+          </label>
+          <label className="flex items-start gap-3 text-xs leading-relaxed text-zinc-600">
+            <input
+              type="checkbox"
+              name="marketing_opt_in"
+              value="yes"
+              checked={marketingOptIn}
+              onChange={(e) => setMarketingOptIn(e.target.checked)}
+              className="mt-0.5 accent-zinc-900"
+            />
+            <span>
+              Optional: send me product tips and updates by email. I can unsubscribe anytime.
+            </span>
+          </label>
+        </div>
+
+        <AuthPrimaryButton
+          idleLabel="Create Account"
+          pendingLabel="Creating Account…"
+          disabled={!acceptedTerms}
+        />
+      </form>
+    </AuthShell>
   )
 }
 
-function SignupContent() {
-  const searchParams = useSearchParams()
-  const message = searchParams.get('message')
-  const [showPassword, setShowPassword] = useState(false)
-  const [passwordValue, setPasswordValue] = useState('')
-
-  const passwordStrength = passwordValue.length === 0
-    ? null
-    : passwordValue.length < 8
-    ? 'weak'
-    : passwordValue.length < 12
-    ? 'good'
-    : 'strong'
-
-  const strengthConfig = {
-    weak: { label: 'Too short', color: 'bg-red-500', width: 'w-1/3', textColor: 'text-red-400' },
-    good: { label: 'Good', color: 'bg-amber-500', width: 'w-2/3', textColor: 'text-amber-400' },
-    strong: { label: 'Strong', color: 'bg-blue-500', width: 'w-full', textColor: 'text-blue-400' },
-  }
-
+function SignupFallback() {
   return (
-    <div className="relative min-h-screen bg-[#0a0a14] flex flex-col justify-center items-center p-4 font-sans overflow-hidden">
-
-      {/* Ambient blue orb */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/15 blur-[120px] rounded-full pointer-events-none" aria-hidden="true" />
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,#ffffff04_1px,transparent_1px),linear-gradient(to_bottom,#ffffff04_1px,transparent_1px)] bg-size-[32px_32px] pointer-events-none" aria-hidden="true" />
-
-      <Link
-        href="/"
-        className="absolute top-6 left-6 text-white/40 hover:text-white/80 flex items-center gap-2 text-sm transition-colors z-10"
-      >
-        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-        Back to home
-      </Link>
-
-      {/* Logo */}
-      <div className="z-10 mb-8 flex flex-col items-center">
-        <div className="w-11 h-11 bg-blue-500 rounded-xl flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(59,130,246,0.4)]">
-          <Activity className="w-6 h-6 text-white" aria-hidden="true" />
-        </div>
-        <h1 className="text-2xl font-serif font-light text-white tracking-tighter">Marketme</h1>
-      </div>
-
-      {/* Card */}
-      <div className="w-full max-w-md bg-white/5 border border-white/8 backdrop-blur-xl text-white shadow-2xl z-10 p-8 sm:p-10 rounded-2xl">
-        <div className="space-y-1 mb-8 text-center">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">Create an account</h2>
-          <p className="text-white/45 text-sm">14-day free trial. No credit card required.</p>
-        </div>
-
-        <div className="space-y-5">
-          {/* Google */}
-          <GoogleAuthButton />
-
-          <div className="relative" aria-hidden="true">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-white/8" />
-            </div>
-            <div className="relative flex justify-center text-[11px] uppercase tracking-widest">
-              <span className="bg-[#0e0e1c] px-4 text-white/30">Or email</span>
-            </div>
-          </div>
-
-          <form id="signup-form" action={signup} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-white/50 font-medium text-xs uppercase tracking-wider">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="name@company.com"
-                autoComplete="email"
-                spellCheck={false}
-                required
-                className="h-11 bg-white/5 border-white/10 focus-visible:border-blue-400/60 focus-visible:ring-0 text-white placeholder:text-white/25 rounded-xl transition-all text-sm shadow-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-white/50 font-medium text-xs uppercase tracking-wider">
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={passwordValue}
-                  onChange={e => setPasswordValue(e.target.value)}
-                  required
-                  className="h-11 bg-white/5 border-white/10 focus-visible:border-blue-400/60 focus-visible:ring-0 text-white placeholder:text-white/25 rounded-xl transition-all text-sm shadow-none pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/30 hover:text-white/70 transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
-                </button>
-              </div>
-              {/* Password strength */}
-              {passwordStrength && (
-                <div aria-live="polite">
-                  <div className="w-full h-1 bg-white/8 mt-2 rounded-full overflow-hidden">
-                    <div className={`h-full transition-all duration-300 rounded-full ${strengthConfig[passwordStrength].color} ${strengthConfig[passwordStrength].width}`} />
-                  </div>
-                  <p className={`text-xs mt-1 font-medium ${strengthConfig[passwordStrength].textColor}`}>
-                    {strengthConfig[passwordStrength].label}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {message && (
-              <div role="alert" aria-live="polite" className="text-sm font-medium text-red-400 bg-red-500/10 p-3 border border-red-500/20 text-center rounded-xl">
-                {message}
-              </div>
-            )}
-
-            <SubmitButton />
-          </form>
-        </div>
-
-        <div className="text-center text-sm text-white/30 pt-6 border-t border-white/8 mt-6">
-          Already have an account?{' '}
-          <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-            Sign in
-          </Link>
-        </div>
-      </div>
+    <div className="flex min-h-dvh items-center justify-center bg-[#0a0e14]">
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-2 border-sky-500 border-t-transparent"
+        role="status"
+        aria-label="Loading"
+      />
     </div>
   )
 }
 
 export default function SignupPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#0a0a14] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      }
-    >
-      <SignupContent />
+    <Suspense fallback={<SignupFallback />}>
+      <SignupForm />
     </Suspense>
   )
 }

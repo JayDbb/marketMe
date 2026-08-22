@@ -136,6 +136,7 @@ export async function upsertBusinessProfile(
     }
   }
 
+<<<<<<< HEAD
   const payload = {
     user_id: normalizedUserId,
     business_name: input.business_name?.trim() || null,
@@ -156,6 +157,53 @@ export async function upsertBusinessProfile(
     updated_at: new Date().toISOString(),
   }
 
+=======
+  // Only include fields present on `input`. Omitting them (vs sending null)
+  // keeps partial updates — e.g. logo-only — from wiping onboarding data.
+  const payload: Record<string, unknown> = {
+    user_id: normalizedUserId,
+    updated_at: new Date().toISOString(),
+  }
+
+  const setText = (
+    key: keyof BusinessProfileInput,
+    value: string | null | undefined
+  ) => {
+    if (value === undefined) return
+    payload[key] = typeof value === "string" ? value.trim() || null : null
+  }
+
+  setText("business_name", input.business_name)
+  setText("industry", input.industry)
+  setText("industry_detail", input.industry_detail)
+  setText("location", input.location)
+  setText("website", input.website)
+  setText("services", input.services)
+  setText("usp", input.usp)
+  setText("primary_goal", input.primary_goal)
+  setText("social_handle", input.social_handle)
+  setText("tone", input.tone)
+  setText("target_customers", input.target_customers)
+  setText("competitors", input.competitors)
+
+  if (input.channels !== undefined) {
+    payload.channels = Array.isArray(input.channels) ? input.channels : []
+  }
+  if (input.logo_url !== undefined) {
+    payload.logo_url = input.logo_url?.trim() || null
+  }
+  if (input.brand_colors !== undefined) {
+    payload.brand_colors = Array.isArray(input.brand_colors)
+      ? input.brand_colors.slice(0, 5)
+      : null
+  }
+  if (input.brand_fonts !== undefined) {
+    payload.brand_fonts = Array.isArray(input.brand_fonts)
+      ? input.brand_fonts.slice(0, 3)
+      : null
+  }
+
+>>>>>>> origin/development
   const { data, error } = await supabaseAdmin
     .from("business_profiles")
     .upsert(payload, {

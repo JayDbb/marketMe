@@ -1,23 +1,48 @@
-import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
+import { MarketingPageShell } from '@/components/marketing/marketing-page-shell'
+import { getBusinessProfileAction } from '@/app/api/business-profile/_actions'
+import { isProfileReadyForAI } from '@/lib/marketing-profile-prompt'
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import {
+  buildConnectionsOAuthReturnUrl,
+  isInstagramOAuthReturn,
+} from '@/lib/social/oauth'
 
-// Must be force-dynamic: this page reads headers() for the live auth session
-export const dynamic = 'force-dynamic'
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const paramsBag = await searchParams
+  const query = new URLSearchParams()
+  if (paramsBag) {
+    for (const [key, value] of Object.entries(paramsBag)) {
+      if (typeof value === 'string') query.set(key, value)
+      else if (Array.isArray(value) && value[0]) query.set(key, value[0])
+    }
+  }
 
-export default async function OnboardingPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  if (isInstagramOAuthReturn(query)) {
+    redirect(buildConnectionsOAuthReturnUrl('https://example.com', query))
+  }
 
-  if (!session) {
+  const user = await getAuthenticatedUser()
+
+  if (!user) {
     return redirect('/login')
   }
 
+  const { data: profile } = await getBusinessProfileAction()
+
+  const allowEdit = query.get('edit') === '1'
+  if (isProfileReadyForAI(profile) && !allowEdit) {
+    redirect('/dashboard/settings?tab=Workspace')
+  }
+
   return (
-    <div className="min-h-dvh bg-zinc-950 font-sans flex text-zinc-50">
-      <OnboardingWizard />
-    </div>
+    <MarketingPageShell showNavbar={false} showFooter={false} mainClassName="min-h-dvh">
+      <OnboardingWizard initialProfile={profile} />
+    </MarketingPageShell>
   )
 }

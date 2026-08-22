@@ -2,11 +2,19 @@
 
 import { useState, useCallback, useEffect, useMemo, startTransition } from 'react'
 import Image from 'next/image'
+<<<<<<< HEAD
 import { Search, Bookmark, CheckCircle2, Loader2, Key, ExternalLink, Pencil } from 'lucide-react'
+=======
+import { Search, Bookmark, CheckCircle2, Loader2, Key, ExternalLink } from 'lucide-react'
+>>>>>>> origin/development
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { StudioTemplate } from '@/app/dashboard/studio/actions'
 import { savePexelsTemplateAction } from '@/app/dashboard/studio/actions'
+<<<<<<< HEAD
+=======
+import { inferStudioCategory } from '@/lib/studio-utils'
+>>>>>>> origin/development
 import type { StockPhoto } from '@/lib/stock-media'
 import { toast } from 'sonner'
 
@@ -64,7 +72,11 @@ export function StudioStockGrid({
     setSavingId(photo.id)
     const result = await savePexelsTemplateAction({
       name: photo.alt_description || `Photo by ${photo.user.name}`,
+<<<<<<< HEAD
       category: 'Pexels',
+=======
+      category: inferStudioCategory(photo.alt_description || photo.user.name),
+>>>>>>> origin/development
       file_url: photo.urls.regular,
       pexels_id: photo.id,
       author_name: photo.user.name,
@@ -117,6 +129,10 @@ export function StudioStockGrid({
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             placeholder="Search photos (coffee shop, fitness…)"
+<<<<<<< HEAD
+=======
+            aria-label="Search Pexels photos"
+>>>>>>> origin/development
             className="pl-10 h-10 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 rounded-xl text-sm"
           />
         </div>
@@ -146,10 +162,15 @@ export function StudioStockGrid({
                       onOpenInEditor(photo)
                     }
                   }}
+<<<<<<< HEAD
+=======
+                  aria-label={`Open photo by ${photo.user.name} in editor`}
+>>>>>>> origin/development
                   className="group relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-white/8 cursor-pointer"
                 >
                   <Image
                     src={photo.urls.preview}
+<<<<<<< HEAD
                     alt={photo.alt_description ?? ''}
                     fill
                     unoptimized
@@ -164,6 +185,16 @@ export function StudioStockGrid({
                   </div>
                   <div className="absolute inset-x-0 bottom-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     <p className="text-[9px] text-white/60 truncate">{photo.user.name}</p>
+=======
+                    alt={photo.alt_description ?? `Photo by ${photo.user.name}`}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-zinc-950/70 px-2 py-1.5">
+                    <p className="truncate text-[11px] font-medium text-white">{photo.user.name}</p>
+                    <p className="text-[10px] text-white/60">Open in editor</p>
+>>>>>>> origin/development
                   </div>
                   <button
                     type="button"
@@ -172,10 +203,18 @@ export function StudioStockGrid({
                       void handleSave(photo)
                     }}
                     disabled={savingId === photo.id || isSaved}
+<<<<<<< HEAD
                     className={`absolute top-2 right-2 w-8 h-8 rounded-lg backdrop-blur-sm border flex items-center justify-center transition-all ${
                       isSaved
                         ? 'bg-green-600/80 border-green-500/50 text-white'
                         : 'bg-black/50 border-white/10 text-white opacity-0 group-hover:opacity-100 hover:bg-blue-600/80'
+=======
+                    aria-label={isSaved ? 'Saved to library' : 'Save to library'}
+                    className={`absolute top-2 right-2 w-8 h-8 rounded-lg backdrop-blur-sm border flex items-center justify-center ui-transition ${
+                      isSaved
+                        ? 'bg-green-600/80 border-green-500/50 text-white'
+                        : 'bg-zinc-950/70 border-white/15 text-white hover:bg-blue-600/80'
+>>>>>>> origin/development
                     }`}
                   >
                     {savingId === photo.id ? (

@@ -20,7 +20,11 @@ const faqs = [
   {
     question: 'How does AI generation work?',
     answer:
+<<<<<<< HEAD
       'You give Marketme your business context and goals. It drafts captions and ideas for the platforms you choose. Every draft is meant for human review before you schedule or publish — generation is assistive, not autopilot.',
+=======
+      'You give Marketme your business context and goals. It drafts Instagram-ready captions and ideas for review before you schedule or publish. Generation is assistive, not autopilot.',
+>>>>>>> origin/development
   },
   {
     question: 'Do posts go live without my approval?',
@@ -30,7 +34,11 @@ const faqs = [
   {
     question: 'Which platforms can I connect?',
     answer:
+<<<<<<< HEAD
       'Connections use official OAuth flows. Meta (Facebook / Instagram) is the primary path today, with clear status in the dashboard when a reconnect is needed. More channels follow the same pattern as they ship.',
+=======
+      'Instagram is the live connection today, using the official Meta OAuth flow. The dashboard shows when a reconnect is needed, and more channels will only appear after they ship.',
+>>>>>>> origin/development
   },
   {
     question: 'Can my team approve content before it publishes?',
@@ -91,7 +99,11 @@ export function FaqSection() {
               href={supportMailto}
               className={cn(
                 buttonVariants({ size: 'lg' }),
+<<<<<<< HEAD
                 'mb-3 h-12 w-full rounded-full border-0 bg-white font-medium text-black hover:bg-white/90'
+=======
+                'mb-3 h-12 w-full rounded-full border-0 bg-white font-medium text-black transition-[transform,background-color] duration-150 hover:bg-white/90 active:scale-[0.97]'
+>>>>>>> origin/development
               )}
             >
               Email support

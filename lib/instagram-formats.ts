@@ -75,6 +75,10 @@ export const INSTAGRAM_BRAND_COLORS = [
 ] as const
 
 export const STUDIO_FONT_FAMILIES = [
+<<<<<<< HEAD
+=======
+  'Geist',
+>>>>>>> origin/development
   'Inter',
   'Georgia',
   'Times New Roman',

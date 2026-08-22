@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, AuthError } from "@/lib/services/auth.service";
-import { updatePostStatus } from "@/lib/services/content.service";
+import { isRateLimitError, rateLimitOrThrow } from "@/lib/rate-limit";
+import { transitionPostStatus } from "@/lib/services/post-lifecycle.service";
+import { runApprovedPostQueueingWorkflows } from "@/lib/services/workflow.service";
+import type { PostStatus } from "@/types/content-plan";
+
+const ALLOWED_STATUSES: PostStatus[] = [
+  'draft',
+  'approved',
+  'scheduled',
+  'rejected',
+  'published',
+  'failed',
+];
 
 export async function PATCH(
   request: NextRequest,
@@ -19,26 +31,40 @@ export async function PATCH(
   }
 
   try {
-    const body = await request.json();
-    const { status, scheduled_at } = body;
+    rateLimitOrThrow(`post-status:${session.user.id}`, 30, 60_000)
 
-    if (!['draft', 'approved', 'scheduled', 'rejected'].includes(status)) {
+    const body = await request.json();
+    const { status, scheduled_at, feedback } = body;
+
+    if (!ALLOWED_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    const { data: post, error } = await updatePostStatus(
+    const { data: post, error } = await transitionPostStatus(
       session.user.id,
       id,
       status,
-      scheduled_at
+      {
+        ...(scheduled_at ? { scheduledAt: scheduled_at } : {}),
+        ...(typeof feedback === 'string' && feedback.trim()
+          ? { feedback: feedback.trim() }
+          : {}),
+      }
     )
 
     if (error) {
       throw new Error(error);
     }
 
+    if (status === 'approved') {
+      await runApprovedPostQueueingWorkflows(session.user.id, id)
+    }
+
     return NextResponse.json({ success: true, post });
   } catch (error: unknown) {
+    if (isRateLimitError(error)) {
+      return NextResponse.json({ error: error.message }, { status: 429 })
+    }
     const message = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json({ error: message }, { status: 500 });
   }

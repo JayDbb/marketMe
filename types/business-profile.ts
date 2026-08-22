@@ -3,6 +3,8 @@ export interface BusinessProfile {
   user_id: string
   business_name: string | null
   industry: string | null
+  /** Free-text note when industry is Other */
+  industry_detail?: string | null
   location: string | null
   website: string | null
   services: string | null
@@ -13,6 +15,12 @@ export interface BusinessProfile {
   target_customers: string | null
   competitors: string | null
   channels: string[]
+<<<<<<< HEAD
+=======
+  logo_url?: string | null
+  brand_colors?: string[] | null
+  brand_fonts?: string[] | null
+>>>>>>> origin/development
   /** Learned revise/approve style preferences for AI prompt context */
   style_notes?: string | null
   preferred_ctas?: string | null
@@ -35,6 +43,7 @@ export interface BusinessProfile {
 export interface BusinessProfileInput {
   business_name?: string
   industry?: string
+  industry_detail?: string | null
   location?: string
   website?: string
   services?: string
@@ -45,4 +54,7 @@ export interface BusinessProfileInput {
   target_customers?: string
   competitors?: string
   channels?: string[]
+  logo_url?: string | null
+  brand_colors?: string[] | null
+  brand_fonts?: string[] | null
 }

@@ -21,13 +21,12 @@ export function InboxMessageCard({
       type="button"
       layout
       onClick={() => onSelect?.(message)}
-      className={`w-full text-left rounded-xl p-3.5 border transition-all ${
-        isSelected
-          ? 'bg-blue-500/10 border-blue-500/40'
-          : isUnread
-            ? 'bg-white dark:bg-white/8 border-zinc-200 dark:border-white/15 hover:bg-zinc-50 dark:hover:bg-white/10'
-            : 'bg-white/60 dark:bg-white/3 border-zinc-200/80 dark:border-white/8 hover:bg-white dark:hover:bg-white/6'
-      }`}
+      className={`w-full text-left rounded-xl p-3.5 border transition-all ${isSelected
+        ? 'bg-blue-500/10 border-blue-500/40'
+        : isUnread
+          ? 'bg-white dark:bg-white/8 border-zinc-200 dark:border-white/15 hover:bg-zinc-50 dark:hover:bg-white/10'
+          : 'bg-white/60 dark:bg-white/3 border-zinc-200/80 dark:border-white/8 hover:bg-white dark:hover:bg-white/6'
+        }`}
     >
       <div className="flex items-start gap-3">
         <div className="w-9 h-9 rounded-full bg-linear-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shrink-0 text-white text-xs font-bold">
@@ -46,13 +45,12 @@ export function InboxMessageCard({
             @{message.authorHandle}
           </p>
           <p
-            className={`text-xs leading-relaxed line-clamp-2 ${
-              isUnread
-                ? 'text-zinc-800 dark:text-white/85 font-medium'
-                : 'text-zinc-500 dark:text-white/55'
-            }`}
+            className={`text-xs leading-relaxed line-clamp-2 ${isUnread
+              ? 'text-zinc-800 dark:text-white/85 font-medium'
+              : 'text-zinc-500 dark:text-white/55'
+              }`}
           >
-            {message.preview}
+            {message.preview || message.body}
           </p>
         </div>
         {isUnread && (

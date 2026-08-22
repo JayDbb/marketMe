@@ -62,7 +62,6 @@ function InboxDetailPanel({
     if (!reply.trim()) return
     setSending(true)
     try {
-      // Passes connectionId / businessProfileId as 3rd parameter
       await replyToMessage(message.id, reply, message.connectionId)
       setReply('')
     } catch (error) {
@@ -275,5 +274,3 @@ export function InboxContent() {
     </motion.div>
   )
 }
-
-//updated

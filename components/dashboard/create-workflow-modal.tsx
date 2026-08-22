@@ -18,14 +18,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-<<<<<<< HEAD
-  DialogDescription,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { GitPullRequest } from "lucide-react"
-=======
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,7 +41,6 @@ import type {
   WorkflowSummary,
   WorkflowTemplateKey,
 } from '@/types/workflow'
->>>>>>> origin/development
 
 type CreateWorkflowModalProps = {
   open: boolean
@@ -219,32 +210,6 @@ export function CreateWorkflowModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-<<<<<<< HEAD
-      <DialogContent className="max-w-md bg-card border-border text-card-foreground p-6">
-        <DialogHeader className="flex flex-col items-start mb-6 space-y-2">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-2">
-            <GitPullRequest className="w-5 h-5 text-blue-400" />
-          </div>
-          <DialogTitle className="text-xl font-bold tracking-tight">Create Workflow</DialogTitle>
-          <DialogDescription className="text-zinc-500 dark:text-white/50 text-sm">
-            Set up a new automated workflow for your content pipeline.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Label className="text-zinc-500 dark:text-white/50 font-medium text-xs">Workflow Name</Label>
-            <Input
-              placeholder="e.g., Weekly Twitter Thread"
-              className="h-11 bg-white dark:bg-white/5 border-transparent dark:border-white/10 focus-visible:ring-0 focus-visible:border-blue-400/50 text-zinc-900 dark:text-white rounded-xl shadow-none"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-zinc-500 dark:text-white/50 font-medium text-xs">Trigger</Label>
-            <div className="h-11 bg-white dark:bg-white/5 border-transparent border dark:border-white/10 rounded-xl flex items-center px-4 cursor-not-allowed opacity-50">
-              <span className="text-sm text-zinc-500 dark:text-white/50">Select trigger event...</span>
-=======
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col overflow-hidden rounded-3xl p-0 sm:max-w-2xl">
         <DialogHeader className="shrink-0 border-b bg-muted/40 px-6 py-5">
           <div className="flex items-start gap-4">
@@ -258,7 +223,6 @@ export function CreateWorkflowModal({
               <DialogDescription className="max-w-xl">
                 {template.description}
               </DialogDescription>
->>>>>>> origin/development
             </div>
           </div>
         </DialogHeader>
@@ -591,12 +555,8 @@ export function CreateWorkflowModal({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-<<<<<<< HEAD
-            className="h-11 bg-transparent border-border text-foreground hover:bg-muted font-medium rounded-xl"
-=======
             disabled={pending}
             className="rounded-xl"
->>>>>>> origin/development
           >
             Cancel
           </Button>

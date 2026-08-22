@@ -1,41 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-<<<<<<< HEAD
-import { motion, AnimatePresence } from 'framer-motion'
-=======
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
->>>>>>> origin/development
 import {
   Link2,
   Sparkles,
   CalendarDays,
   CheckCircle2,
   Camera,
-<<<<<<< HEAD
-  Briefcase,
-  MessageSquare,
-  Plus,
-  Eye,
-} from 'lucide-react'
-=======
   Plus,
   Eye,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
->>>>>>> origin/development
 
 const steps = [
   {
     id: 0,
     number: '01',
-<<<<<<< HEAD
-    title: 'Connect your platforms',
-    detail: 'Link Instagram, Facebook, and more through OAuth — not passwords.',
-=======
     title: 'Connect Instagram',
     detail: 'Link your Instagram Business or Creator account through the official Meta OAuth flow.',
->>>>>>> origin/development
     icon: Link2,
   },
   {
@@ -53,20 +36,6 @@ const steps = [
     icon: CalendarDays,
   },
 ]
-<<<<<<< HEAD
-
-export function HowItWorks() {
-  const [activeStep, setActiveStep] = useState(0)
-
-  return (
-    <section className="border-t border-white/8 bg-transparent py-24">
-      <div className="mx-auto max-w-5xl space-y-16 px-6">
-        <div className="text-center">
-          <h2 className="font-serif text-3xl font-light leading-tight tracking-tight text-white md:text-5xl">
-            How it works
-          </h2>
-          <p className="mx-auto mt-4 max-w-lg text-sm text-white/45 md:text-base">
-=======
 
 const fade = {
   duration: 0.22,
@@ -90,22 +59,16 @@ export function HowItWorks() {
             </h2>
           </div>
           <p className="max-w-md text-sm text-white/45 md:justify-self-end md:text-base">
->>>>>>> origin/development
             Three steps. Generation is a draft step — you stay in the loop.
           </p>
         </div>
 
-<<<<<<< HEAD
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3" role="tablist" aria-label="How Marketme works">
-=======
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <div
             className="flex flex-col gap-2"
             role="tablist"
             aria-label="How Marketme works"
           >
->>>>>>> origin/development
             {steps.map((step) => {
               const isActive = activeStep === step.id
               return (
@@ -117,33 +80,6 @@ export function HowItWorks() {
                   id={`how-step-${step.id}`}
                   aria-controls="how-it-works-panel"
                   onClick={() => setActiveStep(step.id)}
-<<<<<<< HEAD
-                  className={`rounded-2xl border p-6 text-left transition-[border-color,background-color] duration-200 ${
-                    isActive
-                      ? 'border-sky-400/50 bg-sky-400/10'
-                      : 'border-white/8 bg-white/4 hover:border-white/12 hover:bg-white/6'
-                  }`}
-                >
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/6">
-                        <step.icon
-                          className={`h-5 w-5 ${isActive ? 'text-sky-400' : 'text-white/60'}`}
-                          aria-hidden="true"
-                          strokeWidth={1.5}
-                        />
-                      </div>
-                      <span
-                        className={`font-mono text-xs tracking-widest ${isActive ? 'text-sky-400' : 'text-white/30'}`}
-                      >
-                        {step.number}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="mb-1 font-serif text-lg font-medium text-white">
-                        {step.title}
-                      </h3>
-=======
                   className={cn(
                     'rounded-2xl border p-5 text-left transition-[border-color,background-color] duration-200',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80',
@@ -173,7 +109,6 @@ export function HowItWorks() {
                           {step.number}
                         </span>
                       </div>
->>>>>>> origin/development
                       <p className="text-sm leading-relaxed text-white/40">{step.detail}</p>
                     </div>
                   </div>
@@ -199,34 +134,11 @@ export function HowItWorks() {
               </div>
             </div>
 
-<<<<<<< HEAD
-            <div className="relative flex h-[300px] items-center justify-center overflow-hidden bg-[#0d1117]/50 p-6">
-=======
             <div className="relative flex min-h-[300px] items-center justify-center overflow-hidden bg-background/50 p-6">
->>>>>>> origin/development
               <AnimatePresence mode="wait">
                 {activeStep === 0 && (
                   <motion.div
                     key="step0"
-<<<<<<< HEAD
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                    className="grid w-full max-w-lg grid-cols-2 gap-4 md:grid-cols-3"
-                  >
-                    {[
-                      { icon: MessageSquare, name: 'X', connected: true },
-                      { icon: Briefcase, name: 'LinkedIn', connected: true },
-                      { icon: Camera, name: 'Instagram', connected: true },
-                      { icon: Plus, name: 'TikTok', connected: false },
-                      { icon: Plus, name: 'Facebook', connected: false },
-                      { icon: Plus, name: 'Add more', dashed: true },
-                    ].map((platform) => (
-                      <div
-                        key={platform.name}
-                        className={`relative flex flex-col items-center justify-center gap-3 rounded-xl p-5 transition-colors ${
-=======
                     initial={reduceMotion ? false : { opacity: 0, transform: 'translateY(8px)' }}
                     animate={{ opacity: 1, transform: 'translateY(0px)' }}
                     exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: 'translateY(-8px)' }}
@@ -241,37 +153,23 @@ export function HowItWorks() {
                         key={platform.name}
                         className={cn(
                           'relative flex flex-col items-center justify-center gap-3 rounded-xl p-5',
->>>>>>> origin/development
                           platform.dashed
                             ? 'border border-dashed border-white/20'
                             : platform.connected
                               ? 'border border-white/10 bg-white/5'
                               : 'opacity-50'
-<<<<<<< HEAD
-                        }`}
-                      >
-                        <platform.icon
-                          className={`h-6 w-6 ${platform.connected ? 'text-white' : 'text-white/40'}`}
-=======
                         )}
                       >
                         <platform.icon
                           className={cn('h-6 w-6', platform.connected ? 'text-white' : 'text-white/40')}
->>>>>>> origin/development
                           aria-hidden="true"
                           strokeWidth={1.5}
                         />
                         <span
-<<<<<<< HEAD
-                          className={`text-[10px] font-medium uppercase tracking-widest ${
-                            platform.connected ? 'text-white/80' : 'text-white/40'
-                          }`}
-=======
                           className={cn(
                             'text-[10px] font-medium uppercase tracking-widest',
                             platform.connected ? 'text-white/80' : 'text-white/40'
                           )}
->>>>>>> origin/development
                         >
                           {platform.name}
                         </span>
@@ -289,29 +187,17 @@ export function HowItWorks() {
                 {activeStep === 1 && (
                   <motion.div
                     key="step1"
-<<<<<<< HEAD
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex w-full max-w-lg flex-col gap-4 rounded-xl border border-[#30363d] bg-[#1c2128] p-4"
-=======
                     initial={reduceMotion ? false : { opacity: 0, transform: 'translateY(8px)' }}
                     animate={{ opacity: 1, transform: 'translateY(0px)' }}
                     exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: 'translateY(-8px)' }}
                     transition={fade}
                     className="flex w-full max-w-lg flex-col gap-4 rounded-xl border border-border bg-card p-4"
->>>>>>> origin/development
                   >
                     <div className="flex items-center gap-2 font-mono text-xs text-white/50">
                       <Sparkles className="h-3.5 w-3.5 text-sky-400" aria-hidden="true" />
                       AI draft
                     </div>
-<<<<<<< HEAD
-                    <div className="min-h-[100px] rounded-lg border border-[#30363d] bg-[#0d1117] p-4 text-sm leading-relaxed text-white/80">
-=======
                     <div className="min-h-[100px] rounded-lg border border-border bg-background p-4 text-sm leading-relaxed text-white/80">
->>>>>>> origin/development
                       Weekend brunch specials are live — two courses, courtyard seats, and
                       coffee on the house before noon.
                       <br />
@@ -333,15 +219,6 @@ export function HowItWorks() {
                 {activeStep === 2 && (
                   <motion.div
                     key="step2"
-<<<<<<< HEAD
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-[#30363d] bg-[#1c2128]"
-                  >
-                    <div className="flex h-10 items-center justify-between border-b border-[#30363d] px-4 text-xs">
-=======
                     initial={reduceMotion ? false : { opacity: 0, transform: 'translateY(8px)' }}
                     animate={{ opacity: 1, transform: 'translateY(0px)' }}
                     exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: 'translateY(-8px)' }}
@@ -349,18 +226,13 @@ export function HowItWorks() {
                     className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-card"
                   >
                     <div className="flex h-10 items-center justify-between border-b border-border px-4 text-xs">
->>>>>>> origin/development
                       <span className="text-white/40">Calendar</span>
                       <span className="flex items-center gap-1.5 text-sky-400">
                         <span className="h-1.5 w-1.5 rounded-full bg-sky-400" aria-hidden="true" />
                         Next publish in 2h 14m
                       </span>
                     </div>
-<<<<<<< HEAD
-                    <div className="grid h-[200px] grid-cols-5 divide-x divide-[#30363d] bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-size-[100%_40px]">
-=======
                     <div className="grid h-[200px] grid-cols-5 divide-x divide-border bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-size-[100%_40px]">
->>>>>>> origin/development
                       {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day, i) => (
                         <div key={day} className="relative flex flex-col gap-2 p-2">
                           <span className="text-[9px] uppercase tracking-widest text-white/30">

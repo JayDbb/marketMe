@@ -25,27 +25,6 @@ export function isProfileReadyForAI(
   return Boolean(name && industry && services && goal && audience && tone && channels > 0)
 }
 
-<<<<<<< HEAD
-export function buildMarketingSystemPrompt(
-  profile: Pick<
-    BusinessProfile,
-    | 'business_name'
-    | 'industry'
-    | 'location'
-    | 'website'
-    | 'services'
-    | 'usp'
-    | 'primary_goal'
-    | 'target_customers'
-    | 'tone'
-    | 'competitors'
-    | 'channels'
-  >
-): string {
-  const lines = [
-    `You are an expert social media marketer for ${profile.business_name ?? 'this business'}.`,
-    profile.industry ? `Industry: ${profile.industry}` : null,
-=======
 export type MarketingPromptProfile = Pick<
   BusinessProfile,
   | 'business_name'
@@ -71,7 +50,6 @@ export function buildMarketingSystemPrompt(profile: MarketingPromptProfile): str
     `You are an expert social media marketer for ${profile.business_name ?? 'this business'}.`,
     profile.industry ? `Industry: ${profile.industry}` : null,
     profile.industry_detail ? `Industry detail: ${profile.industry_detail}` : null,
->>>>>>> origin/development
     profile.services ? `Products/services: ${profile.services}` : null,
     profile.usp ? `Unique value: ${profile.usp}` : null,
     profile.target_customers ? `Target audience: ${profile.target_customers}` : null,
@@ -80,9 +58,6 @@ export function buildMarketingSystemPrompt(profile: MarketingPromptProfile): str
     profile.channels?.length ? `Active channels: ${profile.channels.join(', ')}` : null,
     profile.location ? `Location/market: ${profile.location}` : null,
     profile.website ? `Website: ${profile.website}` : null,
-<<<<<<< HEAD
-    profile.competitors ? `Key competitors (differentiate, do not mention by name): ${profile.competitors}` : null,
-=======
     profile.competitors
       ? `Key competitors (differentiate, do not mention by name): ${profile.competitors}`
       : null,
@@ -93,15 +68,12 @@ export function buildMarketingSystemPrompt(profile: MarketingPromptProfile): str
     Array.isArray(profile.brand_fonts) && profile.brand_fonts.length > 0
       ? `Brand fonts: ${profile.brand_fonts.join(', ')}`
       : null,
->>>>>>> origin/development
     'Write platform-native copy that matches the brand voice and drives the stated goal.',
   ]
 
   return lines.filter(Boolean).join('\n')
 }
 
-<<<<<<< HEAD
-=======
 /**
  * Compact onboarding brief for pipeline `additional_instructions` /
  * AI API `topic` (max 1000). Prefer this when the full system prompt is too long.
@@ -163,7 +135,6 @@ export function buildGenerationTopicFromProfile(
   return combined.length <= 1000 ? combined : `${combined.slice(0, 999).trimEnd()}…`
 }
 
->>>>>>> origin/development
 /** Map onboarding goal labels to generate-flow goal strings. */
 export function mapProfileGoalToGenerateGoal(primaryGoal: string | null | undefined): string {
   switch (primaryGoal?.trim()) {

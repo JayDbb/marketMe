@@ -1,9 +1,5 @@
 'use client'
 
-<<<<<<< HEAD
-import { useState } from 'react'
-import { motion, type Variants } from 'framer-motion'
-=======
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -18,7 +14,6 @@ import {
   TimerReset,
   Trash2,
 } from 'lucide-react'
->>>>>>> origin/development
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -88,11 +83,6 @@ function formatWorkflowSchedule(workflow: WorkflowSummary) {
   }
 }
 
-<<<<<<< HEAD
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 20 } },
-=======
 function formatRunTime(value: string) {
   return new Date(value).toLocaleString('en-US', {
     month: 'short',
@@ -100,7 +90,6 @@ function formatRunTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   })
->>>>>>> origin/development
 }
 
 export function WorkflowsContent({ data }: { data: WorkflowDashboardData }) {

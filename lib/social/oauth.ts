@@ -24,15 +24,6 @@ export function consumeInstagramOAuthPending(): boolean {
 }
 
 export type OAuthReturnResult =
-<<<<<<< HEAD
-  | { kind: 'success'; platform: 'instagram'; message?: string }
-  | { kind: 'error'; platform?: 'instagram'; message: string }
-  | { kind: 'none' }
-
-/**
- * Parse common query shapes used when the MarketMe AI API redirects back to the frontend
- * after Meta OAuth (FRONTEND_URL + path/query).
-=======
   | { kind: 'success'; platform: 'instagram'; message?: string; handle?: string }
   | { kind: 'error'; platform?: 'instagram'; message: string }
   | { kind: 'none' }
@@ -56,22 +47,15 @@ export function normalizeInstagramHandle(
  *   /dashboard/settings?instagram=connected|cancelled|not_found
  * Preferred (documented) shape:
  *   /dashboard/connections?oauth=instagram&status=success|error
->>>>>>> origin/development
  */
 export function parseOAuthReturnParams(
   params: URLSearchParams
 ): OAuthReturnResult {
   const oauth = (params.get('oauth') || params.get('provider') || '').toLowerCase()
-<<<<<<< HEAD
-  const status = (
-    params.get('status') ||
-    params.get('instagram') ||
-=======
   const instagramParam = (params.get('instagram') || '').toLowerCase()
   const status = (
     params.get('status') ||
     instagramParam ||
->>>>>>> origin/development
     params.get('connected') ||
     ''
   ).toLowerCase()
@@ -80,8 +64,6 @@ export function parseOAuthReturnParams(
     params.get('error_description') ||
     params.get('message') ||
     ''
-<<<<<<< HEAD
-=======
   const handle = normalizeInstagramHandle(
     params.get('username') ||
       params.get('handle') ||
@@ -118,19 +100,14 @@ export function parseOAuthReturnParams(
       message: messageByStatus[instagramParam] || error || 'Instagram connection failed',
     }
   }
->>>>>>> origin/development
 
   if (
     error &&
     (oauth === 'instagram' ||
       status === 'error' ||
       params.has('error') ||
-<<<<<<< HEAD
-      params.has('error_description'))
-=======
       params.has('error_description') ||
       Boolean(instagramParam))
->>>>>>> origin/development
   ) {
     return {
       kind: 'error',
@@ -152,29 +129,19 @@ export function parseOAuthReturnParams(
     (oauth === 'instagram' && successStatuses.has(status || 'success')) ||
     status === 'instagram' ||
     params.get('connected')?.toLowerCase() === 'instagram' ||
-<<<<<<< HEAD
-    params.get('instagram')?.toLowerCase() === 'connected' ||
-    params.get('instagram')?.toLowerCase() === 'success'
-=======
     successStatuses.has(instagramParam)
->>>>>>> origin/development
   ) {
     return {
       kind: 'success',
       platform: 'instagram',
       message: params.get('message') || undefined,
-<<<<<<< HEAD
-=======
       handle,
->>>>>>> origin/development
     }
   }
 
   return { kind: 'none' }
 }
 
-<<<<<<< HEAD
-=======
 /** True when the URL looks like a Meta/Instagram OAuth return (any path). */
 export function isInstagramOAuthReturn(params: URLSearchParams): boolean {
   if (params.has('instagram')) return true
@@ -215,7 +182,6 @@ export function buildConnectionsOAuthReturnUrl(
   return `${dest.pathname}${dest.search}`
 }
 
->>>>>>> origin/development
 /** Strip OAuth query keys so refresh doesn't re-toast. */
 export function stripOAuthReturnParams(params: URLSearchParams): string {
   const next = new URLSearchParams(params.toString())
@@ -230,14 +196,11 @@ export function stripOAuthReturnParams(params: URLSearchParams): string {
     'message',
     'code',
     'state',
-<<<<<<< HEAD
-=======
     'username',
     'handle',
     'ig_username',
     'instagram_username',
     'account',
->>>>>>> origin/development
   ].forEach((key) => next.delete(key))
   const qs = next.toString()
   return qs ? `?${qs}` : ''
@@ -252,11 +215,6 @@ export function mapRawConnection(acc: {
   instagram_user_id?: string | null
   facebook_page_id?: string | null
   created_at?: string
-<<<<<<< HEAD
-}): SocialConnection {
-  const platform = (acc.platform || 'instagram') as SocialPlatform
-  const handle = (acc.handle || 'instagram_account').replace(/^@/, '')
-=======
   updated_at?: string
   avatar_url?: string | null
   profile_picture_url?: string | null
@@ -269,7 +227,6 @@ export function mapRawConnection(acc: {
     normalizeInstagramHandle(acc.handle) ||
     normalizeInstagramHandle(acc.account_url) ||
     'instagram_account'
->>>>>>> origin/development
   const connected =
     acc.connected_status === true ||
     acc.connected_status === 'connected' ||
@@ -285,12 +242,6 @@ export function mapRawConnection(acc: {
     id: String(acc.id || acc.instagram_user_id || acc.facebook_page_id || platform),
     platform,
     handle,
-<<<<<<< HEAD
-    displayName: handle.startsWith('@') ? handle : `@${handle}`,
-    status,
-    connectedAt: acc.created_at || new Date().toISOString(),
-    externalAccountId: acc.instagram_user_id || acc.facebook_page_id || undefined,
-=======
     displayName: `@${handle}`,
     status,
     connectedAt: acc.created_at || new Date().toISOString(),
@@ -299,6 +250,5 @@ export function mapRawConnection(acc: {
       acc.avatar_url || acc.profile_picture_url || acc.profile_image_url || null,
     lastSyncedAt: acc.last_synced_at || acc.updated_at || acc.created_at || null,
     tokenExpiresAt: acc.token_expires_at || null,
->>>>>>> origin/development
   }
 }

@@ -1,18 +1,11 @@
 'use client'
 
-<<<<<<< HEAD
-=======
 import { useState } from 'react'
->>>>>>> origin/development
 import { useFormStatus } from 'react-dom'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-<<<<<<< HEAD
-import { Loader2, Mail, Lock } from 'lucide-react'
-=======
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react'
->>>>>>> origin/development
 import { cn } from '@/lib/utils'
 
 export const authInputClassName =
@@ -46,11 +39,7 @@ export function AuthMethodTabs({
           aria-selected={value === tab.id}
           onClick={() => onChange(tab.id)}
           className={cn(
-<<<<<<< HEAD
-            'flex-1 rounded-md py-2 text-sm font-medium transition-all',
-=======
             'flex-1 rounded-md py-2 text-sm font-medium ui-transition',
->>>>>>> origin/development
             value === tab.id
               ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200/80'
               : 'text-zinc-500 hover:text-zinc-700'
@@ -130,36 +119,14 @@ export function AuthPasswordField({
   placeholder = 'Your password',
   autoComplete = 'current-password',
   minLength = 6,
-<<<<<<< HEAD
-=======
   hint,
   required = true,
->>>>>>> origin/development
 }: {
   id: string
   name?: string
   placeholder?: string
   autoComplete?: string
   minLength?: number
-<<<<<<< HEAD
-}) {
-  return (
-    <div className="relative">
-      <Lock
-        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-        aria-hidden="true"
-      />
-      <Input
-        id={id}
-        name={name}
-        type="password"
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        required
-        minLength={minLength}
-        className={authInputClassName}
-      />
-=======
   hint?: string
   required?: boolean
 }) {
@@ -196,7 +163,6 @@ export function AuthPasswordField({
         </button>
       </div>
       {hint ? <p className="text-[11px] leading-relaxed text-zinc-500">{hint}</p> : null}
->>>>>>> origin/development
     </div>
   )
 }
@@ -256,11 +222,7 @@ export function AuthPrimaryButton({
       type="submit"
       disabled={isDisabled}
       aria-disabled={isDisabled}
-<<<<<<< HEAD
-      className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border-0 bg-blue-600 font-medium text-white shadow-[0_8px_24px_-8px_rgba(37,99,235,0.55)] transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-60"
-=======
       className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border-0 bg-blue-600 font-medium text-white shadow-[0_8px_24px_-8px_rgba(37,99,235,0.55)] ui-transition hover:bg-blue-500 active:scale-[0.98] disabled:opacity-60"
->>>>>>> origin/development
     >
       {pending ? (
         <>

@@ -20,11 +20,7 @@ export function GoogleAuthButton({
     try {
       await signIn.social({
         provider: 'google',
-<<<<<<< HEAD
-        callbackURL: '/onboarding',
-=======
         callbackURL,
->>>>>>> origin/development
         errorCallbackURL: '/login?message=Google+sign-in+failed&type=error',
       })
     } catch (error) {
@@ -40,11 +36,7 @@ export function GoogleAuthButton({
       type="button"
       disabled={isLoading || disabled}
       onClick={handleGoogleLogin}
-<<<<<<< HEAD
-      className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-zinc-200 bg-white font-medium text-zinc-800 transition-all hover:bg-zinc-50 active:scale-[0.98] disabled:opacity-50"
-=======
       className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-border bg-card font-medium text-foreground ui-transition hover:bg-muted active:scale-[0.97] disabled:opacity-50"
->>>>>>> origin/development
     >
       {isLoading ? (
         <>

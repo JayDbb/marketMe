@@ -1,11 +1,8 @@
 import type { BusinessProfile } from '@/types/business-profile'
 import { AI_PROFILE_ESSENTIALS } from '@/lib/marketing-profile-prompt'
-<<<<<<< HEAD
-=======
 import { POST_INBOX_TAB_STATUSES } from '@/lib/post-utils'
 import { getZonedParts, zonedLocalToUtc } from '@/lib/settings-utils'
 import type { WeekStartsOn } from '@/types/settings'
->>>>>>> origin/development
 
 export interface UpcomingPost {
   id: string
@@ -15,16 +12,6 @@ export interface UpcomingPost {
   status: string
 }
 
-<<<<<<< HEAD
-export interface DashboardStats {
-  postsCount: number
-  scheduledCount: number
-  publishedCount: number
-  draftCount: number
-  plansCount: number
-  scheduledThisWeek: number
-  upcomingPosts: UpcomingPost[]
-=======
 export interface DashboardDraft {
   id: string
   content: string | null
@@ -81,7 +68,6 @@ export function getWeekBoundsIso(
     timeZone
   )
   return { startIso: start.toISOString(), endIso: end.toISOString() }
->>>>>>> origin/development
 }
 
 export function getProfileCompleteness(profile: BusinessProfile | null): number {
@@ -111,12 +97,9 @@ export function getPlannerDateParam(iso: string): string {
   const pad = (n: string | number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
-<<<<<<< HEAD
-=======
 
 export function dashboardGreetingName(businessName: string | null | undefined): string {
   const name = businessName?.trim()
   if (!name || name.toLowerCase() === 'welcome') return 'there'
   return name
 }
->>>>>>> origin/development

@@ -15,16 +15,6 @@ interface InvoicesDrawerProps {
 export function InvoicesDrawer({ open, onOpenChange }: InvoicesDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-<<<<<<< HEAD
-      <SheetContent className="w-full sm:max-w-xl bg-background border-border text-foreground p-0">
-        <SheetHeader className="p-6 border-b border-border bg-card">
-          <SheetTitle className="text-foreground font-bold tracking-tight">Invoices</SheetTitle>
-        </SheetHeader>
-        
-        <div className="flex flex-col h-full bg-background">
-          {/* Table Header */}
-          <div className="grid grid-cols-5 text-xs font-bold text-muted-foreground uppercase tracking-wider px-6 py-4 border-b border-border bg-card">
-=======
       <SheetContent className="w-full border-border bg-background p-0 text-foreground sm:max-w-xl">
         <SheetHeader className="border-b border-border bg-card p-6">
           <SheetTitle className="font-semibold tracking-tight text-foreground">
@@ -34,7 +24,6 @@ export function InvoicesDrawer({ open, onOpenChange }: InvoicesDrawerProps) {
 
         <div className="flex h-full flex-col bg-background">
           <div className="grid grid-cols-5 border-b border-border bg-card px-6 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
->>>>>>> origin/development
             <div className="col-span-1">Status</div>
             <div className="col-span-1">Type</div>
             <div className="col-span-1">Date</div>

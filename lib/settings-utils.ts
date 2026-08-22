@@ -1,19 +1,6 @@
 import type { WeekStartsOn } from '@/types/settings'
 import { DEFAULT_AI_PREFERENCES } from '@/lib/ai-models'
 
-<<<<<<< HEAD
-export const TIMEZONE_OPTIONS = [
-  { value: 'America/New_York', label: 'Eastern (US)' },
-  { value: 'America/Chicago', label: 'Central (US)' },
-  { value: 'America/Denver', label: 'Mountain (US)' },
-  { value: 'America/Los_Angeles', label: 'Pacific (US)' },
-  { value: 'Europe/London', label: 'London' },
-  { value: 'Europe/Paris', label: 'Paris' },
-  { value: 'Asia/Tokyo', label: 'Tokyo' },
-  { value: 'Australia/Sydney', label: 'Sydney' },
-  { value: 'UTC', label: 'UTC' },
-] as const
-=======
 /** Friendly labels for common zones. Unknown IANA ids still appear in the picker. */
 export const TIMEZONE_LABELS: Record<string, string> = {
   'America/New_York': 'Eastern (US)',
@@ -31,7 +18,6 @@ export const TIMEZONE_LABELS: Record<string, string> = {
 export const TIMEZONE_OPTIONS = (
   Object.entries(TIMEZONE_LABELS) as [string, string][]
 ).map(([value, label]) => ({ value, label }))
->>>>>>> origin/development
 
 export const DEFAULT_PREFERENCES = {
   timezone: 'America/New_York',
@@ -39,8 +25,6 @@ export const DEFAULT_PREFERENCES = {
 }
 
 export { DEFAULT_AI_PREFERENCES }
-<<<<<<< HEAD
-=======
 
 export function formatTimezoneLabel(timeZone: string): string {
   const known = TIMEZONE_LABELS[timeZone]
@@ -165,4 +149,3 @@ export function zonedLocalToUtc(
 }
 
 export const MIN_PASSWORD_LENGTH = 8
->>>>>>> origin/development

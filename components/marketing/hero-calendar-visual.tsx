@@ -50,22 +50,12 @@ export function HeroCalendarVisual() {
   const prefersReducedMotion = useReducedMotion();
 
   return (
-<<<<<<< HEAD
-    <div className="relative w-full max-w-[800px] mx-auto mt-16 aspect-video perspective-[1000px]">
-      <motion.div 
-        initial={prefersReducedMotion ? false : { rotateX: 20, rotateY: -10, opacity: 0, y: 40 }}
-        animate={prefersReducedMotion ? undefined : { rotateX: 10, rotateY: -5, opacity: 1, y: 0 }}
-        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-        className="w-full h-full bg-[#1c2128] border border-[#30363d] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-        style={{ transformStyle: 'preserve-3d' }}
-=======
     <div className="relative aspect-[4/3] w-full max-w-none sm:aspect-video">
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, transform: 'translateY(16px) scale(0.98)' }}
         animate={prefersReducedMotion ? undefined : { opacity: 1, transform: 'translateY(0px) scale(1)' }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
         className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_24px_80px_-24px_rgba(0,0,0,0.55)]"
->>>>>>> origin/development
       >
         <div className="relative flex h-12 items-center justify-between border-b border-border bg-background/80 px-4">
           <div className="z-10 flex gap-1.5" aria-hidden="true">
@@ -89,28 +79,6 @@ export function HeroCalendarVisual() {
               <div className="flex h-8 items-center justify-center border-b border-border bg-background/40 text-[10px] font-medium uppercase tracking-widest text-white/40">
                 {day}
               </div>
-<<<<<<< HEAD
-              <div className="flex-1 p-2 flex flex-col gap-2 relative bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-size-[100%_40px] overflow-hidden">
-                {/* Find post for this day */}
-                {mockPosts.filter(p => p.day === day).map((post, j) => (
-                  <motion.div
-                    key={j}
-                    initial={prefersReducedMotion ? false : { opacity: 0, y: 10, scale: 0.95 }}
-                    animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
-                    transition={{ delay: 0.6 + post.delay, duration: 0.5 }}
-                    className="relative bg-[#0d1117] border border-[#30363d] rounded-lg p-2.5 shadow-xl shrink-0"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="w-4 h-4 rounded bg-white/10 shrink-0" />
-                      <StatusBadge status={post.status} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="h-1.5 w-full bg-white/10 rounded-full" />
-                      <div className="h-1.5 w-2/3 bg-white/10 rounded-full" />
-                    </div>
-                  </motion.div>
-                ))}
-=======
               <div className="relative flex flex-1 flex-col gap-2 overflow-hidden bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-size-[100%_40px] p-2">
                 {mockPosts
                   .filter((p) => p.day === day)
@@ -140,7 +108,6 @@ export function HeroCalendarVisual() {
                       </div>
                     </motion.div>
                   ))}
->>>>>>> origin/development
               </div>
             </div>
           ))}

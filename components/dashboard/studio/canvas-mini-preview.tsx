@@ -24,8 +24,6 @@ function fontStyleFromStyle(fontStyle?: string) {
   return fontStyle.includes('italic') ? 'italic' : 'normal'
 }
 
-<<<<<<< HEAD
-=======
 function previewFontFamily(family: string) {
   if (family === 'Georgia' || family === 'Times New Roman') {
     return 'var(--font-cormorant), Georgia, serif'
@@ -42,7 +40,6 @@ function previewFontFamily(family: string) {
   return family
 }
 
->>>>>>> origin/development
 function renderTextLayer(node: TextNode) {
   const align = node.align ?? 'left'
   const boxWidth = node.width ?? 0
@@ -52,11 +49,8 @@ function renderTextLayer(node: TextNode) {
       : align === 'right'
         ? node.x + boxWidth
         : node.x
-<<<<<<< HEAD
-=======
   const lineHeight = (node.lineHeight ?? 1.15) * node.fontSize
   const lines = node.content.split('\n')
->>>>>>> origin/development
 
   return (
     <text
@@ -65,25 +59,17 @@ function renderTextLayer(node: TextNode) {
       y={node.y + node.fontSize}
       fill={node.fill}
       fontSize={node.fontSize}
-<<<<<<< HEAD
-      fontFamily={node.fontFamily}
-=======
       fontFamily={previewFontFamily(node.fontFamily)}
->>>>>>> origin/development
       fontWeight={fontWeightFromStyle(node.fontStyle)}
       fontStyle={fontStyleFromStyle(node.fontStyle)}
       textAnchor={align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start'}
       opacity={node.opacity ?? 1}
     >
-<<<<<<< HEAD
-      {node.content}
-=======
       {lines.map((line, index) => (
         <tspan key={index} x={x} dy={index === 0 ? 0 : lineHeight}>
           {line || ' '}
         </tspan>
       ))}
->>>>>>> origin/development
     </text>
   )
 }

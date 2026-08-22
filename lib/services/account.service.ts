@@ -1,18 +1,12 @@
 import { cache } from 'react'
-<<<<<<< HEAD
-=======
 import { checkIsAdmin } from '@/lib/admin-auth'
->>>>>>> origin/development
 import { getBusinessProfile } from '@/lib/services/business.service'
 import {
   PLANS,
   resolveDisplayName,
   getInitials,
   formatRenewalText,
-<<<<<<< HEAD
-=======
   formatCreditsResetText,
->>>>>>> origin/development
 } from '@/lib/billing-utils'
 import { getSession } from '@/lib/services/auth.service'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -96,8 +90,6 @@ async function getUsageCounts(userId: string) {
   }
 }
 
-<<<<<<< HEAD
-=======
 async function getRecentCreditUsage(userId: string) {
   const { data } = await supabaseAdmin
     .from('credit_transactions')
@@ -115,7 +107,6 @@ async function getRecentCreditUsage(userId: string) {
   }))
 }
 
->>>>>>> origin/development
 function buildUsageMetric(used: number, limit: number | null, label: string): UsageMetric {
   return { used, limit, label }
 }
@@ -136,18 +127,11 @@ export const getAccountContext = cache(async (): Promise<AccountContext | null> 
     },
   }
 
-<<<<<<< HEAD
-  const [profileResult, subscription, usage] = await Promise.all([
-    getBusinessProfile(user.id),
-    ensureUserSubscription(user.id),
-    getUsageCounts(user.id),
-=======
   const [profileResult, subscription, usage, recentCreditUsage] = await Promise.all([
     getBusinessProfile(user.id),
     ensureUserSubscription(user.id),
     getUsageCounts(user.id),
     getRecentCreditUsage(user.id),
->>>>>>> origin/development
   ])
 
   const plan = (subscription.plan ?? 'free') as PlanId
@@ -155,20 +139,14 @@ export const getAccountContext = cache(async (): Promise<AccountContext | null> 
   const displayName = resolveDisplayName(authUser, profileResult.data)
 
   const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY)
-<<<<<<< HEAD
-=======
   const isAdmin = await checkIsAdmin({ userId: user.id, email: user.email })
->>>>>>> origin/development
 
   return {
     displayName,
     initials: getInitials(displayName),
     email: user.email ?? '',
     avatarUrl: user.image ?? null,
-<<<<<<< HEAD
-=======
     isAdmin,
->>>>>>> origin/development
     plan,
     planLabel: planConfig.label,
     planBadge: planConfig.badge,
@@ -176,11 +154,8 @@ export const getAccountContext = cache(async (): Promise<AccountContext | null> 
     priceMonthly: planConfig.priceMonthly,
     subscriptionStatus: (subscription.status ?? 'active') as SubscriptionStatus,
     renewalText: formatRenewalText(plan, subscription.status, subscription.current_period_end),
-<<<<<<< HEAD
-=======
     creditsRemaining: subscription.credits_balance ?? 0,
     creditsResetAt: formatCreditsResetText(subscription.credits_reset_at),
->>>>>>> origin/development
     stripePortalAvailable: stripeConfigured && Boolean(subscription.stripe_customer_id),
     usage: {
       workspaces: buildUsageMetric(
@@ -212,9 +187,6 @@ export const getAccountContext = cache(async (): Promise<AccountContext | null> 
         'AI credits used'
       ),
     },
-<<<<<<< HEAD
-=======
     recentCreditUsage,
->>>>>>> origin/development
   }
 })

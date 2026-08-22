@@ -64,11 +64,8 @@ export async function transitionPostStatus(
     skipModeration?: boolean
     /** Optional “why” when rejecting — stored as brand memory */
     feedback?: string
-<<<<<<< HEAD
-=======
     /** Stored on the post when moving to failed; cleared when leaving failed */
     errorMessage?: string
->>>>>>> origin/development
   }
 ): Promise<{ data: Post | null; error: string | null }> {
   try {
@@ -136,8 +133,6 @@ export async function transitionPostStatus(
       updateData.approved_by = null
     }
 
-<<<<<<< HEAD
-=======
     if (nextStatus === 'failed') {
       updateData.error_message =
         options?.errorMessage?.trim().slice(0, 500) ||
@@ -146,7 +141,6 @@ export async function transitionPostStatus(
       updateData.error_message = null
     }
 
->>>>>>> origin/development
     const { data, error } = await supabaseAdmin
       .from('posts')
       .update(updateData)
@@ -230,8 +224,6 @@ export async function approveAndSchedulePost(
   })
 }
 
-<<<<<<< HEAD
-=======
 /** Re-queue a failed post, or return it to draft if it has no time. */
 export async function retryFailedPost(
   userId: string,
@@ -256,7 +248,6 @@ export async function retryFailedPost(
   }
 }
 
->>>>>>> origin/development
 export type UpdateExistingPostForScheduleInput = {
   platform: string
   content: string

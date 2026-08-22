@@ -1,17 +1,12 @@
 import type { Post } from '@/types/content'
 import type { WeekStartsOn } from '@/types/settings'
-<<<<<<< HEAD
-=======
 import { getZonedParts, zonedLocalToUtc } from '@/lib/settings-utils'
->>>>>>> origin/development
 
 export const CALENDAR_START_HOUR = 6
 export const CALENDAR_END_HOUR = 22
 export const HOUR_HEIGHT_PX = 56
 export const DEFAULT_POST_DURATION_MIN = 30
 
-<<<<<<< HEAD
-=======
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
 }
@@ -32,7 +27,6 @@ function hoursInZone(date: Date, timeZone?: string): number {
   return p.hour + p.minute / 60
 }
 
->>>>>>> origin/development
 export function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -41,14 +35,9 @@ export function isSameDay(a: Date, b: Date): boolean {
   )
 }
 
-<<<<<<< HEAD
-export function isToday(date: Date): boolean {
-  return isSameDay(date, new Date())
-=======
 export function isToday(date: Date, timeZone?: string): boolean {
   if (!timeZone) return isSameDay(date, new Date())
   return civilYmd(date) === ymdInZone(new Date(), timeZone)
->>>>>>> origin/development
 }
 
 export function startOfWeek(date: Date, weekStartsOn: WeekStartsOn = 'monday'): Date {
@@ -93,23 +82,11 @@ export function formatHourLabel(hour: number): string {
   return hour < 12 ? `${hour} am` : `${hour - 12} pm`
 }
 
-<<<<<<< HEAD
-export function formatTime(date: Date): string {
-=======
 export function formatTime(date: Date, timeZone?: string): string {
->>>>>>> origin/development
   return date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-<<<<<<< HEAD
-  })
-}
-
-export function formatTimeRange(start: Date, durationMin: number): string {
-  const end = new Date(start.getTime() + durationMin * 60_000)
-  return `${formatTime(start)} – ${formatTime(end)}`
-=======
     ...(timeZone ? { timeZone } : {}),
   })
 }
@@ -117,7 +94,6 @@ export function formatTimeRange(start: Date, durationMin: number): string {
 export function formatTimeRange(start: Date, durationMin: number, timeZone?: string): string {
   const end = new Date(start.getTime() + durationMin * 60_000)
   return `${formatTime(start, timeZone)} – ${formatTime(end, timeZone)}`
->>>>>>> origin/development
 }
 
 export function formatDuration(minutes: number): string {
@@ -128,21 +104,6 @@ export function formatDuration(minutes: number): string {
   return `${h} hr ${m} min`
 }
 
-<<<<<<< HEAD
-export function toDatetimeLocalValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
-export function getPostsForDay(posts: Post[], day: Date): Post[] {
-  return posts
-    .filter((p) => isSameDay(new Date(p.scheduled_date), day))
-    .sort(
-      (a, b) =>
-        new Date(a.scheduled_date).getTime() -
-        new Date(b.scheduled_date).getTime()
-    )
-=======
 export type PlannerViewMode = 'Month' | 'Week' | 'Day'
 
 export function toDatetimeLocalValue(date: Date, timeZone?: string): string {
@@ -270,30 +231,11 @@ export function getPostsForDay(posts: Post[], day: Date, timeZone?: string): Pos
       const tb = parseScheduledDate(b.scheduled_date)?.getTime() ?? 0
       return ta - tb
     })
->>>>>>> origin/development
 }
 
 export function getPostsForWeek(
   posts: Post[],
   anchor: Date,
-<<<<<<< HEAD
-  weekStartsOn: WeekStartsOn = 'monday'
-): Post[] {
-  const start = startOfWeek(anchor, weekStartsOn)
-  const end = endOfWeek(anchor, weekStartsOn)
-  return posts.filter((p) => {
-    const d = new Date(p.scheduled_date)
-    return d >= start && d <= end
-  })
-}
-
-export function getNextPostOnDay(posts: Post[], day: Date): Post | null {
-  const dayPosts = getPostsForDay(posts, day)
-  if (dayPosts.length === 0) return null
-
-  const now = new Date()
-  if (isSameDay(day, now)) {
-=======
   weekStartsOn: WeekStartsOn = 'monday',
   timeZone?: string
 ): Post[] {
@@ -449,7 +391,6 @@ export function getNextPostOnDay(posts: Post[], day: Date, timeZone?: string): P
 
   const now = new Date()
   if (isToday(day, timeZone)) {
->>>>>>> origin/development
     const upcoming = dayPosts.find((p) => new Date(p.scheduled_date) >= now)
     return upcoming ?? dayPosts[dayPosts.length - 1]
   }
@@ -457,14 +398,8 @@ export function getNextPostOnDay(posts: Post[], day: Date, timeZone?: string): P
   return dayPosts[0]
 }
 
-<<<<<<< HEAD
-export function getEventTopPx(date: Date): number {
-  const hours = date.getHours() + date.getMinutes() / 60
-  return (hours - CALENDAR_START_HOUR) * HOUR_HEIGHT_PX
-=======
 export function getEventTopPx(date: Date, timeZone?: string): number {
   return (hoursInZone(date, timeZone) - CALENDAR_START_HOUR) * HOUR_HEIGHT_PX
->>>>>>> origin/development
 }
 
 export function getEventHeightPx(durationMin = DEFAULT_POST_DURATION_MIN): number {

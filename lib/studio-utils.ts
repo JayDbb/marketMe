@@ -17,8 +17,6 @@ export const STUDIO_CATEGORIES = [
 
 export type StudioCategory = (typeof STUDIO_CATEGORIES)[number]
 
-<<<<<<< HEAD
-=======
 const CATEGORY_KEYWORDS: Record<Exclude<StudioCategory, 'All' | 'Other'>, string[]> = {
   Fashion: ['fashion', 'style', 'outfit', 'clothing', 'wear', 'lookbook', 'apparel'],
   Food: ['food', 'restaurant', 'cafe', 'coffee', 'brunch', 'eat', 'kitchen', 'dining', 'recipe'],
@@ -69,7 +67,6 @@ export function resolveStudioCategory(template: {
   return match === 'Other' ? 'Other' : inferred
 }
 
->>>>>>> origin/development
 export function createBlankCanvas(): CanvasData {
   return {
     version: '1.0',
@@ -200,15 +197,6 @@ export function templateToCanvas(template: StudioTemplate): CanvasData {
 }
 
 export function previewUrlFromCanvas(canvasData: CanvasData): string {
-<<<<<<< HEAD
-  const imgLayer = canvasData.layers.find((l) => l.type === 'image') as ImageNode | undefined
-  return imgLayer?.src ?? 'https://via.placeholder.com/1080x1080.png?text=Canvas+Design'
-}
-
-export function getTemplatePreviewUrl(template: StudioTemplate): string {
-  if (template.template_type === 'canvas' && template.canvas_data) {
-    return previewUrlFromCanvas(template.canvas_data)
-=======
   for (const layer of canvasData.layers) {
     if (layer.type !== 'image') continue
     const src = (layer as ImageNode).src ?? ''
@@ -222,13 +210,10 @@ export function getTemplatePreviewUrl(template: StudioTemplate): string {
   if (template.template_type === 'canvas' && template.canvas_data) {
     const fromCanvas = previewUrlFromCanvas(template.canvas_data)
     if (fromCanvas) return fromCanvas
->>>>>>> origin/development
   }
   return template.file_url
 }
 
-<<<<<<< HEAD
-=======
 export function isRasterPreviewUrl(url: string | null | undefined): boolean {
   if (!url) return false
   if (url.includes('via.placeholder.com')) return false
@@ -236,7 +221,6 @@ export function isRasterPreviewUrl(url: string | null | undefined): boolean {
   return /^https?:\/\//i.test(url)
 }
 
->>>>>>> origin/development
 export function filterTemplates(
   templates: StudioTemplate[],
   opts: { search?: string; category?: string; source?: 'upload' | 'saved' | 'all' }
@@ -247,11 +231,7 @@ export function filterTemplates(
   return templates.filter((t) => {
     if (opts.source === 'upload' && t.source !== 'upload') return false
     if (opts.source === 'saved' && t.source === 'upload') return false
-<<<<<<< HEAD
-    if (category !== 'All' && t.category !== category) return false
-=======
     if (category !== 'All' && resolveStudioCategory(t) !== category) return false
->>>>>>> origin/development
     if (search && !t.name.toLowerCase().includes(search)) return false
     return true
   })
@@ -269,8 +249,6 @@ export function getStudioStats(templates: StudioTemplate[]) {
   }
 }
 
-<<<<<<< HEAD
-=======
 /** Category chips that have at least one template in the current list. Always includes All. */
 export function categoriesPresent(templates: StudioTemplate[]): StudioCategory[] {
   const present = new Set(templates.map((template) => resolveStudioCategory(template)))
@@ -287,7 +265,6 @@ export function designDownloadFilename(name: string, ext: 'png' | 'jpg'): string
   return `${base}.${ext}`
 }
 
->>>>>>> origin/development
 /** Merge local open-history with templates; fall back to newest created when no history. */
 export function getRecentTemplates(
   templates: StudioTemplate[],

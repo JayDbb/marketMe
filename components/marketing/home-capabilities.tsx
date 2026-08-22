@@ -3,15 +3,10 @@ import {
   CalendarDays,
   ImageIcon,
   Link2,
-<<<<<<< HEAD
-  Sparkles,
-} from 'lucide-react'
-=======
   Mail,
   Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
->>>>>>> origin/development
 
 const capabilities = [
   {
@@ -19,28 +14,20 @@ const capabilities = [
     label: 'Generate',
     body: 'AI drafts matched to your brand — you review before publish.',
     icon: Sparkles,
-<<<<<<< HEAD
-=======
     className: 'md:col-span-4 md:row-span-2 min-h-[220px]',
->>>>>>> origin/development
   },
   {
     href: '/features#studio',
     label: 'Studio',
     body: 'Templates and layouts for visuals that stay on-brand.',
     icon: ImageIcon,
-<<<<<<< HEAD
-=======
     className: 'md:col-span-2',
->>>>>>> origin/development
   },
   {
     href: '/features#calendar',
     label: 'Calendar',
     body: 'See the week, drag posts, and keep channels organized.',
     icon: CalendarDays,
-<<<<<<< HEAD
-=======
     className: 'md:col-span-2',
   },
   {
@@ -49,17 +36,13 @@ const capabilities = [
     body: 'Triage DMs and comments without leaving the workspace.',
     icon: Mail,
     className: 'md:col-span-3',
->>>>>>> origin/development
   },
   {
     href: '/features#connections',
     label: 'Connections',
     body: 'Link accounts with OAuth — never by sharing passwords.',
     icon: Link2,
-<<<<<<< HEAD
-=======
     className: 'md:col-span-3',
->>>>>>> origin/development
   },
 ] as const
 
@@ -82,20 +65,6 @@ export function HomeCapabilities() {
               Everything you need to ship the week
             </h2>
           </div>
-<<<<<<< HEAD
-          <p className="max-w-md text-sm leading-relaxed text-white/45 md:text-base md:justify-self-end">
-            The same capabilities as the Features page — short version. Pick a lane or
-            open the full map.
-          </p>
-        </div>
-
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {capabilities.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className="group flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-sky-400/35 hover:bg-sky-500/[0.06]"
-=======
           <p className="max-w-md text-sm leading-relaxed text-white/45 md:justify-self-end md:text-base">
             Generate, Studio, Calendar, Inbox, and Connections — the same map as the
             Features page, in short form.
@@ -113,7 +82,6 @@ export function HomeCapabilities() {
                   'hover:border-sky-400/35 hover:bg-sky-500/[0.06]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80'
                 )}
->>>>>>> origin/development
               >
                 <item.icon
                   className="mb-4 h-5 w-5 text-sky-400/90"
@@ -127,32 +95,19 @@ export function HomeCapabilities() {
                   {item.body}
                 </p>
                 <span className="mt-4 text-xs font-medium text-sky-300/80">
-<<<<<<< HEAD
-                  Learn more →
-=======
                   Learn more
->>>>>>> origin/development
                 </span>
               </Link>
             </li>
           ))}
         </ul>
 
-<<<<<<< HEAD
-        <div className="mt-8 text-center md:text-left">
-          <Link
-            href="/features"
-            className="text-sm font-medium text-white/50 transition-colors hover:text-sky-300"
-          >
-            Full feature map →
-=======
         <div className="mt-8">
           <Link
             href="/features"
             className="text-sm font-medium text-white/50 transition-colors duration-200 hover:text-sky-300"
           >
             Full feature map
->>>>>>> origin/development
           </Link>
         </div>
       </div>

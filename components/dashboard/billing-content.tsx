@@ -4,9 +4,6 @@ import { useState, useTransition } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-<<<<<<< HEAD
-import { LayoutDashboard, Users, Link2, Sparkles, Info } from 'lucide-react'
-=======
 import {
   LayoutDashboard,
   Users,
@@ -17,7 +14,6 @@ import {
   Coins,
   ReceiptText,
 } from 'lucide-react'
->>>>>>> origin/development
 import { UpgradeModal } from './upgrade-modal'
 import { InvoicesDrawer } from './invoices-drawer'
 import type { AccountContext } from '@/types/billing'
@@ -25,24 +21,6 @@ import {
   formatLimitLabel,
   formatUsageLabel,
   usagePercent,
-<<<<<<< HEAD
-  PLANS,
-} from '@/lib/billing-utils'
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 20 } },
-}
-
-const USAGE_ICONS = {
-  workspaces: LayoutDashboard,
-  teamMembers: Users,
-  socialProfiles: Link2,
-  posts: LayoutDashboard,
-  aiCredits: Sparkles,
-} as const
-
-=======
 } from '@/lib/billing-utils'
 import { createBillingPortalSession } from '@/app/dashboard/account/actions'
 import { toast } from 'sonner'
@@ -65,7 +43,6 @@ const CREDIT_STAGE_LABEL: Record<string, string> = {
   publishing: 'Publishing',
 }
 
->>>>>>> origin/development
 export function BillingContent({ account }: { account: AccountContext }) {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
   const [isInvoicesDrawerOpen, setIsInvoicesDrawerOpen] = useState(false)
@@ -109,27 +86,7 @@ export function BillingContent({ account }: { account: AccountContext }) {
     })
   }
 
-  const planConfig = PLANS[account.plan]
-
-  const usageRows = [
-    { key: 'workspaces' as const, description: 'Workspaces let you split work by client or channel.' },
-    { key: 'teamMembers' as const, description: 'Team members with access to this workspace.' },
-    { key: 'socialProfiles' as const, description: 'Connected social accounts across workspaces.' },
-    { key: 'posts' as const, description: 'Posts created or scheduled this month.' },
-    { key: 'aiCredits' as const, description: 'AI credits used this billing period (generation, images, etc.).' },
-  ]
-
   return (
-<<<<<<< HEAD
-    <motion.div variants={itemVariants} className="space-y-6">
-      <div className="rounded-xl border border-blue-500/20 bg-blue-500/8 px-4 py-3 flex gap-3">
-        <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-medium text-zinc-900 dark:text-white">Payments preview</p>
-          <p className="text-xs text-zinc-500 dark:text-white/45 mt-0.5">
-            Plan and usage below are live from your account. Checkout (Stripe or other) is not connected
-            yet — upgrade buttons show planned pricing only.
-=======
     <div className="flex flex-col gap-6">
       <div className="flex gap-3 rounded-xl border border-border bg-primary/8 px-4 py-3">
         <Info className="mt-0.5 size-5 shrink-0 text-accent-foreground" />
@@ -138,20 +95,10 @@ export function BillingContent({ account }: { account: AccountContext }) {
           <p className="mt-0.5 text-xs text-muted-foreground">
             Plan and usage below are live from your account. Checkout is not
             connected yet — upgrade shows planned Free, Pro, and Team pricing only.
->>>>>>> origin/development
           </p>
         </div>
       </div>
 
-<<<<<<< HEAD
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Billing</h3>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Button
-            variant="outline"
-            onClick={() => setIsUpgradeModalOpen(true)}
-            className="h-10 border-zinc-200 dark:border-white/10 rounded-xl"
-=======
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <SettingsHeading
           title="Billing"
@@ -162,19 +109,13 @@ export function BillingContent({ account }: { account: AccountContext }) {
             variant="outline"
             onClick={() => setIsUpgradeModalOpen(true)}
             className="h-10 rounded-xl"
->>>>>>> origin/development
           >
             View all plans
           </Button>
           <Button
-<<<<<<< HEAD
-            onClick={() => setIsUpgradeModalOpen(true)}
-            className="h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl"
-=======
             onClick={openPortalOrPlans}
             disabled={portalPending}
             className="h-10 rounded-xl"
->>>>>>> origin/development
           >
             {portalPending ? <Loader2 className="size-4 animate-spin" /> : null}
             {account.stripePortalAvailable ? 'Manage plan' : 'See plans'}
@@ -182,38 +123,13 @@ export function BillingContent({ account }: { account: AccountContext }) {
           <Button
             variant="outline"
             onClick={() => setIsInvoicesDrawerOpen(true)}
-<<<<<<< HEAD
-            className="h-10 border-zinc-200 dark:border-white/10 rounded-xl"
-=======
             className="h-10 rounded-xl"
->>>>>>> origin/development
           >
             View invoices
           </Button>
         </div>
       </div>
 
-<<<<<<< HEAD
-      <Card className="bg-card border-border shadow-xl rounded-2xl overflow-hidden">
-        <CardContent className="p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{account.planLabel}</h2>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${planConfig.badgeClass}`}
-              >
-                {account.planBadge}
-              </span>
-            </div>
-            <p className="text-sm text-zinc-500 dark:text-white/40">{account.planDescription}</p>
-          </div>
-          <div className="text-left sm:text-right">
-            <div className="text-2xl font-bold text-zinc-900 dark:text-white mb-1">
-              ${account.priceMonthly}{' '}
-              <span className="text-sm font-normal text-zinc-500 dark:text-white/40">/ month</span>
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-white/30">
-=======
       <Card className="overflow-hidden rounded-2xl border-border bg-card">
         <CardContent className="flex flex-col justify-between gap-6 p-8 sm:flex-row sm:items-center">
           <div>
@@ -233,47 +149,12 @@ export function BillingContent({ account }: { account: AccountContext }) {
               <span className="text-sm font-normal text-muted-foreground">/ month</span>
             </div>
             <p className="text-xs text-muted-foreground">
->>>>>>> origin/development
               {account.renewalText ?? 'No payment method on file'}
             </p>
           </div>
         </CardContent>
       </Card>
 
-<<<<<<< HEAD
-      <div>
-        <h4 className="text-base font-bold text-zinc-900 dark:text-white mb-4">Usage</h4>
-        <Card className="bg-card border-border shadow-xl rounded-2xl overflow-hidden">
-          <CardContent className="p-0 divide-y divide-zinc-100 dark:divide-white/5">
-            {usageRows.map(({ key, description }) => {
-              const metric = account.usage[key]
-              const Icon = USAGE_ICONS[key]
-              return (
-                <div
-                  key={key}
-                  className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-white mb-1">
-                      <Icon className="w-4 h-4 text-zinc-500 dark:text-white/50" />
-                      {metric.label}
-                    </div>
-                    <p className="text-xs text-zinc-500 dark:text-white/40">{description}</p>
-                  </div>
-                  <div className="w-full md:w-[300px]">
-                    <div className="flex justify-between text-xs text-zinc-500 dark:text-white/50 mb-2">
-                      <span>{formatUsageLabel(metric.used, metric.limit)}</span>
-                      <span>{formatLimitLabel(metric.limit)}</span>
-                    </div>
-                    <Progress
-                      value={usagePercent(metric.used, metric.limit)}
-                      className="h-3 bg-zinc-100 dark:bg-white/10 [&>div]:bg-blue-500"
-                    />
-                  </div>
-                </div>
-              )
-            })}
-=======
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="overflow-hidden rounded-2xl border-border bg-card">
           <CardContent className="p-6">
@@ -339,7 +220,6 @@ export function BillingContent({ account }: { account: AccountContext }) {
                 </p>
               )}
             </div>
->>>>>>> origin/development
           </CardContent>
         </Card>
       </div>

@@ -125,17 +125,10 @@ export function StudioUploadZone({
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
-<<<<<<< HEAD
-        className={`relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-12 cursor-pointer transition-all select-none ${
-          isDragging
-            ? 'border-purple-400/70 bg-purple-500/6'
-            : 'border-zinc-200 dark:border-white/10 bg-white/50 dark:bg-white/2'
-=======
         className={`relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-12 cursor-pointer ui-transition select-none ${
           isDragging
             ? 'border-purple-400/70 bg-purple-950'
             : 'border-zinc-200 bg-white dark:border-white/10 dark:bg-[#161b22]'
->>>>>>> origin/development
         }`}
       >
         <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
@@ -164,11 +157,7 @@ export function StudioUploadZone({
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-<<<<<<< HEAD
-      className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/3 overflow-hidden"
-=======
       className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#161b22]"
->>>>>>> origin/development
     >
       <div className="flex gap-0 flex-col sm:flex-row">
         {preview && (
@@ -210,11 +199,7 @@ export function StudioUploadZone({
                   key={c}
                   type="button"
                   onClick={() => setCategory(c)}
-<<<<<<< HEAD
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-=======
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border ui-transition ${
->>>>>>> origin/development
                     category === c
                       ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
                       : 'bg-transparent border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-zinc-800 dark:hover:text-white/70'

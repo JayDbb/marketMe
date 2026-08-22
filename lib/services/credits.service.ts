@@ -91,13 +91,10 @@ export async function getCreditsBalance(userId: string): Promise<number> {
   return sub.credits_balance
 }
 
-<<<<<<< HEAD
-=======
 export async function getCreditsBalanceDetails(userId: string): Promise<SubscriptionCredits> {
   return getSubscriptionCredits(userId)
 }
 
->>>>>>> origin/development
 export async function assertCreditsAvailable(
   userId: string,
   stage: PipelineStage
@@ -167,8 +164,6 @@ export async function spendCredits(
 
   return { transactionId: tx.id as string, newBalance }
 }
-<<<<<<< HEAD
-=======
 
 export async function spendGenerationCredits(
   userId: string,
@@ -201,4 +196,3 @@ export async function spendGenerationCredits(
 
   return { newBalance: latestBalance }
 }
->>>>>>> origin/development

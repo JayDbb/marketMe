@@ -1,7 +1,5 @@
 import type { Platform } from '@/types/content'
 import { toDatetimeLocalValue } from '@/lib/calendar-utils'
-<<<<<<< HEAD
-=======
 import { getZonedParts, zonedLocalToUtc } from '@/lib/settings-utils'
 
 /** Local daytime slots used when the AI API returns UTC / past times. */
@@ -36,7 +34,6 @@ export function parseDatetimeLocal(value: string, timeZone?: string): Date {
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed
 }
->>>>>>> origin/development
 
 export const PLATFORM_CHAR_LIMITS: Record<string, number> = {
   twitter: 280,
@@ -58,15 +55,9 @@ export function toSocialHandle(displayName: string, email: string): string {
   return fromEmail || 'mybrand'
 }
 
-<<<<<<< HEAD
-export function formatScheduledPreview(isoLocal: string): string {
-  if (!isoLocal) return 'Pick a date & time'
-  const d = new Date(isoLocal)
-=======
 export function formatScheduledPreview(isoLocal: string, timeZone?: string): string {
   if (!isoLocal) return 'Pick a date & time'
   const d = parseDatetimeLocal(isoLocal, timeZone)
->>>>>>> origin/development
   if (Number.isNaN(d.getTime())) return 'Pick a date & time'
   return d.toLocaleString('en-US', {
     weekday: 'short',
@@ -74,22 +65,6 @@ export function formatScheduledPreview(isoLocal: string, timeZone?: string): str
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-<<<<<<< HEAD
-  })
-}
-
-export function getDefaultScheduleDatetime(): string {
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  tomorrow.setHours(10, 0, 0, 0)
-  return toDatetimeLocalValue(tomorrow)
-}
-
-export function getMinScheduleDatetime(): string {
-  const now = new Date()
-  now.setMinutes(now.getMinutes() + 5)
-  return toDatetimeLocalValue(now)
-=======
     ...(timeZone ? { timeZone } : {}),
   })
 }
@@ -160,36 +135,10 @@ export function getDefaultScheduleDatetime(timeZone?: string): string {
 export function getMinScheduleDatetime(timeZone?: string): string {
   const now = new Date(Date.now() + 5 * 60 * 1000)
   return toDatetimeLocalValue(now, timeZone)
->>>>>>> origin/development
 }
 
 export type SchedulePreset = { label: string; value: string }
 
-<<<<<<< HEAD
-export function getSchedulePresets(): SchedulePreset[] {
-  const presets: SchedulePreset[] = []
-
-  const inOneHour = new Date()
-  inOneHour.setHours(inOneHour.getHours() + 1, 0, 0, 0)
-  presets.push({ label: 'In 1 hour', value: toDatetimeLocalValue(inOneHour) })
-
-  const tomorrowMorning = new Date()
-  tomorrowMorning.setDate(tomorrowMorning.getDate() + 1)
-  tomorrowMorning.setHours(9, 0, 0, 0)
-  presets.push({ label: 'Tomorrow 9 AM', value: toDatetimeLocalValue(tomorrowMorning) })
-
-  const tomorrowEvening = new Date()
-  tomorrowEvening.setDate(tomorrowEvening.getDate() + 1)
-  tomorrowEvening.setHours(18, 0, 0, 0)
-  presets.push({ label: 'Tomorrow 6 PM', value: toDatetimeLocalValue(tomorrowEvening) })
-
-  const nextMonday = new Date()
-  const day = nextMonday.getDay()
-  const daysUntilMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day
-  nextMonday.setDate(nextMonday.getDate() + daysUntilMonday)
-  nextMonday.setHours(10, 0, 0, 0)
-  presets.push({ label: 'Next Monday', value: toDatetimeLocalValue(nextMonday) })
-=======
 export function getSchedulePresets(timeZone?: string): SchedulePreset[] {
   const presets: SchedulePreset[] = []
   const now = new Date()
@@ -258,7 +207,6 @@ export function getSchedulePresets(timeZone?: string): SchedulePreset[] {
       break
     }
   }
->>>>>>> origin/development
 
   return presets
 }

@@ -1,12 +1,4 @@
 import type { Post, PostStatus } from '@/types/content'
-<<<<<<< HEAD
-import { formatTimeRange, DEFAULT_POST_DURATION_MIN } from '@/lib/calendar-utils'
-
-type CanvasLayer = { type?: string; src?: string }
-type CanvasData = { layers?: CanvasLayer[] }
-
-export type PostFilterTab = 'all' | 'scheduled' | 'published' | 'draft' | 'approved' | 'failed'
-=======
 import type { CanvasData } from '@/types/canvas'
 import { getActiveLayers } from '@/lib/canvas-pages'
 import { isRasterPreviewUrl, previewUrlFromCanvas } from '@/lib/studio-utils'
@@ -28,7 +20,6 @@ export const POST_INBOX_TAB_STATUSES: Record<PostInboxTab, PostStatus[]> = {
 }
 
 export const POST_INBOX_PLATFORMS = ['instagram'] as const
->>>>>>> origin/development
 
 const STATUS_LABELS: Record<PostStatus, string> = {
   draft: 'Draft',
@@ -45,24 +36,17 @@ const STATUS_STYLES: Record<PostStatus, string> = {
   pending_approval: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/25',
   approved: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/25',
   published: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/25',
-<<<<<<< HEAD
-  scheduled: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/25',
-=======
   scheduled: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/25',
->>>>>>> origin/development
   failed: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/25',
   rejected: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/25',
 }
 
-<<<<<<< HEAD
-=======
 export type TemplatePreviewSource = {
   file_url?: string | null
   template_type?: string | null
   canvas_data?: CanvasData | null
 }
 
->>>>>>> origin/development
 export function getStatusLabel(status: PostStatus | string): string {
   return STATUS_LABELS[status as PostStatus] ?? String(status)
 }
@@ -71,17 +55,6 @@ export function getStatusStyles(status: PostStatus | string): string {
   return STATUS_STYLES[status as PostStatus] ?? STATUS_STYLES.draft
 }
 
-<<<<<<< HEAD
-export function extractThumbnail(
-  imageUrl?: string | null,
-  canvasData?: CanvasData | null
-): string | null {
-  if (imageUrl) return imageUrl
-  if (canvasData?.layers) {
-    const imgLayer = canvasData.layers.find((l) => l.type === 'image' && l.src)
-    if (imgLayer?.src) return imgLayer.src
-  }
-=======
 function previewFromCanvasLayers(canvasData: CanvasData): string | null {
   const activeLayers = getActiveLayers(canvasData)
   const fromActive = previewUrlFromCanvas({ ...canvasData, layers: activeLayers })
@@ -118,41 +91,28 @@ export function extractThumbnail(
     }
   }
 
->>>>>>> origin/development
   return null
 }
 
 export function mapDbRowToPost(
   row: Record<string, unknown>,
-<<<<<<< HEAD
-  options?: { requireScheduled?: boolean }
-=======
   options?: { requireScheduled?: boolean; template?: TemplatePreviewSource | null }
->>>>>>> origin/development
 ): Post | null {
   const scheduledAt = row.scheduled_at as string | null | undefined
   if (options?.requireScheduled && !scheduledAt) return null
 
   const canvasData = row.canvas_data as CanvasData | null | undefined
-<<<<<<< HEAD
-  const imageUrl = extractThumbnail(row.image_url as string | null, canvasData)
-=======
   const imageUrl = extractThumbnail(
     row.image_url as string | null,
     canvasData,
     options?.template ?? null
   )
->>>>>>> origin/development
 
   return {
     post_id: row.id as string,
     caption: (row.content as string) || '',
     media_url: imageUrl,
-<<<<<<< HEAD
-    scheduled_date: scheduledAt || new Date().toISOString(),
-=======
     scheduled_date: scheduledAt || '',
->>>>>>> origin/development
     status: row.status as PostStatus,
     social_account: {
       platform: ((row.platform as string) || 'social').toLowerCase(),
@@ -160,8 +120,6 @@ export function mapDbRowToPost(
   }
 }
 
-<<<<<<< HEAD
-=======
 export type InboxPost = Post & {
   scheduledAt: string | null
   createdAt: string
@@ -184,7 +142,6 @@ export function mapDbRowToInboxPost(
   }
 }
 
->>>>>>> origin/development
 export function formatPostDate(iso: string | null | undefined): string {
   if (!iso) return 'Not scheduled'
   const d = new Date(iso)
@@ -202,14 +159,6 @@ export function getPlannerDateParam(iso: string | null | undefined): string | nu
   return `${y}-${m}-${day}`
 }
 
-<<<<<<< HEAD
-export function filterPostsByTab(posts: Post[], tab: PostFilterTab): Post[] {
-  if (tab === 'all') return posts
-  if (tab === 'scheduled') return posts.filter((p) => p.status === 'scheduled')
-  if (tab === 'published') return posts.filter((p) => p.status === 'published')
-  if (tab === 'draft') return posts.filter((p) => p.status === 'draft')
-  if (tab === 'approved') return posts.filter((p) => p.status === 'approved')
-=======
 export function parsePostInboxTab(value: string | null | undefined): PostInboxTab {
   if (value && (POST_INBOX_TABS as readonly string[]).includes(value)) {
     return value as PostInboxTab
@@ -261,7 +210,6 @@ export function filterPostsByTab(posts: Post[], tab: PostFilterTab): Post[] {
       POST_INBOX_TAB_STATUSES.drafts.includes(p.status)
     )
   }
->>>>>>> origin/development
   if (tab === 'failed') return posts.filter((p) => p.status === 'failed')
   return posts
 }
@@ -280,15 +228,6 @@ export function filterPostsBySearch(posts: Post[], query: string): Post[] {
   })
 }
 
-<<<<<<< HEAD
-export function sortPostsForList(posts: Post[]): Post[] {
-  return [...posts].sort((a, b) => {
-    const ta = new Date(a.scheduled_date).getTime()
-    const tb = new Date(b.scheduled_date).getTime()
-    return tb - ta
-  })
-}
-=======
 function scheduledTime(post: Post): number | null {
   const raw = 'scheduledAt' in post
     ? (post as InboxPost).scheduledAt
@@ -348,4 +287,3 @@ export function emptyInboxCopy(tab: PostInboxTab, hasAnyPosts: boolean, hasQuery
     body: 'If a scheduled post cannot go live, the error and a Retry action will show here.',
   }
 }
->>>>>>> origin/development

@@ -38,11 +38,7 @@ export const PLANS: Record<
       postsPerMonth: 100,
       aiCredits: 500,
     },
-<<<<<<< HEAD
-    badgeClass: 'bg-purple-600 text-white',
-=======
     badgeClass: 'bg-primary text-primary-foreground',
->>>>>>> origin/development
   },
   team: {
     label: 'Team',
@@ -54,11 +50,7 @@ export const PLANS: Record<
       teamMembers: 10,
       socialProfiles: 25,
       postsPerMonth: null,
-<<<<<<< HEAD
-      aiCredits: null,
-=======
       aiCredits: 2000,
->>>>>>> origin/development
     },
     badgeClass: 'bg-amber-500 text-zinc-900',
   },
@@ -127,8 +119,6 @@ export function formatRenewalText(
   return `Renews ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
 }
 
-<<<<<<< HEAD
-=======
 export function formatCreditsResetText(value: string | null): string | null {
   if (!value) return null
   const d = new Date(value)
@@ -136,7 +126,6 @@ export function formatCreditsResetText(value: string | null): string | null {
   return `Resets ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
 }
 
->>>>>>> origin/development
 export function formatUsageLabel(used: number, limit: number | null): string {
   if (limit === null) return `${used} · Unlimited`
   return `${used} (${usagePercent(used, limit)}%)`

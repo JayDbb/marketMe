@@ -136,28 +136,6 @@ export async function upsertBusinessProfile(
     }
   }
 
-<<<<<<< HEAD
-  const payload = {
-    user_id: normalizedUserId,
-    business_name: input.business_name?.trim() || null,
-    industry: input.industry?.trim() || null,
-    location: input.location?.trim() || null,
-    website: input.website?.trim() || null,
-    services: input.services?.trim() || null,
-    usp: input.usp?.trim() || null,
-    primary_goal: input.primary_goal?.trim() || null,
-    social_handle: input.social_handle?.trim() || null,
-    tone: input.tone?.trim() || null,
-    target_customers:
-      input.target_customers?.trim() || null,
-    competitors: input.competitors?.trim() || null,
-    channels: Array.isArray(input.channels)
-      ? input.channels
-      : [],
-    updated_at: new Date().toISOString(),
-  }
-
-=======
   // Only include fields present on `input`. Omitting them (vs sending null)
   // keeps partial updates — e.g. logo-only — from wiping onboarding data.
   const payload: Record<string, unknown> = {
@@ -203,7 +181,6 @@ export async function upsertBusinessProfile(
       : null
   }
 
->>>>>>> origin/development
   const { data, error } = await supabaseAdmin
     .from("business_profiles")
     .upsert(payload, {

@@ -20,11 +20,7 @@ import {
 } from '@/lib/social/connection-api'
 
 export type RefreshConnectionsResult =
-<<<<<<< HEAD
-  | { ok: true; warning?: string }
-=======
   | { ok: true; warning?: string; source?: string }
->>>>>>> origin/development
   | { ok: false; error: string }
 
 interface SocialConnectionsContextValue {
@@ -33,17 +29,12 @@ interface SocialConnectionsContextValue {
   connectingPlatform: SocialPlatform | null
   error: string | null
   warning: string | null
-<<<<<<< HEAD
-  refresh: () => Promise<RefreshConnectionsResult>
-  confirmOAuthSuccess: (platform?: SocialPlatform) => Promise<RefreshConnectionsResult>
-=======
   source: string | null
   refresh: () => Promise<RefreshConnectionsResult>
   confirmOAuthSuccess: (
     platform?: SocialPlatform,
     handle?: string
   ) => Promise<RefreshConnectionsResult>
->>>>>>> origin/development
   connect: (platform: SocialPlatform) => Promise<void>
   disconnect: (connectionId: string) => Promise<void>
   getConnection: (platform: SocialPlatform) => SocialConnection | undefined
@@ -76,10 +67,7 @@ export function SocialConnectionsProvider({
     useState<SocialPlatform | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
-<<<<<<< HEAD
-=======
   const [source, setSource] = useState<string | null>(null)
->>>>>>> origin/development
 
   const refresh = useCallback(async (): Promise<RefreshConnectionsResult> => {
     const normalizedProfileId = businessProfileId.trim()
@@ -88,10 +76,7 @@ export function SocialConnectionsProvider({
       setConnections([])
       setError('No business profile is available.')
       setWarning(null)
-<<<<<<< HEAD
-=======
       setSource(null)
->>>>>>> origin/development
       setIsLoading(false)
       return { ok: false, error: 'No business profile is available.' }
     }
@@ -111,58 +96,38 @@ export function SocialConnectionsProvider({
         return { ok: false, error: result.error }
       }
       setConnections(result.connections)
-<<<<<<< HEAD
-      if (result.warning) setWarning(result.warning)
-      return { ok: true, warning: result.warning }
-=======
       setSource(result.source ?? null)
       if (result.warning) setWarning(result.warning)
       return { ok: true, warning: result.warning, source: result.source }
->>>>>>> origin/development
     } finally {
       setIsLoading(false)
     }
   }, [businessProfileId])
 
   const confirmOAuthSuccess = useCallback(
-<<<<<<< HEAD
-    async (platform: SocialPlatform = 'instagram'): Promise<RefreshConnectionsResult> => {
-=======
     async (
       platform: SocialPlatform = 'instagram',
       handle?: string
     ): Promise<RefreshConnectionsResult> => {
->>>>>>> origin/development
       if (platform !== 'instagram') {
         return { ok: false, error: 'Only Instagram OAuth confirm is supported' }
       }
       setIsLoading(true)
       setError(null)
       try {
-<<<<<<< HEAD
-        const saved = await confirmInstagramOAuth()
-        if (saved.ok && saved.connections.length > 0) {
-          setConnections(saved.connections)
-=======
         const saved = await confirmInstagramOAuth(handle)
         if (saved.ok && saved.connections.length > 0) {
           setConnections(saved.connections)
           setSource(saved.source ?? 'mirror')
->>>>>>> origin/development
         }
         const refreshed = await fetchConnections(businessProfileId.trim())
         if (refreshed.ok) {
           setConnections(refreshed.connections)
-<<<<<<< HEAD
-          if (refreshed.warning) setWarning(refreshed.warning)
-          return { ok: true, warning: refreshed.warning }
-=======
           setSource(
             refreshed.source ?? (saved.ok ? saved.source : undefined) ?? 'mirror'
           )
           if (refreshed.warning) setWarning(refreshed.warning)
           return { ok: true, warning: refreshed.warning, source: refreshed.source }
->>>>>>> origin/development
         }
         if (saved.ok) {
           if (refreshed.error) setWarning(refreshed.error)
@@ -201,10 +166,6 @@ export function SocialConnectionsProvider({
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Connection failed'
         setError(message)
-<<<<<<< HEAD
-        toast.error(message)
-=======
->>>>>>> origin/development
         setConnectingPlatform(null)
       }
     },
@@ -224,16 +185,12 @@ export function SocialConnectionsProvider({
       try {
         await disconnectConnection(connectionId, normalizedProfileId)
         setConnections((prev) => prev.filter((c) => c.id !== connectionId))
-<<<<<<< HEAD
-        toast.success('Instagram disconnected in MarketMe')
-=======
         setSource(null)
         setWarning(null)
         toast.success('Instagram removed from MarketMe', {
           description:
             'Revoke MarketMe in Meta Business Integrations if you want to cut token access.',
         })
->>>>>>> origin/development
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Disconnect failed')
       }
@@ -243,13 +200,9 @@ export function SocialConnectionsProvider({
 
   const getConnection = useCallback(
     (platform: SocialPlatform) =>
-<<<<<<< HEAD
-      connections.find((c) => c.platform === platform && c.status === 'connected'),
-=======
       connections.find(
         (c) => c.platform === platform && c.status !== 'disconnected'
       ),
->>>>>>> origin/development
     [connections]
   )
 
@@ -267,10 +220,7 @@ export function SocialConnectionsProvider({
       connectingPlatform,
       error,
       warning,
-<<<<<<< HEAD
-=======
       source,
->>>>>>> origin/development
       refresh,
       confirmOAuthSuccess,
       connect,
@@ -285,10 +235,7 @@ export function SocialConnectionsProvider({
       connectingPlatform,
       error,
       warning,
-<<<<<<< HEAD
-=======
       source,
->>>>>>> origin/development
       refresh,
       confirmOAuthSuccess,
       connect,

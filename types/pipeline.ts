@@ -68,8 +68,6 @@ export const PLAN_CREDIT_ALLOWANCES: Record<string, number> = {
   pro: 500,
   team: 2000,
 }
-<<<<<<< HEAD
-=======
 
 export function calculateGenerationCreditCost(postCount: number): number {
   const posts = Math.max(1, Math.min(14, Math.floor(postCount || 1)))
@@ -106,4 +104,3 @@ export function getGenerationCreditBreakdown(postCount: number): Array<{
     },
   ]
 }
->>>>>>> origin/development

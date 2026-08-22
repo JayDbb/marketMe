@@ -1,13 +1,10 @@
 import type { Post } from '@/types/content'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-<<<<<<< HEAD
-=======
 import { mapDbRowToPost, POST_INBOX_TAB_STATUSES } from '@/lib/post-utils'
 import {
   collectTemplateIds,
   fetchTemplatePreviewsById,
 } from '@/lib/fetch-template-previews'
->>>>>>> origin/development
 
 export type FetchUserPostsOptions = {
   scheduledOnly?: boolean
@@ -19,19 +16,6 @@ export type FetchUserPostsResult = {
   error: string | null
 }
 
-<<<<<<< HEAD
-function mapRowToPost(row: Record<string, unknown>): Post {
-  return {
-    post_id: row.id as string,
-    caption: (row.content as string) || '',
-    media_url: (row.image_url as string) ?? null,
-    scheduled_date: (row.scheduled_at as string) || new Date().toISOString(),
-    status: row.status as Post['status'],
-    social_account: {
-      platform: ((row.platform as string) || 'social').toLowerCase(),
-    },
-  }
-=======
 export type FetchPlannerPostsResult = {
   posts: Post[]
   undatedDrafts: Post[]
@@ -53,7 +37,6 @@ async function mapRows(
       })
     })
     .filter((post): post is Post => post != null)
->>>>>>> origin/development
 }
 
 /** Fetch posts for a user via service role (Better Auth has no Supabase JWT). */
@@ -80,9 +63,6 @@ export async function fetchUserPostsResult(
     return { posts: [], error: 'Could not load posts. Please refresh the page.' }
   }
 
-<<<<<<< HEAD
-  return { posts: (data ?? []).map(mapRowToPost), error: null }
-=======
   return {
     posts: await mapRows(data as Record<string, unknown>[] | null, options.requireScheduled),
     error: null,
@@ -132,7 +112,6 @@ export async function fetchPlannerPostsResult(
       : await mapRows(undated.data as Record<string, unknown>[] | null),
     error: null,
   }
->>>>>>> origin/development
 }
 
 export async function fetchUserPosts(

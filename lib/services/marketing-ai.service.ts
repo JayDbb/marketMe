@@ -1511,8 +1511,6 @@ export async function listPosts(
     {
       method: "GET",
     }
-<<<<<<< HEAD
-=======
   )
 }
 
@@ -1641,124 +1639,10 @@ export async function publishToInstagram(
           imageUrl,
       }),
     }
->>>>>>> origin/development
   )
 }
 
-
-// ---------------------------------------------------------------------------
-// Meta OAuth and social connections
-// ---------------------------------------------------------------------------
-
 /**
-<<<<<<< HEAD
- * Return the backend Meta OAuth login URL.
- *
- * This URL must be navigated to in the browser. It should not be fetched
- * through fetchWithRetry because the endpoint redirects to Facebook.
- */
-export async function getPublishAuthUrl(
-  businessProfileId: string
-): Promise<string> {
-  const normalizedProfileId =
-    normalizeRequiredId(
-      businessProfileId,
-      "Business profile ID"
-    )
-
-  const params =
-    new URLSearchParams({
-      business_profile_id:
-        normalizedProfileId,
-    })
-
-  return (
-    `${API_URL}/api/v1/auth/meta/login?` +
-    params.toString()
-  )
-}
-
-export async function getInstagramOAuthUrl(
-  businessProfileId: string
-): Promise<string> {
-  return getPublishAuthUrl(businessProfileId)
-}
-
-
-/**
- * Fetch connected accounts belonging to one business profile.
- */
-export async function getSocialConnections(
-  businessProfileId: string
-): Promise<RawSocialConnection[]> {
-  const normalizedProfileId =
-    normalizeRequiredId(
-      businessProfileId,
-      "Business profile ID"
-    )
-
-  const params =
-    new URLSearchParams({
-      business_profile_id:
-        normalizedProfileId,
-    })
-
-  return fetchWithRetry(
-    `/api/v1/publish/connections?${params.toString()}`,
-    {
-      method: "GET",
-    }
-  )
-}
-
-
-/**
- * Publish one approved post to Instagram.
- */
-export async function publishToInstagram(
-  input: PublishRequest
-): Promise<PublishResponse> {
-  const businessProfileId =
-    normalizeRequiredId(
-      input.business_profile_id ??
-      input.business_id,
-      "Business profile ID"
-    )
-
-  const postId =
-    normalizeRequiredId(
-      input.post_id,
-      "Post ID"
-    )
-
-  const imageUrl =
-    input.image_url.trim()
-
-  if (!imageUrl) {
-    throw new Error(
-      "An image URL is required."
-    )
-  }
-
-  return fetchWithRetry(
-    "/api/v1/publish/instagram",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type":
-          "application/json",
-      },
-      body: JSON.stringify({
-        post_id:
-          postId,
-
-        business_profile_id:
-          businessProfileId,
-
-        image_url:
-          imageUrl,
-      }),
-=======
  * Fetch Instagram inbox items (DMs / mentions / comments) for a business profile.
  * Tries publish inbox first, then generic inbox path (MarketMe AI may expose either).
  */
@@ -2011,13 +1895,10 @@ export async function replyToInboxConversationAi(input: {
       business_profile_id: businessProfileId,
       body,
       ...(recipientId ? { recipient_id: recipientId } : {}),
->>>>>>> origin/development
     }
   )
 }
 
-<<<<<<< HEAD
-=======
 /**
  * Fetch Instagram Graph insights for a connected business profile.
  * Implemented on MarketMe AI as GET /api/v1/publish/insights (teammate / Render).
@@ -2073,7 +1954,6 @@ export async function getPublishInsights(
     )
   )
 }
->>>>>>> origin/development
 
 export function flattenHashtags(
   hashtags: GeneratedPostContent["hashtags"] | undefined

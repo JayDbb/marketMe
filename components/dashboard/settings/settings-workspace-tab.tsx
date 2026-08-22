@@ -1,20 +1,10 @@
 'use client'
 
-<<<<<<< HEAD
-import { useState, useTransition } from 'react'
-=======
 import { useEffect, useState, useTransition } from 'react'
->>>>>>> origin/development
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-<<<<<<< HEAD
-import { Loader2, ExternalLink } from 'lucide-react'
-import { updateWorkspaceAction } from '@/app/dashboard/settings/actions'
-import { toast } from 'sonner'
-import type { SettingsData } from '@/types/settings'
-=======
 import { Loader2, ExternalLink, Upload } from 'lucide-react'
 import { updateWorkspaceAction } from '@/app/dashboard/settings/actions'
 import { uploadBusinessLogoAction } from '@/app/onboarding/actions'
@@ -27,7 +17,6 @@ import { AppSelect } from '@/components/ui/app-select'
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
 import { useSettingsDirty } from '@/components/dashboard/settings/settings-dirty'
 import { SettingsCard, SettingsHeading } from '@/components/dashboard/settings/settings-ui'
->>>>>>> origin/development
 
 export function SettingsWorkspaceTab({
   settings,
@@ -36,14 +25,6 @@ export function SettingsWorkspaceTab({
   settings: SettingsData
   onSaved: (business: SettingsData['business']) => void
 }) {
-<<<<<<< HEAD
-  const [form, setForm] = useState(settings.business)
-  const [isPending, startTransition] = useTransition()
-
-  const set = (key: keyof typeof form, value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }))
-
-=======
   const { setDirty } = useSettingsDirty()
   const [form, setForm] = useState(() => {
     const industry = normalizeIndustry(settings.business.industry) || settings.business.industry
@@ -92,17 +73,11 @@ export function SettingsWorkspaceTab({
     }))
   }
 
->>>>>>> origin/development
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const fd = new FormData()
     fd.set('businessName', form.businessName)
     fd.set('industry', form.industry)
-<<<<<<< HEAD
-    fd.set('location', form.location)
-    fd.set('website', form.website)
-    fd.set('primaryGoal', form.primaryGoal)
-=======
     fd.set('industryDetail', form.industryDetail)
     fd.set('location', form.location)
     fd.set('website', form.website)
@@ -111,7 +86,6 @@ export function SettingsWorkspaceTab({
     fd.set('brandColors', form.brandColors.join(','))
     fd.set('primaryFont', form.primaryFont)
     fd.set('secondaryFont', form.secondaryFont)
->>>>>>> origin/development
 
     startTransition(async () => {
       const result = await updateWorkspaceAction(fd)
@@ -124,21 +98,6 @@ export function SettingsWorkspaceTab({
     })
   }
 
-<<<<<<< HEAD
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">Workspace</h3>
-        <p className="text-sm text-zinc-500 dark:text-white/40">
-          Linked to your business profile — used for AI content and dashboard display.
-        </p>
-      </div>
-
-      {!settings.business.hasProfile && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-amber-200/90">
-          No workspace set up yet. Add a name below or{' '}
-          <Link href="/onboarding" className="underline font-medium">
-=======
   const handleLogoUpload = async (file: File | null) => {
     if (!file) return
     setLogoUploading(true)
@@ -169,77 +128,10 @@ export function SettingsWorkspaceTab({
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm text-amber-900 dark:text-amber-100/90">
           No workspace set up yet. Add a name below or{' '}
           <Link href="/onboarding?edit=1" className="font-medium underline">
->>>>>>> origin/development
             complete onboarding
           </Link>
           .
         </div>
-<<<<<<< HEAD
-      )}
-
-      <div className="p-6 rounded-2xl bg-card border border-border space-y-5 max-w-lg">
-        <div className="space-y-2">
-          <Label className="text-xs text-zinc-500">Workspace name</Label>
-          <Input
-            value={form.businessName}
-            onChange={(e) => set('businessName', e.target.value)}
-            placeholder="e.g. Acme Coffee Co."
-            className="h-11 rounded-xl bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs text-zinc-500">Industry</Label>
-          <Input
-            value={form.industry}
-            onChange={(e) => set('industry', e.target.value)}
-            placeholder="e.g. Food & Beverage"
-            className="h-11 rounded-xl bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs text-zinc-500">Location</Label>
-          <Input
-            value={form.location}
-            onChange={(e) => set('location', e.target.value)}
-            placeholder="City, country"
-            className="h-11 rounded-xl bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs text-zinc-500">Website</Label>
-          <Input
-            value={form.website}
-            onChange={(e) => set('website', e.target.value)}
-            placeholder="https://"
-            className="h-11 rounded-xl bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs text-zinc-500">Primary marketing goal</Label>
-          <Input
-            value={form.primaryGoal}
-            onChange={(e) => set('primaryGoal', e.target.value)}
-            placeholder="e.g. Increase brand awareness"
-            className="h-11 rounded-xl bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10"
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href="/onboarding"
-          className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300"
-        >
-          Full business setup <ExternalLink className="w-3.5 h-3.5" />
-        </Link>
-        <Button
-          type="submit"
-          disabled={isPending || !form.businessName.trim()}
-          className="h-11 px-8 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl gap-2"
-        >
-          {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-          Save workspace
-=======
       ) : null}
 
       <SettingsCard className="max-w-lg">
@@ -410,7 +302,6 @@ export function SettingsWorkspaceTab({
         >
           {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
           {isPending ? 'Saving…' : 'Save workspace'}
->>>>>>> origin/development
         </Button>
       </div>
     </form>

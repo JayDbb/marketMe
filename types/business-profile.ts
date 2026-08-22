@@ -15,12 +15,9 @@ export interface BusinessProfile {
   target_customers: string | null
   competitors: string | null
   channels: string[]
-<<<<<<< HEAD
-=======
   logo_url?: string | null
   brand_colors?: string[] | null
   brand_fonts?: string[] | null
->>>>>>> origin/development
   /** Learned revise/approve style preferences for AI prompt context */
   style_notes?: string | null
   preferred_ctas?: string | null

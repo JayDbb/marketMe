@@ -1,33 +1,14 @@
-<<<<<<< HEAD
-import type { CanvasData } from '@/types/canvas'
-=======
 import { resizeCanvasData } from '@/lib/canvas-layer-utils'
 import { getInstagramFormat } from '@/lib/instagram-formats'
 import type { CanvasData, CircleNode, RectNode, TextNode } from '@/types/canvas'
 
 export type StarterFormatId = 'portrait' | 'square' | 'story'
 export type StarterCategory = 'Events' | 'Retail' | 'Tech' | 'Other'
->>>>>>> origin/development
 
 export interface StudioStarterTemplate {
   id: string
   name: string
   description: string
-<<<<<<< HEAD
-  category: string
-  build: () => CanvasData
-}
-
-function basePortrait(bg: string): CanvasData['canvas'] {
-  return {
-    width: 1080,
-    height: 1350,
-    backgroundColor: bg,
-    aspectRatioName: 'portrait',
-  }
-}
-
-=======
   category: StarterCategory
   /** When set, the layout only appears for these formats. Otherwise it scales to all. */
   formats?: StarterFormatId[]
@@ -81,56 +62,10 @@ function circle(
   return { id, type: 'circle', ...opts }
 }
 
->>>>>>> origin/development
 export const STUDIO_STARTER_TEMPLATES: StudioStarterTemplate[] = [
   {
     id: 'promo',
     name: 'Promo launch',
-<<<<<<< HEAD
-    description: 'Bold headline for product or event launches',
-    category: 'Events',
-    build: () => ({
-      version: '1.0',
-      canvas: basePortrait('#0f172a'),
-      layers: [
-        {
-          id: 'accent-bar',
-          type: 'rect',
-          x: 0,
-          y: 0,
-          width: 1080,
-          height: 12,
-          fill: '#3b82f6',
-          zIndex: 1,
-        },
-        {
-          id: 'headline',
-          type: 'text',
-          content: 'Something big is coming',
-          x: 80,
-          y: 480,
-          width: 920,
-          fontSize: 68,
-          fontFamily: 'Inter',
-          fontStyle: 'bold',
-          fill: '#ffffff',
-          align: 'center',
-          zIndex: 2,
-        },
-        {
-          id: 'subtext',
-          type: 'text',
-          content: 'Stay tuned · Launching soon',
-          x: 120,
-          y: 620,
-          width: 840,
-          fontSize: 32,
-          fontFamily: 'Inter',
-          fill: '#94a3b8',
-          align: 'center',
-          zIndex: 2,
-        },
-=======
     description: 'Drop announcement with a shop bar',
     category: 'Events',
     build: () => ({
@@ -188,59 +123,12 @@ export const STUDIO_STARTER_TEMPLATES: StudioStarterTemplate[] = [
           align: 'right',
           zIndex: 2,
         }),
->>>>>>> origin/development
       ],
     }),
   },
   {
     id: 'quote',
     name: 'Quote card',
-<<<<<<< HEAD
-    description: 'Share a testimonial or brand quote',
-    category: 'Other',
-    build: () => ({
-      version: '1.0',
-      canvas: basePortrait('#1e293b'),
-      layers: [
-        {
-          id: 'quote-mark',
-          type: 'text',
-          content: '"',
-          x: 80,
-          y: 320,
-          fontSize: 180,
-          fontFamily: 'Georgia',
-          fill: '#3b82f6',
-          zIndex: 1,
-        },
-        {
-          id: 'headline',
-          type: 'text',
-          content: 'Your customers said it best.',
-          x: 100,
-          y: 520,
-          width: 880,
-          fontSize: 52,
-          fontFamily: 'Georgia',
-          fontStyle: 'italic',
-          fill: '#f8fafc',
-          align: 'center',
-          zIndex: 2,
-        },
-        {
-          id: 'subtext',
-          type: 'text',
-          content: '— Your brand',
-          x: 120,
-          y: 780,
-          width: 840,
-          fontSize: 28,
-          fontFamily: 'Inter',
-          fill: '#64748b',
-          align: 'center',
-          zIndex: 2,
-        },
-=======
     description: 'Magazine-style testimonial',
     category: 'Other',
     build: () => ({
@@ -296,58 +184,12 @@ export const STUDIO_STARTER_TEMPLATES: StudioStarterTemplate[] = [
           fill: STONE,
           zIndex: 2,
         }),
->>>>>>> origin/development
       ],
     }),
   },
   {
     id: 'sale',
     name: 'Sale announcement',
-<<<<<<< HEAD
-    description: 'High-impact offer post for retail',
-    category: 'Retail',
-    build: () => ({
-      version: '1.0',
-      canvas: basePortrait('#7f1d1d'),
-      layers: [
-        {
-          id: 'badge',
-          type: 'circle',
-          x: 340,
-          y: 280,
-          width: 400,
-          height: 400,
-          fill: '#ef4444',
-          zIndex: 1,
-        },
-        {
-          id: 'headline',
-          type: 'text',
-          content: '30% OFF',
-          x: 80,
-          y: 420,
-          width: 920,
-          fontSize: 96,
-          fontFamily: 'Impact',
-          fontStyle: 'bold',
-          fill: '#ffffff',
-          align: 'center',
-          zIndex: 2,
-        },
-        {
-          id: 'subtext',
-          type: 'text',
-          content: 'This weekend only · Shop now',
-          x: 120,
-          y: 560,
-          width: 840,
-          fontSize: 36,
-          fontFamily: 'Inter',
-          fill: '#fecaca',
-          align: 'center',
-          zIndex: 2,
-        },
-=======
     description: 'Giant price lockup for a weekend offer',
     category: 'Retail',
     build: () => ({
@@ -414,59 +256,12 @@ export const STUDIO_STARTER_TEMPLATES: StudioStarterTemplate[] = [
           align: 'center',
           zIndex: 4,
         }),
->>>>>>> origin/development
       ],
     }),
   },
   {
     id: 'event',
     name: 'Event invite',
-<<<<<<< HEAD
-    description: 'Date, time, and CTA for events',
-    category: 'Events',
-    build: () => ({
-      version: '1.0',
-      canvas: basePortrait('#312e81'),
-      layers: [
-        {
-          id: 'overlay',
-          type: 'rect',
-          x: 0,
-          y: 900,
-          width: 1080,
-          height: 450,
-          fill: 'rgba(0,0,0,0.45)',
-          gradientColors: ['rgba(0,0,0,0)', 'rgba(0,0,0,0.55)'],
-          zIndex: 1,
-        },
-        {
-          id: 'headline',
-          type: 'text',
-          content: 'You\'re invited',
-          x: 80,
-          y: 960,
-          width: 920,
-          fontSize: 72,
-          fontFamily: 'Inter',
-          fontStyle: 'bold',
-          fill: '#ffffff',
-          align: 'left',
-          zIndex: 2,
-        },
-        {
-          id: 'subtext',
-          type: 'text',
-          content: 'Saturday · 7 PM · RSVP in bio',
-          x: 80,
-          y: 1080,
-          width: 920,
-          fontSize: 32,
-          fontFamily: 'Inter',
-          fill: '#c7d2fe',
-          align: 'left',
-          zIndex: 2,
-        },
-=======
     description: 'Date stack plus time and RSVP',
     category: 'Events',
     build: () => ({
@@ -553,59 +348,12 @@ export const STUDIO_STARTER_TEMPLATES: StudioStarterTemplate[] = [
           align: 'center',
           zIndex: 3,
         }),
->>>>>>> origin/development
       ],
     }),
   },
   {
     id: 'minimal',
     name: 'Minimal tip',
-<<<<<<< HEAD
-    description: 'Clean educational or tip post',
-    category: 'Tech',
-    build: () => ({
-      version: '1.0',
-      canvas: basePortrait('#fafafa'),
-      layers: [
-        {
-          id: 'headline',
-          type: 'text',
-          content: '3 tips to grow on Instagram',
-          x: 80,
-          y: 420,
-          width: 920,
-          fontSize: 56,
-          fontFamily: 'Inter',
-          fontStyle: 'bold',
-          fill: '#0f172a',
-          align: 'left',
-          zIndex: 1,
-        },
-        {
-          id: 'line',
-          type: 'rect',
-          x: 80,
-          y: 560,
-          width: 120,
-          height: 4,
-          fill: '#3b82f6',
-          cornerRadius: 2,
-          zIndex: 1,
-        },
-        {
-          id: 'subtext',
-          type: 'text',
-          content: 'Swipe for the full breakdown →',
-          x: 80,
-          y: 600,
-          width: 920,
-          fontSize: 28,
-          fontFamily: 'Inter',
-          fill: '#64748b',
-          align: 'left',
-          zIndex: 1,
-        },
-=======
     description: 'Three-beat educational carousel cover',
     category: 'Tech',
     build: () => ({
@@ -921,13 +669,10 @@ export const STUDIO_STARTER_TEMPLATES: StudioStarterTemplate[] = [
           fill: INK,
           zIndex: 2,
         }),
->>>>>>> origin/development
       ],
     }),
   },
 ]
-<<<<<<< HEAD
-=======
 
 const starterCanvasCache = new Map<string, CanvasData>()
 
@@ -982,4 +727,3 @@ export function formatEmptyLabel(formatId: StarterFormatId): string {
   if (formatId === 'square') return 'square'
   return 'post'
 }
->>>>>>> origin/development

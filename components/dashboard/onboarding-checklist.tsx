@@ -34,50 +34,6 @@ interface ChecklistItem {
   cta: string
 }
 
-<<<<<<< HEAD
-const ITEMS: ChecklistItem[] = [
-  {
-    id: 'profileComplete',
-    label: 'Set up your business profile',
-    description: 'A 2-minute setup gives the AI your audience, voice, and channels.',
-    icon: User,
-    href: '/onboarding',
-    cta: 'Complete profile',
-  },
-  {
-    id: 'socialConnected',
-    label: 'Connect a social account',
-    description: 'Link Instagram, Facebook, or LinkedIn to start scheduling posts.',
-    icon: Link2,
-    href: '/dashboard/connections',
-    cta: 'Connect accounts',
-  },
-  {
-    id: 'contentGenerated',
-    label: 'Generate your first content plan',
-    description: "Use AI to generate a week's worth of posts tailored to your brand.",
-    icon: Sparkles,
-    href: '/dashboard/generate',
-    cta: 'Generate plan',
-  },
-  {
-    id: 'firstPostCreated',
-    label: 'Create your first post',
-    description: 'Write or AI-draft a post and add it to your content library.',
-    icon: FileText,
-    href: '/dashboard/posts',
-    cta: 'Create post',
-  },
-  {
-    id: 'firstPostScheduled',
-    label: 'Schedule a post',
-    description: 'Pick a date and time to automatically publish your content.',
-    icon: CalendarCheck,
-    href: '/dashboard/calendar',
-    cta: 'Open planner',
-  },
-]
-=======
 function checklistItems(state: OnboardingState): ChecklistItem[] {
   return [
     {
@@ -116,7 +72,6 @@ function checklistItems(state: OnboardingState): ChecklistItem[] {
     },
   ]
 }
->>>>>>> origin/development
 
 const STORAGE_KEY = 'mm_onboarding_dismissed'
 
@@ -150,22 +105,9 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
         transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
         className="relative mb-6 overflow-hidden rounded-2xl border border-border bg-card"
       >
-<<<<<<< HEAD
-        {/* Gradient accent bar */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-r from-blue-500/60 via-blue-400/40 to-transparent" />
-
-        {/* Ambient glow */}
-        <div className="absolute top-0 right-0 w-[300px] h-[200px] bg-blue-600/8 blur-[80px] rounded-full pointer-events-none" />
-
-        {/* ── Header ── */}
-        <div className="flex items-center gap-4 px-6 py-5 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.12)]">
-            <Rocket className="w-5 h-5 text-blue-400" />
-=======
         <div className="relative z-10 flex items-center gap-4 px-6 py-5">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10">
             <Rocket className="size-5 text-blue-400" aria-hidden="true" />
->>>>>>> origin/development
           </div>
 
           <div className="min-w-0 flex-1">
@@ -182,11 +124,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
             <div className="flex items-center gap-3">
               <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
                 <motion.div
-<<<<<<< HEAD
-                  className="h-full rounded-full bg-linear-to-r from-blue-500 to-blue-400"
-=======
                   className="h-full rounded-full bg-blue-500"
->>>>>>> origin/development
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
@@ -295,15 +233,9 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                 {allDone ? (
                   <div className="mt-4 flex items-center justify-between rounded-xl border border-blue-500/20 bg-blue-500/8 px-5 py-4">
                     <div>
-<<<<<<< HEAD
-                      <p className="text-sm font-semibold text-zinc-900 dark:text-white">Setup complete!</p>
-                      <p className="text-xs text-zinc-500 dark:text-white/40 mt-0.5">
-                        You&apos;re ready to grow your business with Marketme.
-=======
                       <p className="text-sm font-semibold text-foreground">Setup complete</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         Connect, generate, and schedule from here.
->>>>>>> origin/development
                       </p>
                     </div>
                     <button

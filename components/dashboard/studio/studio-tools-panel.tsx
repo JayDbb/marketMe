@@ -13,27 +13,19 @@ import {
   Layers,
   Images,
 } from 'lucide-react'
-<<<<<<< HEAD
-import type { CanvasData, CircleNode, RectNode, TextNode } from '@/types/canvas'
-=======
 import type { CanvasData, CircleNode, ImageNode, RectNode, TextNode } from '@/types/canvas'
->>>>>>> origin/development
 import {
   INSTAGRAM_FORMATS,
   type InstagramFormatId,
 } from '@/lib/instagram-formats'
 import { nextZIndex } from '@/lib/canvas-layer-utils'
 import { enablePages } from '@/lib/canvas-pages'
-<<<<<<< HEAD
-import type { StudioBrandKit } from '@/lib/studio-brand-kit'
-=======
 import {
   applyBrandColors,
   applyBrandFonts,
   brandTextDefaults,
   type StudioBrandKit,
 } from '@/lib/studio-brand-kit'
->>>>>>> origin/development
 import { StudioStockPicker } from './studio-stock-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -56,10 +48,7 @@ interface StudioToolsPanelProps {
   onAddLayer: (layer: CanvasData['layers'][number]) => void
   onImageUpload: () => void
   brandKit?: StudioBrandKit
-<<<<<<< HEAD
-=======
   onSaveCopyAs?: (formatId: InstagramFormatId) => void
->>>>>>> origin/development
 }
 
 export function StudioToolsPanel({
@@ -71,17 +60,11 @@ export function StudioToolsPanel({
   onAddLayer,
   onImageUpload,
   brandKit,
-<<<<<<< HEAD
-}: StudioToolsPanelProps) {
-  const z = nextZIndex(canvasData.layers)
-  const brandColors = brandKit?.colors ?? []
-=======
   onSaveCopyAs,
 }: StudioToolsPanelProps) {
   const z = nextZIndex(canvasData.layers)
   const brandColors = brandKit?.colors ?? []
   const textDefaults = brandTextDefaults(brandKit)
->>>>>>> origin/development
 
   const addTextPreset = (preset: 'heading' | 'subheading' | 'body') => {
     const presets: Record<typeof preset, Partial<TextNode>> = {
@@ -118,15 +101,9 @@ export function StudioToolsPanel({
       x: 80,
       y: p.y!,
       fontSize: p.fontSize!,
-<<<<<<< HEAD
-      fontFamily: 'Inter',
-      fontStyle: p.fontStyle,
-      fill: '#ffffff',
-=======
       fontFamily: textDefaults.fontFamily,
       fontStyle: p.fontStyle,
       fill: textDefaults.fill,
->>>>>>> origin/development
       align: p.align,
       width: p.width,
       zIndex: z,
@@ -134,8 +111,6 @@ export function StudioToolsPanel({
     onAddLayer(layer)
   }
 
-<<<<<<< HEAD
-=======
   const addLogo = () => {
     if (!brandKit?.logoUrl) return
     const layer: ImageNode = {
@@ -152,7 +127,6 @@ export function StudioToolsPanel({
     onAddLayer(layer)
   }
 
->>>>>>> origin/development
   const addRect = () => {
     const layer: RectNode = {
       id: `rect-${Date.now()}`,
@@ -176,11 +150,7 @@ export function StudioToolsPanel({
       y: 200,
       width: 200,
       height: 200,
-<<<<<<< HEAD
-      fill: '#8b5cf6',
-=======
       fill: '#38bdf8',
->>>>>>> origin/development
       zIndex: z,
     }
     onAddLayer(layer)
@@ -253,41 +223,6 @@ export function StudioToolsPanel({
                     canvasData.canvas.width === format.width &&
                     canvasData.canvas.height === format.height
                   return (
-<<<<<<< HEAD
-                    <button
-                      key={format.id}
-                      type="button"
-                      onClick={() => onFormatChange(format.id)}
-                      className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-colors ${
-                        active
-                          ? 'border-blue-500/40 bg-blue-500/10'
-                          : 'border-black/5 dark:border-white/10 hover:bg-white dark:hover:bg-white/5'
-                      }`}
-                    >
-                      <div
-                        className={`shrink-0 rounded-md border border-white/20 bg-zinc-800 ${
-                          format.id === 'story'
-                            ? 'w-5 h-8'
-                            : format.id === 'landscape'
-                              ? 'w-8 h-5'
-                              : format.id === 'portrait' || format.id === 'portrait-grid'
-                                ? 'w-6 h-7'
-                                : 'w-7 h-7'
-                        }`}
-                      />
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-zinc-900 dark:text-white truncate">
-                          {format.label}
-                          {format.recommended && (
-                            <span className="ml-1.5 text-[9px] font-bold uppercase text-blue-400">
-                              Best
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-[10px] text-zinc-500 dark:text-white/40">{format.subtitle}</p>
-                      </div>
-                    </button>
-=======
                     <div
                       key={format.id}
                       className={`flex items-stretch rounded-xl border ${
@@ -334,7 +269,6 @@ export function StudioToolsPanel({
                         </button>
                       ) : null}
                     </div>
->>>>>>> origin/development
                   )
                 })}
               </div>
@@ -387,19 +321,13 @@ export function StudioToolsPanel({
               </div>
               {brandKit && (
                 <p className="text-[10px] text-zinc-400 dark:text-white/30 mt-2">
-<<<<<<< HEAD
-                  Brand palette from your industry
-=======
                   {brandKit.source === 'profile'
                     ? 'Your brand colors'
                     : 'Industry fallback — save colors in Settings to lock this in'}
->>>>>>> origin/development
                 </p>
               )}
             </div>
 
-<<<<<<< HEAD
-=======
             {brandKit ? (
               <div>
                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-white/40 mb-2">
@@ -433,7 +361,6 @@ export function StudioToolsPanel({
               </div>
             ) : null}
 
->>>>>>> origin/development
             {!canvasData.pages?.length && (
               <div>
                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-white/40 mb-2">
@@ -442,11 +369,7 @@ export function StudioToolsPanel({
                 <button
                   type="button"
                   onClick={() => onCanvasChange(enablePages(canvasData))}
-<<<<<<< HEAD
-                  className="w-full h-9 rounded-xl border border-dashed border-purple-500/40 text-purple-400 hover:bg-purple-500/10 text-xs font-semibold"
-=======
                   className="w-full h-9 rounded-xl border border-dashed border-sky-500/40 text-sky-400 hover:bg-sky-500/10 text-xs font-semibold"
->>>>>>> origin/development
                 >
                   Convert to carousel
                 </button>
@@ -572,11 +495,7 @@ function TextPresetCard({
     <button
       type="button"
       onClick={onClick}
-<<<<<<< HEAD
-      className="group w-full flex items-stretch overflow-hidden rounded-xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/[0.03] hover:border-blue-500/35 hover:bg-blue-500/[0.06] transition-all text-left"
-=======
       className="group w-full flex items-stretch overflow-hidden rounded-xl border border-black/5 dark:border-white/10 bg-white dark:bg-white/[0.03] hover:border-blue-500/35 hover:bg-blue-500/[0.06] ui-transition text-left"
->>>>>>> origin/development
     >
       <div className="w-[52px] shrink-0 flex flex-col items-center justify-center gap-1 border-r border-black/5 dark:border-white/8 bg-zinc-100/80 dark:bg-white/[0.04]">
         <span className={`text-zinc-800 dark:text-white leading-none ${previewClass}`}>

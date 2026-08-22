@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { checkIsAdmin } from '@/lib/admin-auth'
 import { getBusinessProfile } from '@/lib/services/business.service'
 import {
   PLANS,
@@ -138,12 +139,7 @@ export const getAccountContext = cache(async (): Promise<AccountContext | null> 
   const displayName = resolveDisplayName(authUser, profileResult.data)
 
   const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY)
-  const allowedAdminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
-  const userEmail = (user.email ?? '').trim().toLowerCase()
-  const isAdmin = allowedAdminEmails.length > 0 && allowedAdminEmails.includes(userEmail)
+  const isAdmin = await checkIsAdmin({ userId: user.id, email: user.email })
 
   return {
     displayName,

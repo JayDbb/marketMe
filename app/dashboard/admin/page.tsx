@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
+import { checkIsAdmin } from '@/lib/admin-auth'
 import { getAdminDashboardStats } from '@/lib/services/admin.service'
 import { AdminContent } from '@/components/dashboard/admin/admin-content'
 import { createPageMetadata } from '@/lib/metadata'
@@ -16,16 +17,7 @@ export default async function AdminPage() {
   const user = await getAuthenticatedUser()
   if (!user) redirect('/login')
 
-  // Admin gate: restrict by email list (set ADMIN_EMAILS in .env.local)
-  const allowedEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
-
-  const userEmail = (user.email ?? '').trim().toLowerCase()
-  const isAuthorizedAdmin = allowedEmails.length > 0 && allowedEmails.includes(userEmail)
-
-  if (!isAuthorizedAdmin) {
+  if (!(await checkIsAdmin({ userId: user.id, email: user.email }))) {
     redirect('/dashboard')
   }
 
@@ -43,15 +35,12 @@ export default async function AdminPage() {
   }
 
   if (!stats) {
-    // Return a degraded shell with error message
     return (
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-10">
-        <div className="mb-2 flex items-center gap-2">
-          <p className="text-xs font-medium uppercase tracking-widest text-accent-foreground">
-            Administration
-          </p>
-        </div>
-        <h1 className="mb-6 text-3xl font-semibold tracking-tight text-foreground">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-400/80">
+          Administration
+        </p>
+        <h1 className="mb-6 font-sans text-3xl font-medium tracking-tight text-foreground">
           Admin Console
         </h1>
         <InlineNotice

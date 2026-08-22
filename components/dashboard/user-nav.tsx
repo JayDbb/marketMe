@@ -12,7 +12,7 @@ import {
 import { PLANS } from '@/lib/billing-utils'
 import { logout } from '@/app/login/actions'
 import type { AccountContext } from '@/types/billing'
-import { CreditCard, LogOut, Settings } from '@/components/dashboard/user-nav-icons'
+import { CreditCard, LogOut, Settings, ShieldCheck } from '@/components/dashboard/user-nav-icons'
 
 export function UserNav({ account }: { account: AccountContext }) {
   const handleLogout = async () => {
@@ -59,6 +59,16 @@ export function UserNav({ account }: { account: AccountContext }) {
           <Settings className="mr-2 size-4 text-muted-foreground" />
           <span className="text-[14px]">Settings</span>
         </DropdownMenuItem>
+        {account.isAdmin ? (
+          <DropdownMenuItem
+            render={<Link href="/dashboard/admin" />}
+            nativeButton={false}
+            className="cursor-pointer rounded-lg px-3 py-2"
+          >
+            <ShieldCheck className="mr-2 size-4 text-sky-500" />
+            <span className="text-[14px]">Admin Console</span>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           render={<Link href="/dashboard/settings?tab=Billing" />}
           nativeButton={false}

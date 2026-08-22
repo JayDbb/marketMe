@@ -1,33 +1,53 @@
-/**
- * Inbox API — Frontend Client Wrapper
- * -----------------------------------
- * Communicates with the FastAPI backend inbox endpoints.
- */
-
 import type { InboxMessage, SocialConnection } from '@/types/social'
 import { getDemoInboxMessages } from '@/lib/social/demo-inbox'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://marketme-api-9oap.onrender.com'
 
 export interface FetchInboxOptions {
-  connections: SocialConnection[]
-  /** When true, returns demo data for connected platforms */
+  connections?: SocialConnection[]
   useDemoData?: boolean
 }
 
-/**
- * Fetch messages for connected accounts from the FastAPI backend.
- */
-export async function fetchInboxMessages(
-  options: FetchInboxOptions
-): Promise<InboxMessage[]> {
-  const connected = options.connections.filter((c) => c.status === 'connected')
-  if (connected.length === 0) return []
+export interface InboxAccountSummary {
+  connectionId: string
+  handle: string | null
+  displayName: string
+  atHandle: string | null
+  profileUrl: string | null
+}
 
-  // Demo data fallback for local UI testing
-  if (options.useDemoData !== false) {
+export interface InboxSyncStatus {
+  lastSyncedAt?: string
+  isSyncing?: boolean
+}
+
+export interface InboxResponse {
+  messages: InboxMessage[]
+  conversations: any[]
+  account?: InboxAccountSummary | null
+  syncStatus?: InboxSyncStatus | null
+  warning?: string | null
+  error?: string | null
+}
+
+export async function fetchInboxMessages(
+  options?: FetchInboxOptions
+): Promise<InboxResponse> {
+  const connected = options?.connections?.filter((c) => c.status === 'connected') || []
+
+  if (options?.useDemoData !== false && connected.length > 0) {
     const instagram = connected.find((c) => c.platform === 'instagram')
-    if (instagram) return getDemoInboxMessages(instagram.id)
+    if (instagram) {
+      const demoMsgs = getDemoInboxMessages(instagram.id)
+      return {
+        messages: demoMsgs,
+        conversations: [],
+        account: null,
+        syncStatus: { isSyncing: false },
+        warning: null,
+        error: null,
+      }
+    }
   }
 
   const res = await fetch(`${API_BASE_URL}/inbox/messages`, {
@@ -41,12 +61,36 @@ export async function fetchInboxMessages(
     throw new Error(errorData.detail || errorData.error || 'Failed to fetch inbox messages')
   }
 
+  const data = await res.json()
+  if (Array.isArray(data)) {
+    return {
+      messages: data,
+      conversations: [],
+      account: null,
+      syncStatus: null,
+      warning: null,
+      error: null,
+    }
+  }
+
+  return data
+}
+
+export async function fetchInboxConversation(conversationId: string): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/inbox/conversations/${conversationId}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    throw new Error(errorData.detail || errorData.error || 'Failed to fetch conversation')
+  }
+
   return await res.json()
 }
 
-/**
- * Mark a message as read in the FastAPI backend.
- */
 export async function markMessageRead(messageId: string): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/inbox/messages/${messageId}/read`, {
     method: 'PATCH',
@@ -60,13 +104,19 @@ export async function markMessageRead(messageId: string): Promise<void> {
   }
 }
 
-/**
- * Send a reply to a message via the FastAPI backend.
- * 
- * @param messageId - The target message/conversation ID to reply to.
- * @param body - The text body of the reply message.
- * @param businessProfileId - The ID of the connected business profile.
- */
+export async function archiveInboxItem(messageId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/inbox/messages/${messageId}/archive`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    throw new Error(errorData.detail || errorData.error || 'Failed to archive message')
+  }
+}
+
 export async function replyToMessage(
   messageId: string,
   body: string,
@@ -87,5 +137,3 @@ export async function replyToMessage(
     throw new Error(errorData.detail || errorData.error || 'Failed to send reply')
   }
 }
-
-//updated

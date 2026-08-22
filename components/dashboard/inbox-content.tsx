@@ -274,3 +274,13 @@ export function InboxContent() {
     </motion.div>
   )
 }
+
+export function InboxSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="h-20 rounded-xl bg-zinc-100 dark:bg-white/5 animate-pulse" />
+      ))}
+    </div>
+  )
+}

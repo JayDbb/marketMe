@@ -5,6 +5,41 @@ import type { ComponentType } from 'react'
 import { formatDistanceToNow } from '@/lib/social/format-relative'
 import type { InboxMessage } from '@/types/social'
 
+export function InboxAvatar({
+  message,
+  name,
+  src,
+  size = 36,
+}: {
+  message?: InboxMessage
+  name?: string
+  src?: string | null
+  size?: number
+}) {
+  const displayName = name || message?.authorName || '?'
+  const initial = displayName.charAt(0).toUpperCase()
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={displayName}
+        style={{ width: size, height: size }}
+        className="rounded-full object-cover shrink-0"
+      />
+    )
+  }
+
+  return (
+    <div
+      style={{ width: size, height: size }}
+      className="rounded-full bg-linear-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shrink-0 text-white text-xs font-bold"
+    >
+      {initial}
+    </div>
+  )
+}
+
 export function InboxMessageCard({
   message,
   onSelect,
@@ -29,9 +64,7 @@ export function InboxMessageCard({
         }`}
     >
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-full bg-linear-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shrink-0 text-white text-xs font-bold">
-          {message.authorName.charAt(0).toUpperCase()}
-        </div>
+        <InboxAvatar message={message} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2 mb-0.5">
             <span className="text-sm font-semibold text-zinc-900 dark:text-white truncate">
@@ -89,9 +122,7 @@ export function InboxColumn({
         </div>
         <span className="min-w-[1.5rem] h-6 px-1.5 rounded-full bg-zinc-200 dark:bg-white/10 text-zinc-600 dark:text-white/60 flex items-center justify-center text-[11px] font-bold">
           {messages.length}
-          {unread > 0 && (
-            <span className="sr-only">{unread} unread</span>
-          )}
+          {unread > 0 && <span className="sr-only">{unread} unread</span>}
         </span>
       </div>
 

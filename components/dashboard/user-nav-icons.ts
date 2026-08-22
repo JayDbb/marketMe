@@ -1,1 +1,1 @@
-export { CreditCard, LogOut, Settings } from 'lucide-react'
+export { CreditCard, LogOut, Settings, ShieldCheck } from 'lucide-react'

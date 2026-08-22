@@ -1,14 +1,14 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { PLAN_CREDIT_ALLOWANCES } from '@/types/pipeline'
 import type {
-  AdminDashboardStats,
-  AdminUserRow,
-  AdminWorkflowRow,
   AdminAuditEvent,
+  AdminDashboardStats,
+  AdminPlanId,
+  AdminUserRow,
+  AdminUserSearchResult,
+  AdminWorkflowRow,
   SystemService,
 } from '@/types/admin'
-
-// ─── helpers ────────────────────────────────────────────────────────────────
 
 function monthStart(): string {
   const d = new Date()
@@ -23,39 +23,97 @@ function todayStart(): string {
   return d.toISOString()
 }
 
-// ─── system health ping ──────────────────────────────────────────────────────
+type BaUser = {
+  id: string
+  email: string
+  name: string | null
+  image: string | null
+  createdAt: string
+  updatedAt: string
+}
 
-async function pingSupabase(): Promise<SystemService> {
+type BaSession = { userId: string; updatedAt: string; expiresAt: string }
+type BaUserMin = { id: string; email: string }
+
+async function pingDatabase(): Promise<SystemService> {
   const t0 = Date.now()
   try {
     const supabase = getSupabaseAdmin()
     const { error } = await supabase.from('user_subscriptions').select('user_id').limit(1)
     const latencyMs = Date.now() - t0
-    return { name: 'Database', status: error ? 'degraded' : 'operational', latencyMs }
-  } catch {
-    return { name: 'Database', status: 'down', latencyMs: Date.now() - t0 }
+    return {
+      name: 'Database',
+      status: error ? 'degraded' : 'operational',
+      latencyMs,
+      detail: error ? error.message : null,
+    }
+  } catch (err) {
+    return {
+      name: 'Database',
+      status: 'down',
+      latencyMs: Date.now() - t0,
+      detail: (err as Error).message,
+    }
   }
 }
 
-async function pingEnvService(
-  name: string,
-  envKey: string
-): Promise<SystemService> {
+/** Env-only presence check — never report as live "operational". */
+function envConfigured(name: string, envKey: string): SystemService {
   const configured = Boolean(process.env[envKey])
   return {
     name,
-    status: configured ? 'operational' : 'unknown',
+    status: configured ? 'configured' : 'unknown',
     latencyMs: null,
+    detail: configured ? `${envKey} set` : `${envKey} missing`,
   }
 }
 
-// ─── type helpers for Better Auth tables (camelCase columns, quoted names) ──
+function mapRunStatus(
+  status: string | null | undefined
+): AdminWorkflowRow['lastRunStatus'] {
+  if (!status) return null
+  if (status === 'failed') return 'failed'
+  if (status === 'running') return 'running'
+  if (status === 'success' || status === 'warning') return 'success'
+  return 'pending'
+}
 
-type BaUser = { id: string; email: string; name: string | null; image: string | null; createdAt: string; updatedAt: string }
-type BaSession = { userId: string; updatedAt: string; expiresAt: string }
-type BaUserMin = { id: string; email: string }
+async function buildUserRows(
+  rawUsers: BaUser[],
+  subsByUser: Map<string, { plan: string; status: string; credits_balance: number }>,
+  sessionsByUser: Map<string, string>
+): Promise<AdminUserRow[]> {
+  const supabase = getSupabaseAdmin()
+  const userIds = rawUsers.map((u) => u.id)
+  const postCountsRes = userIds.length
+    ? await supabase.from('posts').select('user_id').in('user_id', userIds)
+    : { data: [] as { user_id: string }[] }
 
-// ─── main data fetch ─────────────────────────────────────────────────────────
+  const postsByUser = new Map<string, number>()
+  for (const p of postCountsRes.data ?? []) {
+    postsByUser.set(p.user_id, (postsByUser.get(p.user_id) ?? 0) + 1)
+  }
+
+  return rawUsers.map((u) => {
+    const sub = subsByUser.get(u.id)
+    const plan = (sub?.plan ?? 'free') as AdminPlanId
+    const alloc = PLAN_CREDIT_ALLOWANCES[plan] ?? 0
+    return {
+      id: u.id,
+      email: u.email ?? '',
+      displayName: u.name ?? u.email ?? u.id,
+      avatarUrl: u.image ?? null,
+      plan,
+      subscriptionStatus: sub?.status ?? 'active',
+      creditsRemaining: sub?.credits_balance ?? 0,
+      creditsTotal: alloc,
+      postsCount: postsByUser.get(u.id) ?? 0,
+      status: 'active' as const,
+      joinedAt: u.createdAt ?? new Date().toISOString(),
+      lastActiveAt: sessionsByUser.get(u.id) ?? u.updatedAt ?? null,
+    }
+  })
+}
 
 export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
   const supabase = getSupabaseAdmin()
@@ -71,77 +129,77 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     totalPostsRes,
     postsMonthRes,
     totalPlansRes,
-    workflowsRes,
+    workflowsCountRes,
+    activeWorkflowsCountRes,
     workflowRunsTodayRes,
     workflowFailuresTodayRes,
     recentUsersRes,
     recentWorkflowsRes,
-    // Active sessions = sessions that haven't expired yet
     activeSessionsRes,
-    // Most recent session per user for lastActiveAt
     recentSessionsRes,
-    // Real audit events: recent credit transactions
     recentCreditTxRes,
+    recentAdminAuditRes,
     dbPing,
-    resendService,
-    stripeService,
-    triggerService,
   ] = await Promise.all([
-    // Better Auth uses camelCase quoted columns — use .from('user') not 'users'
     supabase.from('user' as never).select('id', { count: 'exact', head: true }),
-    supabase.from('user' as never).select('id', { count: 'exact', head: true }).gte('createdAt' as never, ms),
+    supabase
+      .from('user' as never)
+      .select('id', { count: 'exact', head: true })
+      .gte('createdAt' as never, ms),
     supabase.from('business_profiles').select('id', { count: 'exact', head: true }),
-    supabase.from('user_subscriptions').select('user_id, plan, status, credits_balance, credits_reset_at'),
+    supabase
+      .from('user_subscriptions')
+      .select('user_id, plan, status, credits_balance, credits_reset_at'),
     supabase.from('posts').select('id', { count: 'exact', head: true }),
     supabase.from('posts').select('id', { count: 'exact', head: true }).gte('created_at', ms),
     supabase.from('content_plans').select('id', { count: 'exact', head: true }),
     supabase.from('workflows').select('id', { count: 'exact', head: true }),
-    supabase.from('workflow_runs').select('id', { count: 'exact', head: true }).gte('created_at', td),
-    supabase.from('workflow_runs').select('id', { count: 'exact', head: true }).eq('status', 'failed').gte('created_at', td),
-    // User list sorted by most recently active (updatedAt)
+    supabase
+      .from('workflows')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'enabled'),
+    supabase.from('workflow_runs').select('id', { count: 'exact', head: true }).gte('started_at', td),
+    supabase
+      .from('workflow_runs')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'failed')
+      .gte('started_at', td),
     supabase
       .from('user' as never)
       .select('id, email, name, image, createdAt, updatedAt')
       .order('updatedAt' as never, { ascending: false })
       .limit(100),
-    // Workflow list
     supabase
       .from('workflows')
-      .select('id, user_id, name, trigger_type, last_run_at, last_run_status, total_runs, failure_count, is_active')
+      .select('id, user_id, name, trigger_kind, status, last_run_at, last_run_status')
       .order('last_run_at', { ascending: false, nullsFirst: false })
       .limit(50),
-    // Active users = distinct userIds with a non-expired Better Auth session
-    supabase
-      .from('session' as never)
-      .select('userId')
-      .gt('expiresAt' as never, now),
-    // Most recent session per user for lastActiveAt
+    supabase.from('session' as never).select('userId').gt('expiresAt' as never, now),
     supabase
       .from('session' as never)
       .select('userId, updatedAt')
       .order('updatedAt' as never, { ascending: false })
       .limit(500),
-    // Real activity: recent credit transactions across all users
     supabase
       .from('credit_transactions')
       .select('id, user_id, stage, credits_spent, created_at')
       .order('created_at', { ascending: false })
       .limit(30),
-    // System service pings
-    pingSupabase(),
-    pingEnvService('Resend', 'RESEND_API_KEY'),
-    pingEnvService('Stripe', 'STRIPE_SECRET_KEY'),
-    pingEnvService('Trigger.dev', 'TRIGGER_SECRET_KEY'),
+    supabase
+      .from('admin_audit_events')
+      .select('id, actor_email, action, target_user_id, target_email, metadata, created_at')
+      .order('created_at', { ascending: false })
+      .limit(30),
+    pingDatabase(),
   ])
 
-  // ── subscriptions breakdown ──
   const subs = subscriptionsRes.data ?? []
   const planBreakdown = { free: 0, pro: 0, team: 0 }
   let totalAllocated = 0
   let totalRemaining = 0
 
   for (const sub of subs) {
-    const plan = (sub.plan ?? 'free') as 'free' | 'pro' | 'team'
+    const plan = (sub.plan ?? 'free') as AdminPlanId
     planBreakdown[plan] = (planBreakdown[plan] ?? 0) + 1
     const alloc = PLAN_CREDIT_ALLOWANCES[plan] ?? 0
     totalAllocated += alloc
@@ -149,92 +207,110 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
   }
   const totalUsed = Math.max(0, totalAllocated - totalRemaining)
 
-  // ── active users: users with at least one live (non-expired) session ──
-  const activeSessionData = ((activeSessionsRes as unknown as { data: BaSession[] | null }).data ?? [])
-  const activeUserIds = new Set(activeSessionData.map((s) => s.userId))
-  const activeUsers = activeUserIds.size
+  const activeSessionData =
+    ((activeSessionsRes as unknown as { data: BaSession[] | null }).data ?? [])
+  const activeUsers = new Set(activeSessionData.map((s) => s.userId)).size
 
-  // ── lastActiveAt per user: most recent session updatedAt ──
   const sessionsByUser = new Map<string, string>()
-  const recentSessionData = ((recentSessionsRes as unknown as { data: BaSession[] | null }).data ?? [])
+  const recentSessionData =
+    ((recentSessionsRes as unknown as { data: BaSession[] | null }).data ?? [])
   for (const s of recentSessionData) {
-    if (!sessionsByUser.has(s.userId)) {
-      sessionsByUser.set(s.userId, s.updatedAt)
-    }
+    if (!sessionsByUser.has(s.userId)) sessionsByUser.set(s.userId, s.updatedAt)
   }
 
-  // ── build user rows ──
-  const subsMap = new Map(subs.map((s) => [s.user_id, s]))
-  const rawUsers = ((recentUsersRes as unknown as { data: BaUser[] | null }).data ?? [])
+  const subsByUser = new Map(
+    subs.map((s) => [
+      s.user_id,
+      {
+        plan: s.plan ?? 'free',
+        status: s.status ?? 'active',
+        credits_balance: s.credits_balance ?? 0,
+      },
+    ])
+  )
 
-  // Get post counts for these users in one query
-  const userIds = rawUsers.map((u) => u.id)
-  const postCountsRes = userIds.length
-    ? await supabase.from('posts').select('user_id').in('user_id', userIds)
-    : { data: [] }
+  const rawUsers =
+    ((recentUsersRes as unknown as { data: BaUser[] | null }).data ?? [])
+  const users = await buildUserRows(rawUsers, subsByUser, sessionsByUser)
 
-  const postsByUser = new Map<string, number>()
-  for (const p of postCountsRes.data ?? []) {
-    postsByUser.set(p.user_id, (postsByUser.get(p.user_id) ?? 0) + 1)
-  }
-
-  const users: AdminUserRow[] = rawUsers.map((u) => {
-    const sub = subsMap.get(u.id)
-    const plan = (sub?.plan ?? 'free') as 'free' | 'pro' | 'team'
-    const alloc = PLAN_CREDIT_ALLOWANCES[plan] ?? 0
-    return {
-      id: u.id,
-      email: u.email ?? '',
-      displayName: u.name ?? u.email ?? u.id,
-      avatarUrl: u.image ?? null,
-      plan,
-      subscriptionStatus: sub?.status ?? 'active',
-      creditsRemaining: sub?.credits_balance ?? 0,
-      creditsTotal: alloc,
-      postsCount: postsByUser.get(u.id) ?? 0,
-      status: 'active' as const,
-      joinedAt: u.createdAt ?? new Date().toISOString(),
-      // Real: from most recent session, fallback to user updatedAt
-      lastActiveAt: sessionsByUser.get(u.id) ?? u.updatedAt ?? null,
-    }
-  })
-
-  // ── workflow rows ──
   const rawWorkflows = recentWorkflowsRes.data ?? []
-  const workflowUserIds = [...new Set(rawWorkflows.map((w) => w.user_id).filter(Boolean))]
-  const workflowUsersRes = workflowUserIds.length
-    ? await supabase.from('user' as never).select('id, email').in('id' as never, workflowUserIds)
-    : { data: [] }
-  const workflowUserData = ((workflowUsersRes as unknown as { data: BaUserMin[] | null }).data ?? [])
-  const workflowUserEmailMap = new Map(workflowUserData.map((u) => [u.id, u.email]))
+  const workflowIds = rawWorkflows.map((w) => w.id)
+  const workflowUserIds = [
+    ...new Set(rawWorkflows.map((w) => w.user_id).filter(Boolean)),
+  ]
+
+  const [workflowUsersRes, runAggRes, failAggRes] = await Promise.all([
+    workflowUserIds.length
+      ? supabase
+          .from('user' as never)
+          .select('id, email')
+          .in('id' as never, workflowUserIds)
+      : Promise.resolve({ data: [] }),
+    workflowIds.length
+      ? supabase.from('workflow_runs').select('workflow_id').in('workflow_id', workflowIds)
+      : Promise.resolve({ data: [] as { workflow_id: string }[] }),
+    workflowIds.length
+      ? supabase
+          .from('workflow_runs')
+          .select('workflow_id')
+          .in('workflow_id', workflowIds)
+          .eq('status', 'failed')
+      : Promise.resolve({ data: [] as { workflow_id: string }[] }),
+  ])
+
+  const workflowUserEmailMap = new Map(
+    ((workflowUsersRes as unknown as { data: BaUserMin[] | null }).data ?? []).map(
+      (u) => [u.id, u.email]
+    )
+  )
+
+  const runsByWorkflow = new Map<string, number>()
+  for (const r of runAggRes.data ?? []) {
+    runsByWorkflow.set(r.workflow_id, (runsByWorkflow.get(r.workflow_id) ?? 0) + 1)
+  }
+  const failsByWorkflow = new Map<string, number>()
+  for (const r of failAggRes.data ?? []) {
+    failsByWorkflow.set(r.workflow_id, (failsByWorkflow.get(r.workflow_id) ?? 0) + 1)
+  }
 
   const workflows: AdminWorkflowRow[] = rawWorkflows.map((w) => ({
     id: w.id,
     userId: w.user_id,
     userEmail: workflowUserEmailMap.get(w.user_id) ?? '',
     name: w.name ?? 'Unnamed workflow',
-    triggerType: w.trigger_type ?? 'manual',
+    triggerType: w.trigger_kind ?? 'manual',
     lastRunAt: w.last_run_at ?? null,
-    lastRunStatus: (w.last_run_status as AdminWorkflowRow['lastRunStatus']) ?? null,
-    totalRuns: w.total_runs ?? 0,
-    failureCount: w.failure_count ?? 0,
-    isActive: w.is_active ?? false,
+    lastRunStatus: mapRunStatus(w.last_run_status),
+    totalRuns: runsByWorkflow.get(w.id) ?? 0,
+    failureCount: failsByWorkflow.get(w.id) ?? 0,
+    isActive: w.status === 'enabled',
   }))
 
-  // ── real audit events: credit transactions + signups ──
-  type CreditTx = { id: string; user_id: string; stage: string; credits_spent: number; created_at: string }
-  const creditTxData = ((recentCreditTxRes as unknown as { data: CreditTx[] | null }).data ?? [])
+  type CreditTx = {
+    id: string
+    user_id: string
+    stage: string
+    credits_spent: number
+    created_at: string
+  }
+  const creditTxData =
+    ((recentCreditTxRes as unknown as { data: CreditTx[] | null }).data ?? [])
 
-  // Email lookup for credit tx users
   const creditUserIds = [...new Set(creditTxData.map((t) => t.user_id))]
   const creditUsersRes = creditUserIds.length
-    ? await supabase.from('user' as never).select('id, email').in('id' as never, creditUserIds)
+    ? await supabase
+        .from('user' as never)
+        .select('id, email')
+        .in('id' as never, creditUserIds)
     : { data: [] }
   const creditUserEmailMap = new Map(
-    ((creditUsersRes as unknown as { data: BaUserMin[] | null }).data ?? []).map((u) => [u.id, u.email])
+    ((creditUsersRes as unknown as { data: BaUserMin[] | null }).data ?? []).map(
+      (u) => [u.id, u.email]
+    )
   )
 
   const CREDIT_STAGE_LABELS: Record<string, string> = {
+    business_profile_intake: 'Business profile intake',
     marketing_strategy_generation: 'Strategy generation',
     content_schedule_generation: 'Schedule generation',
     post_generation: 'Post generation',
@@ -245,7 +321,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
 
   const creditEvents: AdminAuditEvent[] = creditTxData.map((tx) => ({
     id: `credit-${tx.id}`,
-    type: 'workflow_run' as const,
+    type: 'credit_spend' as const,
     description: `${CREDIT_STAGE_LABELS[tx.stage] ?? tx.stage.replaceAll('_', ' ')} — ${tx.credits_spent} credit${tx.credits_spent !== 1 ? 's' : ''} spent`,
     userId: tx.user_id,
     userEmail: creditUserEmailMap.get(tx.user_id) ?? null,
@@ -253,7 +329,6 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     createdAt: tx.created_at,
   }))
 
-  // Signup events from real user list (most recently joined first)
   const signupEvents: AdminAuditEvent[] = rawUsers
     .filter((u) => u.createdAt)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -268,18 +343,62 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       createdAt: u.createdAt,
     }))
 
-  // Merge all events and sort by most recent
-  const recentAuditEvents = [...creditEvents, ...signupEvents]
+  type AdminAuditRow = {
+    id: string
+    actor_email: string | null
+    action: string
+    target_user_id: string | null
+    target_email: string | null
+    metadata: Record<string, unknown> | null
+    created_at: string
+  }
+  const adminAuditData =
+    ((recentAdminAuditRes as unknown as { data: AdminAuditRow[] | null }).data ??
+      [])
+
+  const adminEvents: AdminAuditEvent[] = adminAuditData.map((row) => {
+    const meta = row.metadata ?? {}
+    const action = row.action
+    let type: AdminAuditEvent['type'] = 'admin_action'
+    let description = action
+
+    if (action === 'grant_credits') {
+      type = 'credit_top_up'
+      description = `Admin granted ${meta.amount ?? '?'} credits to ${row.target_email ?? row.target_user_id}`
+    } else if (action === 'change_plan') {
+      type = 'plan_change'
+      description = `Admin set plan to ${meta.plan ?? '?'} for ${row.target_email ?? row.target_user_id}`
+    }
+
+    return {
+      id: `admin-${row.id}`,
+      type,
+      description: row.actor_email
+        ? `${description} (by ${row.actor_email})`
+        : description,
+      userId: row.target_user_id,
+      userEmail: row.target_email,
+      metadata: { ...meta, actor_email: row.actor_email },
+      createdAt: row.created_at,
+    }
+  })
+
+  const recentAuditEvents = [...creditEvents, ...signupEvents, ...adminEvents]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 40)
 
   const systemServices: SystemService[] = [
     dbPing,
-    resendService,
-    stripeService,
-    triggerService,
-    { name: 'Better Auth', status: 'operational', latencyMs: null },
-    { name: 'Pexels API', status: process.env.PEXELS_API_KEY ? 'operational' : 'unknown', latencyMs: null },
+    envConfigured('Resend', 'RESEND_API_KEY'),
+    envConfigured('Stripe', 'STRIPE_SECRET_KEY'),
+    envConfigured('Trigger.dev', 'TRIGGER_SECRET_KEY'),
+    {
+      name: 'Better Auth',
+      status: 'configured',
+      latencyMs: null,
+      detail: 'Session auth via app runtime',
+    },
+    envConfigured('Pexels API', 'PEXELS_API_KEY'),
   ]
 
   return {
@@ -288,10 +407,14 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     newUsersThisMonth: ((newUsersRes as unknown as { count: number | null }).count) ?? 0,
     totalBusinesses: totalBusinessesRes.count ?? 0,
     planBreakdown,
-    creditStats: { totalAllocated, totalUsed, totalRemaining },
+    creditStats: {
+      totalAllocated: totalAllocated,
+      totalUsed,
+      totalRemaining: totalRemaining,
+    },
     workflowStats: {
-      totalWorkflows: workflowsRes.count ?? 0,
-      activeWorkflows: rawWorkflows.filter((w) => w.is_active).length,
+      totalWorkflows: workflowsCountRes.count ?? 0,
+      activeWorkflows: activeWorkflowsCountRes.count ?? 0,
       runsToday: workflowRunsTodayRes.count ?? 0,
       failuresToday: workflowFailuresTodayRes.count ?? 0,
     },
@@ -307,12 +430,107 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
   }
 }
 
-// ─── mutations ───────────────────────────────────────────────────────────────
+export async function searchAdminUsers(options: {
+  query?: string
+  plan?: AdminPlanId | 'all'
+  page?: number
+  pageSize?: number
+}): Promise<AdminUserSearchResult> {
+  const supabase = getSupabaseAdmin()
+  const page = Math.max(1, options.page ?? 1)
+  const pageSize = Math.min(100, Math.max(10, options.pageSize ?? 25))
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+  const q = options.query?.trim() ?? ''
+
+  let userQuery = supabase
+    .from('user' as never)
+    .select('id, email, name, image, createdAt, updatedAt', { count: 'exact' })
+    .order('updatedAt' as never, { ascending: false })
+    .range(from, to)
+
+  if (q) {
+    // PostgREST or-filter on email/name
+    userQuery = userQuery.or(`email.ilike.%${q}%,name.ilike.%${q}%` as never)
+  }
+
+  const { data, count, error } = await userQuery
+  if (error) throw new Error(error.message)
+
+  const rawUsers = (data as unknown as BaUser[] | null) ?? []
+  const { data: subs } = await supabase
+    .from('user_subscriptions')
+    .select('user_id, plan, status, credits_balance')
+
+  const subsByUser = new Map(
+    (subs ?? []).map((s) => [
+      s.user_id,
+      {
+        plan: s.plan ?? 'free',
+        status: s.status ?? 'active',
+        credits_balance: s.credits_balance ?? 0,
+      },
+    ])
+  )
+
+  const now = new Date().toISOString()
+  const { data: sessions } = await supabase
+    .from('session' as never)
+    .select('userId, updatedAt')
+    .order('updatedAt' as never, { ascending: false })
+    .limit(500)
+
+  const sessionsByUser = new Map<string, string>()
+  for (const s of ((sessions as unknown as BaSession[] | null) ?? [])) {
+    if (!sessionsByUser.has(s.userId)) sessionsByUser.set(s.userId, s.updatedAt)
+  }
+
+  let users = await buildUserRows(rawUsers, subsByUser, sessionsByUser)
+
+  if (options.plan && options.plan !== 'all') {
+    users = users.filter((u) => u.plan === options.plan)
+  }
+
+  return {
+    users,
+    total: count ?? users.length,
+    page,
+    pageSize,
+  }
+}
+
+async function writeAdminAudit(input: {
+  actorUserId: string
+  actorEmail: string
+  action: string
+  targetUserId: string
+  targetEmail?: string | null
+  metadata?: Record<string, unknown>
+}): Promise<void> {
+  const supabase = getSupabaseAdmin()
+  const { error } = await supabase.from('admin_audit_events').insert({
+    actor_user_id: input.actorUserId,
+    actor_email: input.actorEmail,
+    action: input.action,
+    target_user_id: input.targetUserId,
+    target_email: input.targetEmail ?? null,
+    metadata: input.metadata ?? {},
+  })
+  if (error) {
+    // Table may not exist until migration 038 is applied — don't fail the mutation.
+    console.error('[admin] audit write failed:', error.message)
+  }
+}
 
 export async function grantAdminCredits(
   userId: string,
-  amount: number
+  amount: number,
+  actor?: { id: string; email: string }
 ): Promise<{ error: string | null }> {
+  if (!Number.isFinite(amount) || amount < 1 || amount > 10000) {
+    return { error: 'Amount must be between 1 and 10,000' }
+  }
+
   const supabase = getSupabaseAdmin()
   const { data: sub } = await supabase
     .from('user_subscriptions')
@@ -322,26 +540,69 @@ export async function grantAdminCredits(
 
   if (!sub) return { error: 'Subscription not found' }
 
+  const next = (sub.credits_balance ?? 0) + Math.floor(amount)
   const { error } = await supabase
     .from('user_subscriptions')
-    .update({ credits_balance: (sub.credits_balance ?? 0) + amount })
+    .update({ credits_balance: next })
     .eq('user_id', userId)
 
-  return { error: error?.message ?? null }
+  if (error) return { error: error.message }
+
+  if (actor) {
+    const { data: target } = await supabase
+      .from('user' as never)
+      .select('email')
+      .eq('id' as never, userId)
+      .maybeSingle()
+    await writeAdminAudit({
+      actorUserId: actor.id,
+      actorEmail: actor.email,
+      action: 'grant_credits',
+      targetUserId: userId,
+      targetEmail: (target as { email?: string } | null)?.email ?? null,
+      metadata: { amount: Math.floor(amount), balance_after: next },
+    })
+  }
+
+  return { error: null }
 }
 
 export async function updateUserPlan(
   userId: string,
-  plan: 'free' | 'pro' | 'team'
+  plan: AdminPlanId,
+  actor?: { id: string; email: string }
 ): Promise<{ error: string | null }> {
+  if (!['free', 'pro', 'team'].includes(plan)) {
+    return { error: 'Invalid plan' }
+  }
+
   const supabase = getSupabaseAdmin()
+  const allowance = PLAN_CREDIT_ALLOWANCES[plan]
   const { error } = await supabase
     .from('user_subscriptions')
     .update({
       plan,
-      credits_balance: PLAN_CREDIT_ALLOWANCES[plan],
+      credits_balance: allowance,
     })
     .eq('user_id', userId)
 
-  return { error: error?.message ?? null }
+  if (error) return { error: error.message }
+
+  if (actor) {
+    const { data: target } = await supabase
+      .from('user' as never)
+      .select('email')
+      .eq('id' as never, userId)
+      .maybeSingle()
+    await writeAdminAudit({
+      actorUserId: actor.id,
+      actorEmail: actor.email,
+      action: 'change_plan',
+      targetUserId: userId,
+      targetEmail: (target as { email?: string } | null)?.email ?? null,
+      metadata: { plan, credits_reset_to: allowance },
+    })
+  }
+
+  return { error: null }
 }

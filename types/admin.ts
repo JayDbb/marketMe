@@ -1,13 +1,21 @@
 export type AdminPlanId = 'free' | 'pro' | 'team'
 
+/** Reserved for future suspend/ban controls — not yet mutable in UI. */
 export type AdminUserStatus = 'active' | 'suspended' | 'banned'
 
-export type SystemServiceStatus = 'operational' | 'degraded' | 'down' | 'unknown'
+/** `configured` = env present but not live-probed; `operational` = real check passed. */
+export type SystemServiceStatus =
+  | 'operational'
+  | 'degraded'
+  | 'down'
+  | 'configured'
+  | 'unknown'
 
 export interface SystemService {
   name: string
   status: SystemServiceStatus
   latencyMs?: number | null
+  detail?: string | null
 }
 
 export interface AdminUserRow {
@@ -38,14 +46,30 @@ export interface AdminWorkflowRow {
   isActive: boolean
 }
 
+export type AdminAuditEventType =
+  | 'user_signup'
+  | 'plan_change'
+  | 'credit_top_up'
+  | 'credit_spend'
+  | 'workflow_run'
+  | 'system_error'
+  | 'admin_action'
+
 export interface AdminAuditEvent {
   id: string
-  type: 'user_signup' | 'plan_change' | 'credit_top_up' | 'workflow_run' | 'system_error' | 'admin_action'
+  type: AdminAuditEventType
   description: string
   userId: string | null
   userEmail: string | null
   metadata: Record<string, unknown> | null
   createdAt: string
+}
+
+export interface AdminUserSearchResult {
+  users: AdminUserRow[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 export interface AdminDashboardStats {

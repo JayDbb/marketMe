@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Activity, LayoutDashboard, Mail, Rocket, Calendar as CalendarIcon, Edit3, Link2, MonitorPlay, Workflow, Sparkles, ShieldCheck } from "lucide-react"
 import { usePathname } from 'next/navigation'
 import { UserNav } from "@/components/dashboard/user-nav"
@@ -14,6 +15,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import type { AccountContext } from '@/types/billing'
@@ -47,12 +49,13 @@ const workspaceItems = [
   { href: '/onboarding', label: 'Setup Profile', tooltip: 'Setup Profile', icon: Rocket },
 ] as const
 
-const administrationItems = [
-  { href: '/dashboard/admin', label: 'Admin Console', tooltip: 'Admin Console', icon: ShieldCheck },
-] as const
-
 export function AppSidebar({ account }: { account: AccountContext }) {
   const pathname = usePathname()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false)
+  }, [pathname, isMobile, setOpenMobile])
 
   return (
     <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
@@ -72,7 +75,26 @@ export function AppSidebar({ account }: { account: AccountContext }) {
         <NavGroup label="Automate" items={automateItems} pathname={pathname} className="mt-3" />
         <NavGroup label="Workspace" items={workspaceItems} pathname={pathname} className="mt-3" />
         {account.isAdmin ? (
-          <NavGroup label="Administration" items={administrationItems} pathname={pathname} className="mt-3" />
+          <SidebarGroup className="mt-3">
+            <SidebarGroupLabel className="mb-1 px-4 text-[10px] font-semibold uppercase tracking-wider text-sky-500/80">
+              Administration
+            </SidebarGroupLabel>
+            <SidebarGroupContent className="px-2">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    render={<Link href="/dashboard/admin" />}
+                    tooltip="Admin Console"
+                    isActive={isNavActive(pathname, '/dashboard/admin')}
+                    className={`mt-0.5 ${navButtonClass}`}
+                  >
+                    <ShieldCheck className="mr-3 h-4 w-4 shrink-0 text-sky-500" />
+                    <span className="text-[14px] font-medium">Admin Console</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         ) : null}
       </SidebarContent>
 

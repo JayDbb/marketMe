@@ -1257,7 +1257,7 @@ export function GenerateContent({
               </div>
 
               <div className="mt-8 space-y-2">
-                <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-white/10 dark:bg-white/3">
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-[#161b22]">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-white/40">
                       Credit estimate
@@ -1415,7 +1415,7 @@ export function GenerateContent({
             className="flex min-h-[calc(100dvh-8rem)] w-full min-w-0 flex-col gap-6 px-6 lg:flex-row"
           >
             {/* Left Sidebar: Post List */}
-            <div className="flex w-full min-w-0 shrink-0 flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50/80 backdrop-blur-xl lg:w-80 xl:w-96 dark:border-white/10 dark:bg-[#161b22]/80">
+            <div className="flex w-full min-w-0 shrink-0 flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50 lg:w-80 xl:w-96 dark:border-white/10 dark:bg-[#161b22]">
               <div className="p-6 border-b border-zinc-200 dark:border-white/10 bg-white/2">
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1 tracking-tight">Review Content</h2>
                 <p className="text-zinc-500 dark:text-white/40 text-sm leading-relaxed">Approve or edit the AI-generated posts below before scheduling.</p>
@@ -1465,7 +1465,7 @@ export function GenerateContent({
 
             {/* Main Area: Selected Post Editor */}
             {selectedPost ? (
-              <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50/80 backdrop-blur-xl dark:border-white/10 dark:bg-[#161b22]/80">
+              <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-[#161b22]">
                 {/* Header */}
                 <div className="p-6 md:px-8 border-b border-zinc-200 dark:border-white/10 bg-white/2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
@@ -1663,7 +1663,7 @@ export function GenerateContent({
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center bg-white/2 border border-zinc-200 dark:border-white/10 rounded-3xl backdrop-blur-xl">
+              <div className="flex-1 flex flex-col items-center justify-center bg-zinc-50 border border-zinc-200 dark:border-white/10 dark:bg-[#161b22] rounded-3xl">
                 <div className="w-16 h-16 rounded-2xl bg-white dark:bg-white/5 border-zinc-200 border dark:border-white/10 flex items-center justify-center mb-4">
                   <AlignLeft className="w-8 h-8 text-zinc-500 dark:text-white/20" />
                 </div>

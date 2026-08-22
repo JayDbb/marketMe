@@ -384,7 +384,7 @@ export function OnboardingWizard({
           e.preventDefault()
           void handleNext()
         }}
-        className="relative z-10 w-full max-w-2xl rounded-2xl border border-white/15 bg-[#0d1117]/95 p-8 md:p-10"
+        className="relative z-10 w-full max-w-2xl rounded-2xl border border-white/15 bg-[#0d1117] p-8 md:p-10"
       >
         <div className="mb-2 text-xs font-medium uppercase tracking-widest text-white/40">
           Step {currentStep + 1} of {steps.length}

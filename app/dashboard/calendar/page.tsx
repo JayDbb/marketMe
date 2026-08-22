@@ -379,7 +379,7 @@ function CalendarPageInner() {
     <div className="flex h-[calc(100dvh-3.5rem)] min-h-[28rem] w-full gap-4 overflow-hidden p-4 lg:gap-6 lg:p-6">
       <div className="hidden h-full lg:flex">{sidebar}</div>
 
-      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-border bg-card/85 shadow-xl dark:border-white/10 dark:bg-[#161b22]/80">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-border bg-card shadow-xl dark:border-white/10 dark:bg-[#161b22]">
         <div className="flex shrink-0 flex-col gap-4 border-b border-zinc-200 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8 dark:border-white/5">
           <div className="min-w-0 lg:flex-1 lg:pr-4">
             <p className="mb-1 text-[10px] font-bold tracking-widest text-blue-500 uppercase dark:text-blue-400">

@@ -213,7 +213,7 @@ export function StudioEditor({
           className="hidden"
         />
 
-        <div className="w-72 shrink-0 flex flex-col min-h-0 overflow-hidden bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl shadow-xl">
+        <div className="w-72 shrink-0 flex flex-col min-h-0 overflow-hidden bg-zinc-50 dark:bg-[#161b22] border border-black/5 dark:border-white/10 rounded-2xl shadow-xl">
           <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
             <StudioToolsPanel
               canvasData={canvasData}
@@ -260,7 +260,7 @@ export function StudioEditor({
           />
         </div>
 
-        <div className="w-64 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl min-h-0">
+        <div className="w-64 shrink-0 flex flex-col bg-zinc-50 dark:bg-[#161b22] border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl min-h-0">
           <StudioLayersPanel
             canvasData={{ ...canvasData, layers }}
             selectedId={selectedId}

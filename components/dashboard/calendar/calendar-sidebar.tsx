@@ -225,7 +225,7 @@ export function CalendarSidebar({
   return (
     <div
       className={cn(
-        'relative z-10 flex w-[320px] shrink-0 flex-col overflow-x-hidden overflow-y-auto rounded-[2rem] border border-border bg-card/90 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.08)] custom-scrollbar dark:border-white/10 dark:bg-[#161b22]/90 dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)]',
+        'relative z-10 flex w-[320px] shrink-0 flex-col overflow-x-hidden overflow-y-auto rounded-[2rem] border border-border bg-card p-6 shadow-[0_20px_60px_rgba(0,0,0,0.08)] custom-scrollbar dark:border-white/10 dark:bg-[#161b22] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)]',
         className
       )}
     >

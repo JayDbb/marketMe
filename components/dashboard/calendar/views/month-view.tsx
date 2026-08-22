@@ -104,7 +104,7 @@ export function MonthView({
               }}
               className={cn(
                 'relative flex h-full min-h-[96px] cursor-pointer flex-col p-2 text-left select-none',
-                'bg-zinc-50/90 transition-colors dark:bg-[#161b22]/90',
+                'bg-zinc-50 transition-colors dark:bg-[#161b22]',
                 'focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_rgba(59,130,246,0.6)]',
                 cell.isCurrentMonth
                   ? 'hover:bg-white dark:hover:bg-white/[0.07]'

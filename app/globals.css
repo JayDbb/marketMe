@@ -246,15 +246,15 @@ body {
 .dashboard-grid-bg {
   background-size: 40px 40px;
   background-image:
-    linear-gradient(to right, oklch(0.45 0.02 278 / 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(0.45 0.02 278 / 0.045) 1px, transparent 1px);
+    linear-gradient(to right, oklch(0.45 0.02 278 / 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.45 0.02 278 / 0.03) 1px, transparent 1px);
 }
 
 .dark .dashboard-grid-bg {
   background-size: 40px 40px;
   background-image:
-    linear-gradient(to right, #ffffff0a 1px, transparent 1px),
-    linear-gradient(to bottom, #ffffff0a 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
 }
 
 .dark .bg-grid-pattern {
@@ -263,23 +263,21 @@ body {
     linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
 }
 
-/* Glassmorphism Refraction */
+/* Solid panel surfaces — opaque so grid backgrounds never show through (brightness-safe). */
 .glass-panel {
-  background: oklch(0.9 0.012 278 / 0.78);
-  backdrop-filter: blur(12px);
-  border: 1px solid oklch(0.8 0.014 278 / 0.6);
-  box-shadow: 
-    0 4px 30px rgba(0, 0, 0, 0.035),
-    inset 0 1px 0 oklch(1 0 0 / 0.18);
+  background: oklch(0.985 0.004 278);
+  border: 1px solid oklch(0.88 0.01 278);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 oklch(1 0 0 / 0.5);
 }
 
 .dark .glass-panel {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow:
-    0 4px 30px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 /* Hide scrollbars but keep scrolling */

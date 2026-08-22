@@ -127,8 +127,8 @@ export function StudioUploadZone({
         onClick={() => inputRef.current?.click()}
         className={`relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-12 cursor-pointer ui-transition select-none ${
           isDragging
-            ? 'border-purple-400/70 bg-purple-500/6'
-            : 'border-zinc-200 dark:border-white/10 bg-white/50 dark:bg-white/2'
+            ? 'border-purple-400/70 bg-purple-950'
+            : 'border-zinc-200 bg-white dark:border-white/10 dark:bg-[#161b22]'
         }`}
       >
         <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
@@ -157,7 +157,7 @@ export function StudioUploadZone({
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/3 overflow-hidden"
+      className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#161b22]"
     >
       <div className="flex gap-0 flex-col sm:flex-row">
         {preview && (

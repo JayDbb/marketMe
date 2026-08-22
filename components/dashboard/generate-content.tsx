@@ -337,7 +337,7 @@ function TemplateSourcePicker({
           className={`rounded-xl border px-3 py-3 text-left transition-colors ${
             value === 'ai'
               ? 'border-blue-500/40 bg-blue-500/10'
-              : 'border-zinc-200 bg-zinc-50 hover:border-blue-500/30 dark:border-white/10 dark:bg-white/5'
+              : 'border-zinc-200 bg-zinc-50 hover:border-blue-500/30 dark:border-white/10 dark:bg-[#0f1419]'
           }`}
         >
           <p className={`text-sm font-semibold ${value === 'ai' ? 'text-blue-700 dark:text-blue-300' : 'text-zinc-900 dark:text-white/80'}`}>
@@ -354,7 +354,7 @@ function TemplateSourcePicker({
           className={`rounded-xl border px-3 py-3 text-left transition-colors ${
             value === 'user'
               ? 'border-blue-500/40 bg-blue-500/10'
-              : 'border-zinc-200 bg-zinc-50 hover:border-blue-500/30 dark:border-white/10 dark:bg-white/5'
+              : 'border-zinc-200 bg-zinc-50 hover:border-blue-500/30 dark:border-white/10 dark:bg-[#0f1419]'
           }`}
         >
           <p className={`text-sm font-semibold ${value === 'user' ? 'text-blue-700 dark:text-blue-300' : 'text-zinc-900 dark:text-white/80'}`}>
@@ -1005,7 +1005,7 @@ export function GenerateContent({
   return (
     <div className="relative w-full min-h-[calc(100dvh-2rem)] flex flex-col items-center pt-8 pb-12">
       {(flowState === 'setup' ? setupNotice : flowNotice) ? (
-        <div className="w-full max-w-3xl px-6 pb-4">
+        <div className="w-full max-w-3xl px-4 pb-4 sm:px-6">
           <InlineNotice
             tone={(flowState === 'setup' ? setupNotice : flowNotice)?.tone}
             title={(flowState === 'setup' ? setupNotice : flowNotice)?.title}
@@ -1025,7 +1025,7 @@ export function GenerateContent({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-            className="w-full max-w-3xl px-6 relative z-10"
+            className="relative z-10 w-full max-w-3xl px-4 sm:px-6"
           >
             <div className="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -1049,7 +1049,7 @@ export function GenerateContent({
             </div>
 
             <div className="mb-6 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600 dark:border-white/10 dark:bg-[#0f1419] dark:text-white/70">
                 <Coins className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" />
                 {ctx.creditsBalance}
                 {ctx.creditsLimit != null ? ` / ${ctx.creditsLimit}` : ''} credits
@@ -1058,7 +1058,7 @@ export function GenerateContent({
                 </span>
               </span>
               {ctx.creditsResetAt ? (
-                <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+                <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600 dark:border-white/10 dark:bg-[#0f1419] dark:text-white/70">
                   {new Date(ctx.creditsResetAt).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
@@ -1067,12 +1067,12 @@ export function GenerateContent({
                 </span>
               ) : null}
               {ctx.businessName ? (
-                <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+                <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600 dark:border-white/10 dark:bg-[#0f1419] dark:text-white/70">
                   {ctx.businessName}
                 </span>
               ) : null}
               {ctx.industry ? (
-                <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+                <span className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600 dark:border-white/10 dark:bg-[#0f1419] dark:text-white/70">
                   {ctx.industry}
                 </span>
               ) : null}
@@ -1112,7 +1112,7 @@ export function GenerateContent({
               </div>
             )}
 
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-white/10 dark:bg-white/3 md:p-8">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-white/10 dark:bg-[#161b22] md:p-8">
               <div className="space-y-2">
                 <label
                   htmlFor="generate-topic"
@@ -1151,7 +1151,7 @@ export function GenerateContent({
                         className={`h-9 rounded-lg px-3 text-sm font-medium transition-colors ${
                           selected
                             ? 'bg-blue-600 text-white'
-                            : 'border border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-blue-500/40 dark:border-white/10 dark:bg-white/5 dark:text-white/70'
+                            : 'border border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-blue-500/40 dark:border-white/10 dark:bg-[#0f1419] dark:text-white/70'
                         }`}
                       >
                         {platform}
@@ -1180,7 +1180,7 @@ export function GenerateContent({
                         className={`h-9 min-w-10 rounded-lg px-3 text-sm font-medium tabular-nums transition-colors ${
                           selected
                             ? 'bg-blue-600 text-white'
-                            : 'border border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-blue-500/40 dark:border-white/10 dark:bg-white/5 dark:text-white/70'
+                            : 'border border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-blue-500/40 dark:border-white/10 dark:bg-[#0f1419] dark:text-white/70'
                         }`}
                       >
                         {count}
@@ -1327,7 +1327,7 @@ export function GenerateContent({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-            className="w-full max-w-xl px-6 relative z-10 py-10"
+            className="relative z-10 w-full max-w-xl px-4 py-10 sm:px-6"
           >
             <p className="text-xs font-medium uppercase tracking-widest text-blue-400/80 mb-1">
               Generate
@@ -1412,11 +1412,11 @@ export function GenerateContent({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="flex min-h-[calc(100dvh-8rem)] w-full min-w-0 flex-col gap-6 px-6 lg:flex-row"
+            className="flex min-h-[calc(100dvh-8rem)] w-full min-w-0 flex-col gap-6 px-4 sm:px-6 lg:flex-row"
           >
             {/* Left Sidebar: Post List */}
             <div className="flex w-full min-w-0 shrink-0 flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50 lg:w-80 xl:w-96 dark:border-white/10 dark:bg-[#161b22]">
-              <div className="p-6 border-b border-zinc-200 dark:border-white/10 bg-white/2">
+              <div className="p-6 border-b border-zinc-200 dark:border-white/10 bg-[#0f1419]">
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1 tracking-tight">Review Content</h2>
                 <p className="text-zinc-500 dark:text-white/40 text-sm leading-relaxed">Approve or edit the AI-generated posts below before scheduling.</p>
                 <AiContentNotice className="mt-4" />
@@ -1433,7 +1433,7 @@ export function GenerateContent({
                       onClick={() => setSelectedPostId(post.id)}
                       className={`relative w-full overflow-hidden rounded-2xl border p-5 text-left ui-transition duration-300 group ${isActive
                         ? 'border-blue-500/40 bg-blue-500/10'
-                        : 'border-zinc-200 bg-white hover:bg-white dark:border-white/8 dark:bg-white/4 dark:hover:border-white/20 dark:hover:bg-white/8'
+                        : 'border-zinc-200 bg-white hover:bg-white dark:border-white/8 dark:bg-[#0f1419] dark:hover:border-white/20 dark:hover:bg-[#1a222d]'
                         }`}
                     >
                       {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-2xl" />}
@@ -1467,7 +1467,7 @@ export function GenerateContent({
             {selectedPost ? (
               <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-[#161b22]">
                 {/* Header */}
-                <div className="p-6 md:px-8 border-b border-zinc-200 dark:border-white/10 bg-white/2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="p-6 md:px-8 border-b border-zinc-200 dark:border-white/10 bg-[#0f1419] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h3 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">{selectedPost.title}</h3>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
@@ -1489,15 +1489,15 @@ export function GenerateContent({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
                     {selectedPost.status !== 'rejected' && selectedPost.status !== 'scheduled' && (
-                      <Button onClick={() => updatePostStatus(selectedPost.id, 'rejected')} variant="outline" className="h-10 px-5 rounded-xl border-zinc-200 dark:border-white/10 text-zinc-500 dark:text-white/60 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 ui-transition">
+                      <Button onClick={() => updatePostStatus(selectedPost.id, 'rejected')} variant="outline" className="h-11 w-full rounded-xl border-zinc-200 px-5 text-zinc-500 ui-transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 sm:w-auto dark:border-white/10 dark:text-white/60">
                         Reject
                       </Button>
                     )}
                     {selectedPost.status !== 'approved' && selectedPost.status !== 'scheduled' && (
-                      <Button onClick={() => updatePostStatus(selectedPost.id, 'approved')} className="h-10 px-6 rounded-xl bg-blue-600 font-semibold text-white hover:bg-blue-500 ui-transition">
-                        <Check className="w-4 h-4 mr-2" aria-hidden="true" /> Approve
+                      <Button onClick={() => updatePostStatus(selectedPost.id, 'approved')} className="h-11 w-full rounded-xl bg-blue-600 px-6 font-semibold text-white ui-transition hover:bg-blue-500 sm:w-auto">
+                        <Check className="mr-2 w-4 h-4" aria-hidden="true" /> Approve
                       </Button>
                     )}
                   </div>
@@ -1683,7 +1683,7 @@ export function GenerateContent({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-lg px-6 relative z-10 py-16 text-center"
+            className="relative z-10 w-full max-w-lg px-4 py-16 text-center sm:px-6"
           >
             <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full border border-blue-500/30 bg-blue-500/10">
               <CheckCircle2 className="h-10 w-10 text-blue-400" aria-hidden="true" />

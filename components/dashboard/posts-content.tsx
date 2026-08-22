@@ -414,7 +414,7 @@ export function PostsContent({
         <div
           role="tablist"
           aria-label="Post views"
-          className="flex w-full gap-1 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 dark:border-white/10 dark:bg-white/5 lg:w-auto"
+          className="flex w-full gap-1 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 dark:border-white/10 dark:bg-[#161b22] lg:w-auto"
         >
           {POST_INBOX_TABS.map((id) => {
             const active = tab === id
@@ -482,14 +482,14 @@ export function PostsContent({
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="Search captions…"
-              className="h-10 rounded-xl border-zinc-200 bg-white pl-10 shadow-none dark:border-white/10 dark:bg-white/5 dark:text-white"
+              className="h-10 rounded-xl border-zinc-200 bg-white pl-10 shadow-none dark:border-white/10 dark:bg-[#161b22] dark:text-white"
             />
           </form>
         </div>
       </div>
 
       {showBulk && selectedIds.length > 0 ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm dark:border-white/10 dark:bg-white/5">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm dark:border-white/10 dark:bg-[#161b22]">
           <span className="text-zinc-600 dark:text-white/60">
             {selectedIds.length} selected
           </span>
@@ -516,7 +516,7 @@ export function PostsContent({
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-white/10 dark:bg-white/2">
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#161b22]">
         {posts.length === 0 ? (
           <div className="flex flex-col items-center px-6 py-20 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-white/10 dark:bg-white/5">

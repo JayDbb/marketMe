@@ -16,7 +16,7 @@ export function StudioRecentsSection({ items, onOpen }: StudioRecentsSectionProp
   if (items.length === 0) return null
 
   return (
-    <section className="mb-6 rounded-xl border border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-white/3 px-4 py-3">
+    <section className="mb-6 rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#161b22]">
       <div className="flex items-center gap-2 mb-3">
         <Clock className="w-3.5 h-3.5 text-blue-400" />
         <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-white/60">

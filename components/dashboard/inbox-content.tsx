@@ -61,7 +61,8 @@ function useIsDesktopInbox() {
   return useSyncExternalStore(
     subscribeLg,
     () => window.matchMedia('(min-width: 1024px)').matches,
-    () => true
+    // Prefer mobile sheet until hydrate so phones don’t miss the thread pane.
+    () => false
   )
 }
 
@@ -102,7 +103,7 @@ export function InboxSkeleton() {
 
 function InboxConnectBanner() {
   return (
-    <div className="rounded-2xl border border-sky-500/25 bg-sky-500/5 p-8 text-center">
+    <div className="rounded-2xl border border-sky-500/40 bg-sky-950 p-8 text-center">
       <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-sky-500/15">
         <Link2 className="size-7 text-sky-600 dark:text-sky-400" />
       </div>
@@ -299,7 +300,7 @@ export function InboxContent() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search conversations…"
               disabled={!hasInstagram}
-              className="h-10 rounded-xl border-zinc-200 bg-white pl-10 focus-visible:border-sky-400/50 focus-visible:ring-0 dark:border-white/10 dark:bg-white/5"
+              className="h-10 rounded-xl border-zinc-200 bg-white pl-10 focus-visible:border-sky-400/50 focus-visible:ring-0 dark:border-white/10 dark:bg-[#161b22]"
             />
           </div>
           <button
@@ -322,8 +323,8 @@ export function InboxContent() {
           className={cn(
             'mb-4 flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-start sm:justify-between',
             bannerTone === 'amber'
-              ? 'border-amber-500/25 bg-amber-500/8'
-              : 'border-sky-500/25 bg-sky-500/8'
+              ? 'border-amber-500/40 bg-amber-950'
+              : 'border-sky-500/40 bg-sky-950'
           )}
         >
           <div className="flex min-w-0 gap-3">
@@ -349,7 +350,7 @@ export function InboxContent() {
           {needsReconnect ? (
             <Link
               href="/dashboard/connections"
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-500"
+              className="inline-flex h-11 min-h-11 shrink-0 items-center justify-center rounded-lg bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-500"
             >
               <Link2 className="mr-1.5 size-3.5" />
               Reconnect
@@ -359,12 +360,12 @@ export function InboxContent() {
       ) : null}
 
       {hasInstagram ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white/40 dark:border-white/10 dark:bg-white/2">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#161b22]">
           <div className="flex shrink-0 flex-col gap-3 border-b border-zinc-200 px-3 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/8">
             <div
               role="tablist"
               aria-label="Inbox type"
-              className="flex gap-1 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 dark:border-white/10 dark:bg-white/5"
+              className="flex gap-1 overflow-x-auto rounded-xl border border-zinc-200 bg-zinc-50 p-1 dark:border-white/10 dark:bg-[#0f1419]"
             >
               {TYPE_TABS.map((tab) => {
                 const active = type === tab.id
@@ -376,9 +377,9 @@ export function InboxContent() {
                     aria-selected={active}
                     onClick={() => setInboxQuery({ type: tab.id })}
                     className={cn(
-                      'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                      'inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
                       active
-                        ? 'border border-zinc-200 bg-white text-zinc-900 dark:border-white/5 dark:bg-white/10 dark:text-white'
+                        ? 'border border-zinc-200 bg-white text-zinc-900 dark:border-white/10 dark:bg-[#1c2330] dark:text-white'
                         : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
                     )}
                   >
@@ -400,7 +401,7 @@ export function InboxContent() {
                     aria-pressed={active}
                     onClick={() => setInboxQuery({ status: tab.id })}
                     className={cn(
-                      'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                      'inline-flex min-h-11 items-center rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
                       active
                         ? 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300'
                         : 'border-zinc-200 text-zinc-500 hover:border-sky-500/30 dark:border-white/10 dark:text-white/50'

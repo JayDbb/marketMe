@@ -299,7 +299,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-7xl mx-auto px-6 py-10 relative z-10"
+      className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10"
     >
       {loadError ? (
         <div
@@ -344,7 +344,7 @@ export function StudioContent({ initialTemplates, brandKit, loadError = null }: 
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-white/4 border border-zinc-200 dark:border-white/8 rounded-xl p-1 mb-6 w-fit">
+      <div className="mb-6 flex w-fit flex-wrap items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1 dark:border-white/10 dark:bg-[#161b22]">
         {TABS.map((tab) => {
           const Icon = tab.icon
           const count =
@@ -526,7 +526,7 @@ function TemplateGrid({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search templates…"
             aria-label="Search templates"
-            className="pl-9 h-9 w-52 bg-white dark:bg-white/5 border-zinc-200 dark:border-white/10 rounded-xl text-sm"
+            className="pl-9 h-9 w-52 bg-white dark:bg-[#161b22] border-zinc-200 dark:border-white/10 rounded-xl text-sm"
           />
         </div>
         <div className="flex flex-wrap gap-1" role="tablist" aria-label="Template categories">
@@ -590,7 +590,7 @@ function EmptyState({
   action?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center gap-3 border border-dashed border-zinc-200 dark:border-white/10 rounded-2xl bg-white/50 dark:bg-white/2">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-200 bg-white py-16 text-center dark:border-white/10 dark:bg-[#161b22]">
       <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
         <Icon className="w-5 h-5 text-blue-400" />
       </div>

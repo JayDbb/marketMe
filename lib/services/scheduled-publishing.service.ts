@@ -49,7 +49,23 @@ export async function publishDueScheduledPosts(): Promise<ScheduledPublishResult
     throw new Error(`Failed to query scheduled posts: ${error.message}`)
   }
 
-  const due = (posts ?? []) as DuePostRow[]
+  const rawPosts = (posts ?? []) as unknown as Array<{
+    id: string
+    image_url: string | null
+    content_plans:
+    | { business_profile_id: string | null }
+    | Array<{ business_profile_id: string | null }>
+    | null
+  }>
+
+  const due: DuePostRow[] = rawPosts.map((post) => ({
+    id: post.id,
+    image_url: post.image_url,
+    content_plans: Array.isArray(post.content_plans)
+      ? post.content_plans[0] ?? null
+      : post.content_plans,
+  }))
+
   if (due.length === 0) {
     return {
       success: true,

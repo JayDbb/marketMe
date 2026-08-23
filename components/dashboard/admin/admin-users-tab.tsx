@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -287,11 +287,11 @@ function UserDetailSheet({
               <dd className="mt-1 text-xs">
                 {user.lastActiveAt
                   ? new Date(user.lastActiveAt).toLocaleString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })
                   : 'Never'}
               </dd>
             </div>
@@ -309,15 +309,31 @@ function UserDetailSheet({
 
 export function AdminUsersTab({ stats }: { stats: AdminDashboardStats }) {
   const { q, plan, userId, setParams } = useAdminUrlState()
+
+  // Safely derive props to state without triggering setState inside useEffect
+  const [prevQ, setPrevQ] = useState(q)
   const [localQuery, setLocalQuery] = useState(q)
+  if (q !== prevQ) {
+    setPrevQ(q)
+    setLocalQuery(q)
+  }
+
+  const [prevStatsUsers, setPrevStatsUsers] = useState(stats.users)
   const [rows, setRows] = useState<AdminUserRow[]>(stats.users)
   const [total, setTotal] = useState(stats.users.length)
+  if (stats.users !== prevStatsUsers) {
+    setPrevStatsUsers(stats.users)
+    setRows(stats.users)
+    setTotal(stats.users.length)
+  }
+
   const [page, setPage] = useState(1)
   const [searching, startSearch] = useTransition()
 
-  useEffect(() => {
-    setLocalQuery(q)
-  }, [q])
+  // Pure initial state calculation for pure rendering rules
+  const [thirtyMinsAgo] = useState(() =>
+    new Date(Date.now() - 30 * 60 * 1000).toISOString()
+  )
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -344,16 +360,6 @@ export function AdminUsersTab({ stats }: { stats: AdminDashboardStats }) {
       }
     })
   }, [q, plan, page])
-
-  useEffect(() => {
-    setRows(stats.users)
-    setTotal(stats.users.length)
-  }, [stats.users])
-
-  const thirtyMinsAgo = useMemo(
-    () => new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    []
-  )
 
   const onlineCount = rows.filter(
     (u) => u.lastActiveAt && u.lastActiveAt > thirtyMinsAgo
@@ -547,11 +553,11 @@ export function AdminUsersTab({ stats }: { stats: AdminDashboardStats }) {
                           ) : null}
                           {u.lastActiveAt
                             ? new Date(u.lastActiveAt).toLocaleString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                              })
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })
                             : 'Never'}
                         </span>
                       </td>

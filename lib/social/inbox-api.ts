@@ -23,7 +23,7 @@ export interface InboxSyncStatus {
 
 export interface InboxResponse {
   messages: InboxMessage[]
-  conversations: any[]
+  conversations: Record<string, unknown>[]
   account?: InboxAccountSummary | null
   syncStatus?: InboxSyncStatus | null
   warning?: string | null
@@ -85,7 +85,7 @@ export async function fetchInboxMessages(
   }
 }
 
-export async function fetchInboxConversation(conversationId: string): Promise<any> {
+export async function fetchInboxConversation(conversationId: string): Promise<Record<string, unknown>> {
   const res = await fetch(`${API_BASE_URL}/inbox/conversations/${conversationId}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },

@@ -44,11 +44,15 @@ const RUN_STATUS_CONFIG: Record<
 
 export function AdminWorkflowsTab({ stats }: { stats: AdminDashboardStats }) {
   const { q, wf, setParams } = useAdminUrlState()
+
+  // Safely derive props to state without triggering setState inside useEffect
+  const [prevQ, setPrevQ] = useState(q)
   const [localQuery, setLocalQuery] = useState(q)
 
-  useEffect(() => {
+  if (q !== prevQ) {
+    setPrevQ(q)
     setLocalQuery(q)
-  }, [q])
+  }
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -261,11 +265,11 @@ export function AdminWorkflowsTab({ stats }: { stats: AdminDashboardStats }) {
                       <td className="px-3 py-3 text-right text-[11px] text-muted-foreground">
                         {w.lastRunAt
                           ? new Date(w.lastRunAt).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            })
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })
                           : 'Never'}
                       </td>
                       <td className="px-4 py-3 text-right">

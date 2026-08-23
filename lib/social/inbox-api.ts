@@ -1,4 +1,4 @@
-import type { InboxMessage, SocialConnection } from '@/types/social'
+import type { InboxConversation, InboxMessage, SocialConnection } from '@/types/social'
 import { getDemoInboxMessages } from '@/lib/social/demo-inbox'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://marketme-api-9oap.onrender.com'
@@ -23,7 +23,7 @@ export interface InboxSyncStatus {
 
 export interface InboxResponse {
   messages: InboxMessage[]
-  conversations: Record<string, unknown>[]
+  conversations: InboxConversation[]
   account?: InboxAccountSummary | null
   syncStatus?: InboxSyncStatus | null
   warning?: string | null
@@ -49,7 +49,6 @@ export async function fetchInboxMessages(
     }
   }
 
-  // Serve demo data if requested explicitly
   if (options?.useDemoData) {
     return getDemoResponse()
   }
@@ -61,7 +60,6 @@ export async function fetchInboxMessages(
       credentials: 'include',
     })
 
-    // Catch non-200 responses (like 404) without throwing an exception
     if (!res.ok) {
       return getDemoResponse()
     }
@@ -80,12 +78,11 @@ export async function fetchInboxMessages(
 
     return data
   } catch {
-    // Return fallback demo data on network error
     return getDemoResponse()
   }
 }
 
-export async function fetchInboxConversation(conversationId: string): Promise<Record<string, unknown>> {
+export async function fetchInboxConversation(conversationId: string): Promise<InboxConversation> {
   const res = await fetch(`${API_BASE_URL}/inbox/conversations/${conversationId}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },

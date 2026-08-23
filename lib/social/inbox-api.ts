@@ -35,45 +35,58 @@ export async function fetchInboxMessages(
 ): Promise<InboxResponse> {
   const connected = options?.connections?.filter((c) => c.status === 'connected') || []
 
-  if (options?.useDemoData !== false && connected.length > 0) {
+  // Helper to construct a demo response
+  const getDemoResponse = (): InboxResponse => {
     const instagram = connected.find((c) => c.platform === 'instagram')
-    if (instagram) {
-      const demoMsgs = getDemoInboxMessages(instagram.id)
-      return {
-        messages: demoMsgs,
-        conversations: [],
-        account: null,
-        syncStatus: { isSyncing: false },
-        warning: null,
-        error: null,
-      }
-    }
-  }
-
-  const res = await fetch(`${API_BASE_URL}/inbox/messages`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  })
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}))
-    throw new Error(errorData.detail || errorData.error || 'Failed to fetch inbox messages')
-  }
-
-  const data = await res.json()
-  if (Array.isArray(data)) {
+    const connectionId = instagram?.id || 'demo-ig-id'
+    const demoMsgs = getDemoInboxMessages(connectionId)
     return {
-      messages: data,
+      messages: demoMsgs,
       conversations: [],
       account: null,
-      syncStatus: null,
+      syncStatus: { isSyncing: false },
       warning: null,
       error: null,
     }
   }
 
-  return data
+  // 1. Force demo data if explicitly requested
+  if (options?.useDemoData) {
+    return getDemoResponse()
+  }
+
+  // 2. Try reaching the backend API
+  try {
+    const res = await fetch(`${API_BASE_URL}/inbox/messages`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    })
+
+    if (!res.ok) {
+      // Endpoint returned 404 or server error -> fall back to demo data
+      console.warn(`Inbox API returned ${res.status}. Falling back to demo data.`)
+      return getDemoResponse()
+    }
+
+    const data = await res.json()
+    if (Array.isArray(data)) {
+      return {
+        messages: data,
+        conversations: [],
+        account: null,
+        syncStatus: null,
+        warning: null,
+        error: null,
+      }
+    }
+
+    return data
+  } catch (err) {
+    // 3. Network or server error -> fall back to demo data
+    console.warn('Failed to fetch live inbox messages. Serving fallback demo data.')
+    return getDemoResponse()
+  }
 }
 
 export async function fetchInboxConversation(conversationId: string): Promise<any> {

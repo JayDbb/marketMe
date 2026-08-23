@@ -51,10 +51,10 @@ function ConversationCard({
       layout
       onClick={onSelect}
       className={`w-full text-left rounded-xl p-3.5 border transition-all ${isSelected
-          ? 'bg-blue-500/10 border-blue-500/40'
-          : isUnread
-            ? 'bg-white dark:bg-white/8 border-zinc-200 dark:border-white/15 hover:bg-zinc-50 dark:hover:bg-white/10'
-            : 'bg-white/60 dark:bg-white/3 border-zinc-200/80 dark:border-white/8 hover:bg-white dark:hover:bg-white/6'
+        ? 'bg-blue-500/10 border-blue-500/40'
+        : isUnread
+          ? 'bg-white dark:bg-white/8 border-zinc-200 dark:border-white/15 hover:bg-zinc-50 dark:hover:bg-white/10'
+          : 'bg-white/60 dark:bg-white/3 border-zinc-200/80 dark:border-white/8 hover:bg-white dark:hover:bg-white/6'
         }`}
     >
       <div className="flex items-start gap-3">
@@ -79,8 +79,8 @@ function ConversationCard({
           </p>
           <p
             className={`text-xs leading-relaxed line-clamp-2 ${isUnread
-                ? 'text-zinc-800 dark:text-white/85 font-medium'
-                : 'text-zinc-500 dark:text-white/55'
+              ? 'text-zinc-800 dark:text-white/85 font-medium'
+              : 'text-zinc-500 dark:text-white/55'
               }`}
           >
             {latest?.preview || latest?.body || 'No messages yet'}
@@ -111,10 +111,10 @@ function MessageCard({
       layout
       onClick={onSelect}
       className={`w-full text-left rounded-xl p-3.5 border transition-all ${isSelected
-          ? 'bg-blue-500/10 border-blue-500/40'
-          : isUnread
-            ? 'bg-white dark:bg-white/8 border-zinc-200 dark:border-white/15 hover:bg-zinc-50 dark:hover:bg-white/10'
-            : 'bg-white/60 dark:bg-white/3 border-zinc-200/80 dark:border-white/8 hover:bg-white dark:hover:bg-white/6'
+        ? 'bg-blue-500/10 border-blue-500/40'
+        : isUnread
+          ? 'bg-white dark:bg-white/8 border-zinc-200 dark:border-white/15 hover:bg-zinc-50 dark:hover:bg-white/10'
+          : 'bg-white/60 dark:bg-white/3 border-zinc-200/80 dark:border-white/8 hover:bg-white dark:hover:bg-white/6'
         }`}
     >
       <div className="flex items-start gap-3">
@@ -133,8 +133,8 @@ function MessageCard({
           </p>
           <p
             className={`text-xs leading-relaxed line-clamp-2 ${isUnread
-                ? 'text-zinc-800 dark:text-white/85 font-medium'
-                : 'text-zinc-500 dark:text-white/55'
+              ? 'text-zinc-800 dark:text-white/85 font-medium'
+              : 'text-zinc-500 dark:text-white/55'
               }`}
           >
             {message.preview || message.body}
@@ -383,3 +383,5 @@ export function InboxSkeleton() {
     </div>
   )
 }
+
+//updated

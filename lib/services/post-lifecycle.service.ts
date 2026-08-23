@@ -1,9 +1,11 @@
+import { isAutoPublishEnabled } from '@/lib/auto-publish'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { moderatePost } from '@/lib/services/moderation.service'
 import {
   recordApprovalSignal,
   recordRejectFeedback,
 } from '@/lib/services/brand-memory.service'
+import { publishToInstagram } from '@/lib/services/marketing-ai.service'
 import type { Post, PostStatus } from '@/types/content-plan'
 
 export class PostLifecycleError extends Error {
@@ -108,9 +110,9 @@ export async function transitionPostStatus(
       }
     }
 
-    if (nextStatus === 'published' && process.env.ENABLE_AUTO_PUBLISH !== 'true') {
+    if (nextStatus === 'published' && !isAutoPublishEnabled()) {
       throw new PostLifecycleError(
-        'Publishing is not enabled yet. Connect Instagram to publish posts.',
+        'Instagram auto-publish is disabled. Set ENABLE_AUTO_PUBLISH=true (or INSTAGRAM_PUBLISH_ENABLED=true) and connect Instagram.',
         503
       )
     }
@@ -314,6 +316,131 @@ export async function updateExistingPostForSchedule(
       return { data: null, error: error.message }
     }
 
+    return {
+      data: null,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+async function resolveBusinessProfileId(post: Post): Promise<string | null> {
+  if (post.business_profile_id) {
+    return post.business_profile_id
+  }
+
+  if (!post.content_plan_id) {
+    return null
+  }
+
+  const { data } = await supabaseAdmin
+    .from('content_plans')
+    .select('business_profile_id')
+    .eq('id', post.content_plan_id)
+    .maybeSingle()
+
+  return (data?.business_profile_id as string | undefined) ?? null
+}
+
+/**
+ * Publish a post to Instagram immediately (not via the scheduled cron).
+ * Approves drafts first when needed.
+ */
+export async function publishPostNow(
+  userId: string,
+  postId: string
+): Promise<{ data: Post | null; error: string | null; instagramPostId?: string }> {
+  try {
+    let post = await getOwnedPost(userId, postId)
+    const status = post.status as PostStatus
+
+    if (status === 'published') {
+      throw new PostLifecycleError('This post is already published')
+    }
+
+    if (status === 'draft' || status === 'rejected') {
+      const approved = await transitionPostStatus(userId, postId, 'approved')
+      if (approved.error || !approved.data) {
+        return {
+          data: null,
+          error: approved.error ?? 'Approval failed before publishing',
+        }
+      }
+      post = approved.data
+    }
+
+    const imageUrl = post.image_url?.trim().replace(/\?+$/, '')
+    if (!imageUrl) {
+      throw new PostLifecycleError(
+        'Add an image before publishing to Instagram',
+        422
+      )
+    }
+
+    const businessProfileId = await resolveBusinessProfileId(post)
+    if (!businessProfileId) {
+      throw new PostLifecycleError(
+        'Connect a business profile before publishing',
+        422
+      )
+    }
+
+    let instagramPostId: string | undefined
+
+    try {
+      const result = await publishToInstagram({
+        post_id: post.id,
+        business_profile_id: businessProfileId,
+        image_url: imageUrl,
+      })
+      instagramPostId = result.instagram_post_id
+        ? String(result.instagram_post_id)
+        : undefined
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Instagram publishing failed'
+
+      await supabaseAdmin
+        .from('posts')
+        .update({
+          status: 'failed',
+          error_message: message.slice(0, 500),
+        })
+        .eq('id', postId)
+        .eq('user_id', userId)
+
+      return { data: null, error: message }
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('posts')
+      .update({
+        status: 'published',
+        error_message: null,
+        image_url: imageUrl,
+      })
+      .eq('id', postId)
+      .eq('user_id', userId)
+      .select()
+      .single()
+
+    if (error || !data) {
+      // Instagram already succeeded — surface a soft warning via returned data shape
+      return {
+        data: post,
+        error: null,
+        instagramPostId,
+      }
+    }
+
+    return {
+      data: data as Post,
+      error: null,
+      instagramPostId,
+    }
+  } catch (error) {
+    if (error instanceof PostLifecycleError) {
+      return { data: null, error: error.message }
+    }
     return {
       data: null,
       error: error instanceof Error ? error.message : 'Unknown error',

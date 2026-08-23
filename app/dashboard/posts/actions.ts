@@ -9,7 +9,10 @@ import {
   updateCalendarPostAction,
 } from '@/app/dashboard/calendar/actions'
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
-import { retryFailedPost } from '@/lib/services/post-lifecycle.service'
+import {
+  publishPostNow,
+  retryFailedPost,
+} from '@/lib/services/post-lifecycle.service'
 import { rateLimitMessage } from '@/lib/rate-limit'
 
 function revalidatePostPaths() {
@@ -57,6 +60,25 @@ export async function schedulePostAction(postId: string) {
   const result = await scheduleCalendarPostAction(postId)
   if (result.success) revalidatePostPaths()
   return result
+}
+
+export async function publishPostNowAction(postId: string) {
+  const user = await getAuthenticatedUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+
+  const limited = rateLimitMessage(`posts:publish-now:${user.id}`, 20, 60_000)
+  if (limited) return { success: false, error: limited }
+
+  const { data, error, instagramPostId } = await publishPostNow(user.id, postId)
+  if (error || !data) {
+    return { success: false, error: error ?? 'Publishing failed' }
+  }
+
+  revalidatePostPaths()
+  return {
+    success: true,
+    instagramPostId: instagramPostId ?? null,
+  }
 }
 
 export async function retryFailedPostAction(postId: string) {

@@ -544,17 +544,18 @@ export const instagramPublishing = task({
     postId: string
     businessId: string
     imageUrl: string
-    backendPostId?: number
+    backendPostId?: number | string
   }) => {
-    const backendPostId =
-      payload.backendPostId ??
-      // Local UUID posts cannot publish to API without a backend integer id.
-      // Use a deterministic hash of the local post id as a last resort.
-      toAiBusinessId(payload.postId)
+    // MarketMe posts use UUID `id`. Only use backendPostId when the AI API
+    // still expects a legacy integer/string key for an older posts table.
+    const publishPostId =
+      payload.backendPostId != null
+        ? String(payload.backendPostId)
+        : payload.postId
 
     try {
       const data = await publishToInstagram({
-        post_id: String(backendPostId),
+        post_id: publishPostId,
         // Publish API expects business_profiles.id UUID.
         business_id: payload.businessId,
         image_url: payload.imageUrl,
@@ -595,69 +596,39 @@ export const sendNotification = task({
 
 /**
  * Task 10: Scheduled Publishing (Cron)
+ * Publishes due posts without requiring the user to be online.
+ * Tokens live on MarketMe AI; this job only needs ENABLE_AUTO_PUBLISH.
  */
 export const scheduledPublishing = schedules.task({
   id: 'scheduled-publishing',
   cron: '*/15 * * * *',
   run: async () => {
-    if (process.env.ENABLE_AUTO_PUBLISH !== 'true') {
+    const { publishDueScheduledPosts } = await import(
+      '@/lib/services/scheduled-publishing.service'
+    )
+    const result = await publishDueScheduledPosts()
+
+    if (result.skipped) {
       console.log(
-        '[scheduled-publishing] Skipped — ENABLE_AUTO_PUBLISH is not true (Instagram not connected).'
+        '[scheduled-publishing] Skipped — set ENABLE_AUTO_PUBLISH=true or INSTAGRAM_PUBLISH_ENABLED=true.'
       )
       return { success: true, count: 0, skipped: true }
     }
 
-    const now = new Date().toISOString()
-
-    const { data: posts, error } = await supabaseAdmin
-      .from('posts')
-      .select('*, content_plans(business_profile_id)')
-      .eq('status', 'scheduled')
-      .not('approved_at', 'is', null)
-      .lte('scheduled_at', now)
-
-    if (error) {
-      throw new Error(`Failed to query scheduled posts: ${error.message}`)
-    }
-
-    if (!posts || posts.length === 0) {
+    if (result.count === 0 && result.failed === 0) {
       console.log('No scheduled posts due at this time.')
-      return { success: true, count: 0 }
+    } else {
+      console.log(
+        `[scheduled-publishing] published=${result.count} failed=${result.failed}`
+      )
     }
 
-    console.log(`Found ${posts.length} posts due for scheduling.`)
-
-    let count = 0
-    for (const post of posts) {
-      try {
-        const businessId = post.content_plans?.business_profile_id
-        if (!businessId) {
-          throw new Error(`Post ${post.id} content plan does not specify business_profile_id.`)
-        }
-        if (!post.image_url) {
-          throw new Error(`Post ${post.id} is missing an image_url.`)
-        }
-
-        await instagramPublishing.trigger({
-          postId: post.id,
-          businessId,
-          imageUrl: post.image_url,
-        })
-
-        count++
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err)
-        console.error(`Scheduled publishing failed for post ${post.id}:`, message)
-        await supabaseAdmin
-          .from('posts')
-          .update({
-            status: 'failed',
-            error_message: message.slice(0, 500),
-          })
-          .eq('id', post.id)
-      }
+    return {
+      success: result.success,
+      count: result.count,
+      failed: result.failed,
+      postIds: result.postIds,
+      errors: result.errors,
     }
-
-    return { success: true, count }
   },
 })

@@ -182,7 +182,7 @@ function OAuthReturnHandler({
 
 function ConnectionsSkeleton() {
   return (
-    <div className="relative z-10 mx-auto max-w-3xl px-6 py-10">
+    <div className="relative z-10 mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <div className="mb-8 space-y-2">
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-9 w-48" />
@@ -387,7 +387,7 @@ function InstagramRow({
                   type="button"
                   size="sm"
                   variant="destructive"
-                  className="h-8 flex-1 rounded-lg text-xs"
+                  className="h-11 min-h-11 flex-1 rounded-lg text-xs"
                   onClick={() => {
                     setConfirming(false)
                     onDisconnect()
@@ -399,7 +399,7 @@ function InstagramRow({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="h-8 rounded-lg text-xs"
+                  className="h-11 min-h-11 rounded-lg text-xs"
                   onClick={() => setConfirming(false)}
                 >
                   Cancel
@@ -469,7 +469,7 @@ function ConnectionsInner({
     : null
   const subtitle =
     health === 'connected'
-      ? `Publishing, scheduling, and inbox for ${connectedHandle ?? 'Instagram'}.`
+      ? `Connected for ${connectedHandle ?? 'Instagram'}. Tokens stay on the publish service — you can leave the site and scheduled posts still go out.`
       : health === 'saved_locally'
         ? 'Saved in MarketMe. Reconnect so Posts, Planner, and Inbox can verify with Meta.'
         : health === 'needs_reconnect'
@@ -481,7 +481,7 @@ function ConnectionsInner({
   }
 
   return (
-    <div className="relative z-10 mx-auto max-w-3xl px-6 py-10">
+    <div className="relative z-10 mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <div className="mb-8">
         <p className="mb-1 text-xs font-medium tracking-widest text-sky-600 uppercase dark:text-sky-400/80">
           Social

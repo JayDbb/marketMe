@@ -135,7 +135,7 @@ export function Navbar() {
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500 shadow-[0_0_12px_rgba(56,189,248,0.35)]">
                 <Activity className="h-5 w-5 text-white" aria-hidden="true" />
               </div>
-              <span className="font-serif text-xl font-medium tracking-tighter text-white">
+              <span className="truncate font-serif text-xl font-medium tracking-tighter text-white max-[360px]:max-w-[7.5rem]">
                 Marketme
               </span>
             </Link>
@@ -172,7 +172,7 @@ export function Navbar() {
             </LayoutGroup>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {!user ? (
               <Link
                 href="/login"
@@ -183,7 +183,7 @@ export function Navbar() {
             ) : null}
             <Link
               href={ctaHref}
-              className="inline-flex h-9 items-center justify-center rounded-full border-0 bg-white px-5 text-sm font-medium text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-[transform,background-color] duration-150 ease-out hover:bg-white/90 hover:scale-[1.02] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d1117]"
+              className="inline-flex h-9 max-w-[9.5rem] items-center justify-center truncate rounded-full border-0 bg-white px-3 text-sm font-medium text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-[transform,background-color] duration-150 ease-out hover:bg-white/90 hover:scale-[1.02] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d1117] sm:max-w-none sm:px-5"
             >
               {ctaLabel}
             </Link>

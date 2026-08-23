@@ -82,6 +82,8 @@ export interface Database {
           handle: string | null
           account_url: string | null
           connected_status: boolean
+          created_at: string
+          updated_at: string
         }
         Insert: {
           business_id?: number | null
@@ -89,6 +91,8 @@ export interface Database {
           handle?: string | null
           account_url?: string | null
           connected_status?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Update: {
           business_id?: number | null
@@ -96,6 +100,8 @@ export interface Database {
           handle?: string | null
           account_url?: string | null
           connected_status?: boolean
+          created_at?: string
+          updated_at?: string
         }
       }
       marketing_strategy: {

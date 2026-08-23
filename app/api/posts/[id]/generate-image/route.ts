@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import "@/lib/trigger-env";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { generateImage } from "@/src/trigger/content-generator";
 import { requireAuth, AuthError } from "@/lib/services/auth.service";

@@ -146,7 +146,7 @@ export function DashboardContent({
   ]
 
   return (
-    <div className="relative z-10 mx-auto max-w-6xl px-6 py-10">
+    <div className="relative z-10 mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
       <div className="mb-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -166,7 +166,7 @@ export function DashboardContent({
           {showHeaderGenerate ? (
             <Link
               href="/dashboard/generate"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground ui-transition hover:bg-primary/80 active:scale-[0.97]"
+              className="inline-flex h-11 min-h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground ui-transition hover:bg-primary/80 active:scale-[0.97]"
             >
               <Sparkles className="size-4" />
               Generate
@@ -194,7 +194,7 @@ export function DashboardContent({
           </div>
           <Link
             href={nextAction.href}
-            className="inline-flex h-9 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground ui-transition hover:bg-primary/80 active:scale-[0.97]"
+            className="inline-flex h-11 min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground ui-transition hover:bg-primary/80 active:scale-[0.97]"
           >
             {nextAction.cta}
           </Link>

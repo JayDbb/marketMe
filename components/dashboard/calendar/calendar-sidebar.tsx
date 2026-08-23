@@ -33,6 +33,7 @@ interface CalendarSidebarProps {
   onEditPost: (post: Post) => void
   onApprovePost: (postId: string) => Promise<{ success: boolean; error?: string }>
   onSchedulePost: (postId: string) => Promise<{ success: boolean; error?: string }>
+  onPublishNow?: (postId: string) => Promise<{ success: boolean; error?: string }>
   onClearSelection?: () => void
   onPostsUpdated?: () => void
   viewMode: PlannerViewMode
@@ -154,6 +155,7 @@ export function CalendarSidebar({
   onEditPost,
   onApprovePost,
   onSchedulePost,
+  onPublishNow,
   onClearSelection,
   onPostsUpdated,
   viewMode,
@@ -238,14 +240,14 @@ export function CalendarSidebar({
             <button
               onClick={handlePrevMonth}
               aria-label="Previous month"
-              className="flex size-7 items-center justify-center rounded-lg bg-white text-zinc-500 transition-colors hover:bg-zinc-100 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10"
+              className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg bg-white text-zinc-500 transition-colors hover:bg-zinc-100 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={handleNextMonth}
               aria-label="Next month"
-              className="flex size-7 items-center justify-center rounded-lg bg-white text-zinc-500 transition-colors hover:bg-zinc-100 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10"
+              className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg bg-white text-zinc-500 transition-colors hover:bg-zinc-100 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -411,6 +413,7 @@ export function CalendarSidebar({
               onEdit={onEditPost}
               onApprove={onApprovePost}
               onSchedule={onSchedulePost}
+              onPublishNow={onPublishNow}
               onUpdated={onPostsUpdated}
               timeZone={timeZone}
             />
@@ -420,7 +423,7 @@ export function CalendarSidebar({
         <button
           type="button"
           onClick={onCreatePost}
-          className="mt-auto flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white py-2 text-xs font-bold text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
+          className="mt-auto flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white py-2.5 text-xs font-bold text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
         >
           <Plus className="h-3.5 w-3.5" />
           Create

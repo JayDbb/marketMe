@@ -60,6 +60,10 @@ interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (post: CreatePostPayload) => void | Promise<void>;
+  /** Edit mode only — publish the existing post to Instagram immediately. */
+  onPublishNow?: (
+    postId: string,
+  ) => void | Promise<{ success: boolean; error?: string } | void>;
   initialScheduledFor?: string;
   editPost?: EditPostInitial | null;
   timeZone?: string;
@@ -302,6 +306,7 @@ export function CreatePostModal({
   isOpen,
   onClose,
   onSubmit,
+  onPublishNow,
   initialScheduledFor,
   editPost = null,
   timeZone = DEFAULT_PREFERENCES.timezone,
@@ -313,8 +318,10 @@ export function CreatePostModal({
   );
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [ctx, setCtx] = useState<PostModalContext>(FALLBACK_CTX);
   const mounted = useIsClient();
+  const busy = isSubmitting || isPublishing;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -429,6 +436,60 @@ export function CreatePostModal({
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePublishNow = async () => {
+    if (!editPost?.postId || !onPublishNow) return;
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      toast.error("Post content cannot be empty");
+      return;
+    }
+    if (charCount > charLimit) {
+      toast.error(
+        `Caption exceeds ${charLimit} characters for ${PLATFORM_LABELS[platform] ?? platform}`,
+      );
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      // Persist any edits first so Instagram gets the latest caption/media.
+      const scheduledDate = parseDatetimeLocal(scheduledFor, timeZone);
+      const scheduledIso = Number.isNaN(scheduledDate.getTime())
+        ? new Date().toISOString()
+        : scheduledDate < new Date()
+          ? new Date().toISOString()
+          : scheduledDate.toISOString();
+
+      await Promise.resolve(
+        onSubmit({
+          caption: trimmed,
+          platform,
+          scheduled_date: scheduledIso,
+          file,
+        }),
+      );
+
+      const result = await Promise.resolve(onPublishNow(editPost.postId));
+      if (result && result.success === false) {
+        // Parent handler surfaces the error toast.
+        return;
+      }
+
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("Failed to publish post:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to publish. Please try again.",
+      );
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -593,20 +654,40 @@ export function CreatePostModal({
                     </form>
                   </div>
 
-                  <div className="px-6 py-4 border-t border-border bg-muted/30 flex justify-end gap-3 shrink-0">
+                  <div className="px-6 py-4 border-t border-border bg-muted/30 flex flex-wrap justify-end gap-3 shrink-0">
                     <Button
                       type="button"
                       variant="ghost"
                       onClick={onClose}
-                      disabled={isSubmitting}
+                      disabled={busy}
                       className="text-foreground"
                     >
                       Cancel
                     </Button>
+                    {isEditMode && onPublishNow ? (
+                      <Button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void handlePublishNow()}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 border-0 min-w-[140px]"
+                      >
+                        {isPublishing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Posting…
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            Post now
+                          </>
+                        )}
+                      </Button>
+                    ) : null}
                     <Button
                       type="submit"
                       form="create-post-form"
-                      disabled={isSubmitting}
+                      disabled={busy}
                       className="bg-blue-600 hover:bg-blue-500 text-white gap-2 border-0 min-w-[140px]"
                     >
                       {isSubmitting ? (

@@ -75,6 +75,24 @@ export async function upsertMirroredConnection(input: {
   const status = input.status ?? 'connected'
   const now = new Date().toISOString()
 
+  // Preserve original connected_at across dashboard refreshes / remote syncs.
+  // Only stamp a new connected_at on first connect or after an explicit reconnect.
+  const { data: existing } = await supabaseAdmin
+    .from('business_social_connections')
+    .select('connected_at, status')
+    .eq('business_profile_id', input.businessProfileId)
+    .eq('platform', input.platform)
+    .maybeSingle()
+
+  const preserveConnectedAt =
+    status === 'connected' &&
+    existing?.status === 'connected' &&
+    Boolean(existing.connected_at)
+
+  const connectedAt = preserveConnectedAt
+    ? (existing!.connected_at as string)
+    : now
+
   const { data, error } = await supabaseAdmin
     .from('business_social_connections')
     .upsert(
@@ -89,7 +107,7 @@ export async function upsertMirroredConnection(input: {
         status,
         external_account_id: input.externalAccountId ?? null,
         source: input.source ?? 'oauth-return',
-        connected_at: now,
+        connected_at: connectedAt,
         updated_at: now,
       },
       { onConflict: 'business_profile_id,platform' }

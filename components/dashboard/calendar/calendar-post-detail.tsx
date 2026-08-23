@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { PostStatusBadge } from '@/components/dashboard/post-status-badge'
 import { formatTimeRange, DEFAULT_POST_DURATION_MIN, parseScheduledDate } from '@/lib/calendar-utils'
 import { formatPlatform } from '@/lib/post-utils'
-import { CheckCircle2, Clock, Loader2, Pencil, X } from 'lucide-react'
+import { CheckCircle2, Clock, Loader2, Pencil, Send, X } from 'lucide-react'
 
 interface CalendarPostDetailProps {
   post: Post
@@ -14,6 +14,7 @@ interface CalendarPostDetailProps {
   onEdit: (post: Post) => void
   onApprove: (postId: string) => Promise<{ success: boolean; error?: string }>
   onSchedule: (postId: string) => Promise<{ success: boolean; error?: string }>
+  onPublishNow?: (postId: string) => Promise<{ success: boolean; error?: string }>
   onUpdated?: () => void
   timeZone?: string
 }
@@ -24,10 +25,11 @@ export function CalendarPostDetail({
   onEdit,
   onApprove,
   onSchedule,
+  onPublishNow,
   onUpdated,
   timeZone,
 }: CalendarPostDetailProps) {
-  const [loading, setLoading] = useState<'approve' | 'schedule' | null>(null)
+  const [loading, setLoading] = useState<'approve' | 'schedule' | 'publish' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const platform = formatPlatform(post.social_account?.platform)
@@ -38,9 +40,16 @@ export function CalendarPostDetail({
     : 'Not scheduled'
 
   const canEdit = post.status !== 'published'
+  const canPublishNow =
+    Boolean(onPublishNow) &&
+    post.status !== 'published' &&
+    (post.status === 'draft' ||
+      post.status === 'approved' ||
+      post.status === 'scheduled' ||
+      post.status === 'failed')
 
   const runAction = async (
-    type: 'approve' | 'schedule',
+    type: 'approve' | 'schedule' | 'publish',
     fn: () => Promise<{ success: boolean; error?: string }>
   ) => {
     setLoading(type)
@@ -118,7 +127,7 @@ export function CalendarPostDetail({
             type="button"
             variant="outline"
             onClick={() => onEdit(post)}
-            className="h-9 gap-2 rounded-xl border-border text-xs font-semibold"
+            className="h-11 min-h-11 gap-2 rounded-xl border-border text-xs font-semibold"
           >
             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
             Edit post
@@ -129,7 +138,7 @@ export function CalendarPostDetail({
             type="button"
             disabled={loading !== null}
             onClick={() => void runAction('approve', () => onApprove(postId))}
-            className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-2"
+            className="h-11 min-h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs gap-2"
           >
             {loading === 'approve' ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -144,7 +153,7 @@ export function CalendarPostDetail({
             type="button"
             disabled={loading !== null}
             onClick={() => void runAction('schedule', () => onSchedule(postId))}
-            className="h-9 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs gap-2"
+            className="h-11 min-h-11 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs gap-2"
           >
             {loading === 'schedule' ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -154,11 +163,31 @@ export function CalendarPostDetail({
             Queue for publish
           </Button>
         )}
-        {post.status === 'scheduled' && (
+        {canPublishNow && onPublishNow ? (
+          <Button
+            type="button"
+            disabled={loading !== null}
+            onClick={() => void runAction('publish', () => onPublishNow(postId))}
+            className="h-11 min-h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-2"
+          >
+            {loading === 'publish' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Send className="w-3.5 h-3.5" />
+            )}
+            Post now
+          </Button>
+        ) : null}
+        {post.status === 'scheduled' && !canPublishNow ? (
           <p className="text-xs text-zinc-500 dark:text-white/45 text-center py-1">
-            Queued — will publish when Instagram is connected.
+            Queued — will publish to Instagram at the scheduled time.
           </p>
-        )}
+        ) : null}
+        {post.status === 'scheduled' && canPublishNow ? (
+          <p className="text-xs text-zinc-500 dark:text-white/45 text-center py-1">
+            Queued for the scheduled time, or post to Instagram now.
+          </p>
+        ) : null}
         {post.status === 'published' && (
           <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center py-1 font-medium">
             Published

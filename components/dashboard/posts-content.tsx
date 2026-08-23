@@ -19,6 +19,7 @@ import {
   ExternalLink,
   RotateCcw,
   Sparkles,
+  Send,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -35,6 +36,7 @@ import {
   bulkDeletePostsAction,
   createPostAction,
   deletePostAction,
+  publishPostNowAction,
   retryFailedPostAction,
   schedulePostAction,
   updatePostAction,
@@ -276,6 +278,28 @@ export function PostsContent({
     [router]
   )
 
+  const handlePublishNow = useCallback(
+    async (post: InboxPost) => {
+      setBusyId(String(post.post_id))
+      const result = await publishPostNowAction(String(post.post_id))
+      setBusyId(null)
+      if (!result.success) {
+        setNotice({
+          tone: 'error',
+          title: 'Could not publish',
+          description:
+            result.error ??
+            'Check the image and Instagram connection, then try again.',
+        })
+        return
+      }
+      setNotice(null)
+      toast.success('Published to Instagram')
+      router.refresh()
+    },
+    [router]
+  )
+
   const handleRetry = useCallback(
     async (post: InboxPost) => {
       setBusyId(String(post.post_id))
@@ -360,7 +384,7 @@ export function PostsContent({
     <motion.div
       initial={motionOff ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="relative z-10 mx-auto w-full min-w-0 max-w-7xl px-6 py-10"
+      className="relative z-10 mx-auto w-full min-w-0 max-w-7xl px-4 py-6 sm:px-6 sm:py-10"
     >
       {notice ? (
         <InlineNotice
@@ -392,17 +416,18 @@ export function PostsContent({
             Drafts, failed publishes, and history. Timed placement stays on Calendar.
           </p>
         </div>
-        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+        <div className="flex w-full flex-col gap-2 min-[400px]:flex-row min-[400px]:flex-wrap sm:w-auto">
           <Link
             href="/dashboard/calendar"
-            className="inline-flex h-10 items-center rounded-xl border border-zinc-200 px-4 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-zinc-200 px-4 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-100 min-[400px]:flex-none dark:border-white/10 dark:text-white dark:hover:bg-white/10"
           >
             <CalendarDays className="mr-2 h-4 w-4" aria-hidden="true" />
-            Open Calendar
+            <span className="sm:hidden">Calendar</span>
+            <span className="hidden sm:inline">Open Calendar</span>
           </Link>
           <Button
             onClick={openCreateModal}
-            className="h-10 gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-500"
+            className="h-10 flex-1 gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-500 min-[400px]:flex-none"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Create post
@@ -414,7 +439,7 @@ export function PostsContent({
         <div
           role="tablist"
           aria-label="Post views"
-          className="flex w-full gap-1 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 dark:border-white/10 dark:bg-[#161b22] lg:w-auto"
+          className="relative flex w-full gap-1 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 scrollbar-none dark:border-white/10 dark:bg-[#161b22] lg:w-auto"
         >
           {POST_INBOX_TABS.map((id) => {
             const active = tab === id
@@ -425,7 +450,7 @@ export function PostsContent({
                 aria-selected={active}
                 href={hrefFor({ tab: id, page: 1 })}
                 className={cn(
-                  'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                  'inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
                   active
                     ? 'border border-zinc-200 bg-white text-zinc-900 dark:border-white/5 dark:bg-white/10 dark:text-white'
                     : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
@@ -573,66 +598,68 @@ export function PostsContent({
               return (
                 <li
                   key={id}
-                  className="flex items-stretch gap-3 px-4 py-4 hover:bg-zinc-50 sm:px-6 dark:hover:bg-white/5"
+                  className="flex flex-col gap-3 px-3 py-4 hover:bg-zinc-50 sm:flex-row sm:items-stretch sm:gap-3 sm:px-6 dark:hover:bg-white/5"
                 >
-                  {showBulk ? (
-                    <label className="flex items-center self-center">
-                      <span className="sr-only">Select post</span>
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleSelected(id)}
-                        className="size-4 rounded border-zinc-300 accent-blue-600"
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    {showBulk ? (
+                      <label className="flex items-center self-start pt-1">
+                        <span className="sr-only">Select post</span>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleSelected(id)}
+                          className="size-4 rounded border-zinc-300 accent-blue-600"
+                        />
+                      </label>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        post.status === 'published'
+                          ? router.push(plannerHref)
+                          : openEditModal(post)
+                      }
+                      className="flex min-w-0 flex-1 items-start gap-3 rounded-xl text-left focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none sm:gap-4"
+                    >
+                      <EventThumb
+                        url={post.media_url}
+                        className="size-14 shrink-0 rounded-xl border border-zinc-200 sm:size-20 dark:border-white/10"
                       />
-                    </label>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      post.status === 'published'
-                        ? router.push(plannerHref)
-                        : openEditModal(post)
-                    }
-                    className="flex min-w-0 flex-1 items-start gap-4 rounded-xl text-left focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none"
-                  >
-                    <EventThumb
-                      url={post.media_url}
-                      className="size-20 rounded-xl border border-zinc-200 dark:border-white/10"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-sm leading-relaxed font-medium text-zinc-900 dark:text-white">
-                        {post.caption || 'Untitled post'}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-white/45">
-                        <span>{formatPlatform(post.social_account?.platform)}</span>
-                        <span
-                          className={`inline-flex items-center rounded-md border px-2 py-0.5 font-medium ${getStatusStyles(post.status)}`}
-                        >
-                          {getStatusLabel(post.status)}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="h-3 w-3" aria-hidden="true" />
-                          {formatPostDate(post.scheduledAt)}
-                        </span>
-                      </div>
-                      {post.status === 'failed' ? (
-                        <p className="mt-2 text-xs text-red-600 dark:text-red-300" role="status">
-                          {post.errorMessage ||
-                            'Publishing failed. Retry only if this post is not already live.'}
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-sm leading-relaxed font-medium text-zinc-900 dark:text-white">
+                          {post.caption || 'Untitled post'}
                         </p>
-                      ) : null}
-                    </div>
-                  </button>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-white/45">
+                          <span>{formatPlatform(post.social_account?.platform)}</span>
+                          <span
+                            className={`inline-flex items-center rounded-md border px-2 py-0.5 font-medium ${getStatusStyles(post.status)}`}
+                          >
+                            {getStatusLabel(post.status)}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3" aria-hidden="true" />
+                            {formatPostDate(post.scheduledAt)}
+                          </span>
+                        </div>
+                        {post.status === 'failed' ? (
+                          <p className="mt-2 text-xs text-red-600 dark:text-red-300" role="status">
+                            {post.errorMessage ||
+                              'Publishing failed. Retry only if this post is not already live.'}
+                          </p>
+                        ) : null}
+                      </div>
+                    </button>
+                  </div>
 
-                  <div className="flex shrink-0 flex-col items-end justify-center gap-2 sm:flex-row sm:items-center">
+                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
                     {post.status === 'draft' ? (
                       <Button
                         type="button"
                         size="sm"
                         disabled={busy}
                         onClick={() => void handleApprove(post)}
-                        className="h-9 rounded-lg bg-blue-600 px-3 text-white hover:bg-blue-500"
+                        className="h-11 min-h-11 min-w-0 flex-1 rounded-lg bg-blue-600 px-3 text-white hover:bg-blue-500 sm:flex-none"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                         Approve
@@ -642,35 +669,64 @@ export function PostsContent({
                       <Button
                         type="button"
                         size="sm"
+                        variant="outline"
                         disabled={busy}
                         onClick={() => void handleSchedule(post)}
-                        className="h-9 rounded-lg bg-blue-600 px-3 text-white hover:bg-blue-500"
+                        className="h-11 min-h-11 min-w-0 flex-1 rounded-lg px-3 sm:flex-none"
                       >
                         <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                         Queue
+                      </Button>
+                    ) : null}
+                    {post.status === 'approved' ||
+                    post.status === 'scheduled' ||
+                    post.status === 'failed' ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => void handlePublishNow(post)}
+                        className="h-11 min-h-11 min-w-0 flex-1 rounded-lg bg-emerald-600 px-3 text-white hover:bg-emerald-500 sm:flex-none"
+                      >
+                        <Send className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="sm:hidden">{busy ? '…' : 'Publish'}</span>
+                        <span className="hidden sm:inline">
+                          {busy ? 'Publishing…' : 'Publish now'}
+                        </span>
                       </Button>
                     ) : null}
                     {post.status === 'failed' ? (
                       <Button
                         type="button"
                         size="sm"
+                        variant="outline"
                         disabled={busy}
                         onClick={() => void handleRetry(post)}
-                        className="h-9 rounded-lg bg-blue-600 px-3 text-white hover:bg-blue-500"
+                        className="h-11 min-h-11 min-w-0 flex-1 rounded-lg px-3 sm:flex-none"
                       >
                         <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                        Retry
+                        <span className="sm:hidden">Queue</span>
+                        <span className="hidden sm:inline">Re-queue</span>
                       </Button>
                     ) : null}
 
                     <DropdownMenu>
                       <DropdownMenuTrigger
-                        className="inline-flex size-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none dark:hover:bg-white/10 dark:hover:text-white"
+                        className="inline-flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none dark:hover:bg-white/10 dark:hover:text-white"
                         aria-label="More post actions"
                       >
                         <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuContent align="end" className="w-48">
+                        {post.status === 'draft' && post.media_url ? (
+                          <DropdownMenuItem
+                            disabled={busy}
+                            onClick={() => void handlePublishNow(post)}
+                          >
+                            <Send className="h-4 w-4" />
+                            Approve & publish now
+                          </DropdownMenuItem>
+                        ) : null}
                         {post.status !== 'published' ? (
                           <DropdownMenuItem onClick={() => openEditModal(post)}>
                             <Pencil className="h-4 w-4" />
@@ -768,6 +824,20 @@ export function PostsContent({
         isOpen={isModalOpen}
         onClose={closeModal}
         onSubmit={editingPost ? handleUpdatePost : handleCreatePost}
+        onPublishNow={
+          editingPost
+            ? async (postId) => {
+                const result = await publishPostNowAction(postId)
+                if (!result.success) {
+                  toast.error(result.error ?? 'Could not publish')
+                  return result
+                }
+                toast.success('Published to Instagram')
+                router.refresh()
+                return result
+              }
+            : undefined
+        }
         editPost={editPostInitial}
         initialScheduledFor={
           editingPost?.scheduledAt

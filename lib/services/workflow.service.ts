@@ -15,6 +15,7 @@ import {
 } from '@/lib/workflow-definitions'
 import { getBusinessProfileId } from '@/lib/services/business.service'
 import { listMirroredConnections } from '@/lib/services/social-connections.service'
+import { getSocialConnections } from '@/lib/services/marketing-ai.service'
 import { transitionPostStatus } from '@/lib/services/post-lifecycle.service'
 import { triggerNotification, triggerWeeklyContent } from '@/lib/services/scheduler.service'
 import type { Post } from '@/types/content-plan'
@@ -513,8 +514,27 @@ async function executePublishGuardrailWorkflow(
     }
   }
 
-  const connections = await listMirroredConnections(profile.data, workflow.user_id)
-  const instagramConnected = connections.some((connection) => connection.platform === 'instagram')
+  // Prefer live MarketMe AI connections (where Meta tokens live). Mirror is fallback only.
+  let instagramConnected = false
+  let connectionSource: 'marketme-ai' | 'mirror' | 'none' = 'none'
+  try {
+    const remote = await getSocialConnections(profile.data)
+    instagramConnected = (Array.isArray(remote) ? remote : []).some(
+      (connection) =>
+        String(connection.platform ?? '').toLowerCase() === 'instagram' &&
+        String(connection.connected_status ?? '').toLowerCase() !== 'disconnected'
+    )
+    if (instagramConnected) connectionSource = 'marketme-ai'
+  } catch {
+    // AI list failed — fall back to local mirror (UI only; publish may still fail).
+  }
+
+  if (!instagramConnected) {
+    const mirrored = await listMirroredConnections(profile.data, workflow.user_id)
+    instagramConnected = mirrored.some((connection) => connection.platform === 'instagram')
+    if (instagramConnected) connectionSource = 'mirror'
+  }
+
   const config = workflow.config as PublishGuardrailConfig
   const cutoff = new Date(Date.now() + config.lookAheadHours * 60 * 60 * 1000).toISOString()
 
@@ -536,7 +556,11 @@ async function executePublishGuardrailWorkflow(
   const upcoming = data ?? []
   const missingImages = upcoming.filter((post) => !post.image_url).map((post) => post.id)
   const issues = [
-    !instagramConnected ? 'Instagram is not connected.' : null,
+    !instagramConnected
+      ? 'Instagram is not connected on the publish service.'
+      : connectionSource === 'mirror'
+        ? 'Instagram is only saved locally — reconnect so Meta tokens can be verified for publish.'
+        : null,
     missingImages.length > 0
       ? `${missingImages.length} scheduled post${missingImages.length === 1 ? '' : 's'} are missing images.`
       : null,
@@ -549,6 +573,7 @@ async function executePublishGuardrailWorkflow(
       details: {
         checked: upcoming.length,
         instagramConnected,
+        connectionSource,
       },
     }
   }
@@ -559,6 +584,7 @@ async function executePublishGuardrailWorkflow(
     details: {
       checked: upcoming.length,
       instagramConnected,
+      connectionSource,
       missingImagePostIds: missingImages,
     },
   }

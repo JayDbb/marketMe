@@ -8,6 +8,7 @@ import {
   scheduleCalendarPostAction,
   updateCalendarPostAction,
 } from "@/app/dashboard/calendar/actions";
+import { publishPostNowAction } from "@/app/dashboard/posts/actions";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -90,6 +91,16 @@ function CalendarPageInner() {
       return d;
     })();
   const platform = parsePostsPlatform(searchParams.get("platform"));
+
+  // Phones default to Day when the URL has no explicit view (Week grids are cramped).
+  useEffect(() => {
+    if (searchParams.get("view") || searchParams.get("date")) return;
+    if (typeof window === "undefined" || window.innerWidth >= 768) return;
+    if (viewMode === "Day") return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", "day");
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [pathname, router, searchParams, viewMode]);
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [undatedDrafts, setUndatedDrafts] = useState<Post[]>([]);
@@ -297,6 +308,18 @@ function CalendarPageInner() {
     return result;
   };
 
+  const handlePublishNow = async (postId: string) => {
+    const result = await publishPostNowAction(postId);
+    if (result.success) {
+      toast.success("Published to Instagram");
+      await loadPosts();
+      setSelectedPostId(null);
+    } else {
+      toast.error(result.error ?? "Could not publish");
+    }
+    return result;
+  };
+
   const handleReschedule = async (postId: string, next: Date) => {
     const source =
       posts.find((p) => String(p.post_id) === postId) ??
@@ -367,6 +390,7 @@ function CalendarPageInner() {
       onEditPost={openEditModal}
       onApprovePost={handleApprovePost}
       onSchedulePost={handleSchedulePost}
+      onPublishNow={handlePublishNow}
       onClearSelection={() => setSelectedPostId(null)}
       onPostsUpdated={() => void loadPosts()}
       viewMode={viewMode}
@@ -393,16 +417,25 @@ function CalendarPageInner() {
             </p>
           </div>
 
-          <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto sm:gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 rounded-xl border-zinc-200 lg:hidden dark:border-white/10"
-              onClick={() => setDetailsOpen(true)}
-            >
-              <CalendarDays className="h-4 w-4" />
-              Day details
-            </Button>
+          <div className="flex w-full flex-col gap-3 sm:w-auto">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 min-h-11 flex-1 rounded-xl border-zinc-200 sm:flex-none lg:hidden dark:border-white/10"
+                onClick={() => setDetailsOpen(true)}
+              >
+                <CalendarDays className="h-4 w-4" />
+                Day details
+              </Button>
+              <Button
+                onClick={() => openCreateModal()}
+                className="h-11 min-h-11 flex-1 gap-2 rounded-xl border-0 bg-blue-600 px-5 font-bold text-white hover:bg-blue-500 sm:flex-none"
+              >
+                <Plus className="h-4 w-4" /> Create
+              </Button>
+            </div>
+
             <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
               <SheetContent
                 side="left"
@@ -431,6 +464,7 @@ function CalendarPageInner() {
                   }}
                   onApprovePost={handleApprovePost}
                   onSchedulePost={handleSchedulePost}
+                  onPublishNow={handlePublishNow}
                   onClearSelection={() => setSelectedPostId(null)}
                   onPostsUpdated={() => void loadPosts()}
                   viewMode={viewMode}
@@ -440,51 +474,50 @@ function CalendarPageInner() {
               </SheetContent>
             </Sheet>
 
-            <div className="flex shrink-0 rounded-xl border border-zinc-200 bg-white p-1 dark:border-white/10 dark:bg-white/5">
-              {(["Month", "Week", "Day"] as PlannerViewMode[]).map((mode) => (
+            <div className="flex w-full flex-col gap-2 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
+              <div className="grid w-full grid-cols-3 gap-1 rounded-xl border border-zinc-200 bg-white p-1 min-[480px]:w-auto dark:border-white/10 dark:bg-white/5">
+                {(["Month", "Week", "Day"] as PlannerViewMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setPlannerQuery({ view: mode })}
+                    className={`min-h-11 rounded-lg px-3 text-sm font-bold ui-transition ${
+                      viewMode === mode
+                        ? "bg-white text-zinc-900 shadow-lg dark:bg-white"
+                        : "text-zinc-500 hover:text-zinc-900 dark:text-white/50 dark:hover:text-white"
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-1.5">
                 <button
-                  key={mode}
-                  onClick={() => setPlannerQuery({ view: mode })}
-                  className={`rounded-lg px-4 py-1.5 text-sm font-bold ui-transition ${
-                    viewMode === mode
-                      ? "bg-white text-zinc-900 shadow-lg dark:bg-white"
-                      : "text-zinc-500 hover:text-zinc-900 dark:text-white/50 dark:hover:text-white"
-                  }`}
+                  type="button"
+                  onClick={handlePrev}
+                  aria-label="Previous"
+                  className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-white/5 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white"
                 >
-                  {mode}
+                  <ChevronLeft className="h-4 w-4" />
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={handleToday}
+                  className="min-h-11 flex-1 rounded-xl border border-zinc-200 bg-white px-4 text-sm font-bold text-zinc-600 transition-colors hover:bg-zinc-100 min-[480px]:flex-none dark:border-white/5 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  aria-label="Next"
+                  className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-white/5 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handlePrev}
-                aria-label="Previous"
-                className="flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-white/5 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={handleToday}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-sm font-bold text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-white/5 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
-              >
-                Today
-              </button>
-              <button
-                onClick={handleNext}
-                aria-label="Next"
-                className="flex size-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-white/5 dark:bg-white/5 dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            <Button
-              onClick={() => openCreateModal()}
-              className="h-10 shrink-0 gap-2 rounded-xl border-0 bg-blue-600 px-5 font-bold text-white hover:bg-blue-500"
-            >
-              <Plus className="h-4 w-4" /> Create
-            </Button>
           </div>
         </div>
 
@@ -581,6 +614,7 @@ function CalendarPageInner() {
         isOpen={isModalOpen}
         onClose={closeModal}
         onSubmit={editingPost ? handleUpdatePost : handleCreatePost}
+        onPublishNow={editingPost ? handlePublishNow : undefined}
         editPost={editPostInitial}
         initialScheduledFor={modalScheduledFor}
         timeZone={timeZone}

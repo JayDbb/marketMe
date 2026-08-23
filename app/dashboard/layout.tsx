@@ -90,7 +90,7 @@ export default async function DashboardLayout({
                   <div className="min-w-0 flex-1" />
 
                   <div
-                    className="max-w-[min(240px,40vw)] shrink-0 truncate rounded-lg border border-border bg-muted/80 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-muted-foreground"
+                    className="hidden max-w-[min(240px,45vw)] shrink-0 truncate rounded-lg border border-border bg-muted/80 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-muted-foreground sm:block"
                     title={account.email}
                   >
                     {account.email}

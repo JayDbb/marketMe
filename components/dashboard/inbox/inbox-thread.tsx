@@ -198,7 +198,7 @@ export function InboxThread({
                 setArchiving(false)
               }
             }}
-            className="h-8 shrink-0 rounded-lg border-zinc-200 dark:border-white/10"
+            className="h-11 min-h-11 shrink-0 rounded-lg border-zinc-200 dark:border-white/10"
           >
             {archiving ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -278,7 +278,7 @@ export function InboxThread({
         <Button
           onClick={() => void handleReply()}
           disabled={sending || !reply.trim() || !canReply}
-          className="w-full rounded-xl border-0 bg-sky-600 text-white hover:bg-sky-500"
+          className="h-11 min-h-11 w-full rounded-xl border-0 bg-sky-600 text-white hover:bg-sky-500"
         >
           {sending ? (
             <Loader2 className="size-4 animate-spin" />

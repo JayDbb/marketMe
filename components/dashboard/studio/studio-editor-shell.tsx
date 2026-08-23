@@ -239,71 +239,74 @@ export function StudioEditorShell({
 
   const shell = (
     <div className="fixed inset-0 z-100 bg-[#0d1117] flex flex-col isolate">
-      <div className="shrink-0 flex items-center gap-4 px-4 sm:px-6 py-3 border-b border-white/8 bg-[#0d1117]/95 backdrop-blur-xl">
-        <button
-          type="button"
-          onClick={handleBack}
-          aria-label="Back to Studio"
-          className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 ui-transition"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
+      <div className="flex shrink-0 flex-col gap-3 border-b border-white/8 bg-[#0d1117]/95 px-4 py-3 backdrop-blur-xl sm:flex-row sm:items-center sm:gap-4 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Back to Studio"
+            className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/10 text-white/60 hover:bg-white/5 hover:text-white ui-transition"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
 
-        <div className="flex-1 min-w-0">
-          <label htmlFor="studio-design-name" className="sr-only">
-            Design name
-          </label>
-          <Input
-            id="studio-design-name"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value)
-              setDirty(true)
-            }}
-            onBlur={() => {
-              if (dirtyRef.current) void persist(true)
-            }}
-            className="h-9 max-w-xs bg-white/5 border-white/10 text-white font-semibold rounded-lg text-sm"
-          />
+          <div className="min-w-0 flex-1">
+            <label htmlFor="studio-design-name" className="sr-only">
+              Design name
+            </label>
+            <Input
+              id="studio-design-name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                setDirty(true)
+              }}
+              onBlur={() => {
+                if (dirtyRef.current) void persist(true)
+              }}
+              className="h-11 max-w-full rounded-lg border-white/10 bg-white/5 text-sm font-semibold text-white sm:max-w-xs"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           {autoSaveStatus === 'saving' && (
-            <span className="text-[10px] text-white/40 flex items-center gap-1">
-              <Cloud className="w-3 h-3 animate-pulse" />
+            <span className="flex items-center gap-1 text-[10px] text-white/40">
+              <Cloud className="h-3 w-3 animate-pulse" />
               Auto-saving…
             </span>
           )}
           {autoSaveStatus === 'saved' && (
-            <span className="text-[10px] text-emerald-400/80 flex items-center gap-1">
-              <Cloud className="w-3 h-3" />
+            <span className="flex items-center gap-1 text-[10px] text-emerald-400/80">
+              <Cloud className="h-3 w-3" />
               Saved
             </span>
           )}
           <button
             type="button"
             onClick={() => handleDownload('png')}
-            className="h-9 px-3 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 text-sm font-medium flex items-center gap-2"
+            className="inline-flex h-11 min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 px-3 text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white sm:flex-none"
           >
-            <ImageDown className="w-4 h-4" />
-            Download
+            <ImageDown className="h-4 w-4" />
+            <span className="sm:inline">Download</span>
           </button>
           <Button
             type="button"
             onClick={() => void handleGenerate()}
-            className="h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold gap-2"
+            className="h-11 min-h-11 flex-1 gap-2 rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-500 sm:flex-none"
           >
-            <Sparkles className="w-4 h-4" />
-            Use in Generate
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden min-[400px]:inline">Use in Generate</span>
+            <span className="min-[400px]:hidden">Generate</span>
           </Button>
           <Button
             type="button"
             onClick={handleSave}
             disabled={isSaving}
             variant="outline"
-            className="h-9 px-5 rounded-xl font-semibold gap-2 border-white/15 bg-transparent text-white hover:bg-white/5"
+            className="h-11 min-h-11 flex-1 gap-2 rounded-xl border-white/15 bg-transparent px-5 font-semibold text-white hover:bg-white/5 sm:flex-none"
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {isSaving ? 'Saving…' : 'Save'}
           </Button>
         </div>

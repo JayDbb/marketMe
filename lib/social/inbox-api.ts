@@ -35,7 +35,6 @@ export async function fetchInboxMessages(
 ): Promise<InboxResponse> {
   const connected = options?.connections?.filter((c) => c.status === 'connected') || []
 
-  // Helper to construct a demo response
   const getDemoResponse = (): InboxResponse => {
     const instagram = connected.find((c) => c.platform === 'instagram')
     const connectionId = instagram?.id || 'demo-ig-id'
@@ -50,12 +49,11 @@ export async function fetchInboxMessages(
     }
   }
 
-  // 1. Force demo data if explicitly requested
+  // Serve demo data if requested explicitly
   if (options?.useDemoData) {
     return getDemoResponse()
   }
 
-  // 2. Try reaching the backend API
   try {
     const res = await fetch(`${API_BASE_URL}/inbox/messages`, {
       method: 'GET',
@@ -63,9 +61,8 @@ export async function fetchInboxMessages(
       credentials: 'include',
     })
 
+    // Catch non-200 responses (like 404) without throwing an exception
     if (!res.ok) {
-      // Endpoint returned 404 or server error -> fall back to demo data
-      console.warn(`Inbox API returned ${res.status}. Falling back to demo data.`)
       return getDemoResponse()
     }
 
@@ -82,9 +79,8 @@ export async function fetchInboxMessages(
     }
 
     return data
-  } catch (err) {
-    // 3. Network or server error -> fall back to demo data
-    console.warn('Failed to fetch live inbox messages. Serving fallback demo data.')
+  } catch {
+    // Return fallback demo data on network error
     return getDemoResponse()
   }
 }

@@ -156,11 +156,11 @@ export function useInbox() {
       })
     )
     try {
-      await markMessageRead(messageId)
+      await markMessageRead(messageId, account?.connectionId)
     } catch {
       // Keep optimistic UI; refresh will reconcile.
     }
-  }, [])
+  }, [account])
 
   const archive = useCallback(async (messageId: string) => {
     setMessages((prev) =>

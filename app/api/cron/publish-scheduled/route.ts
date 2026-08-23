@@ -4,8 +4,8 @@ import { publishDueScheduledPosts } from '@/lib/services/scheduled-publishing.se
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-/** Allow enough time for several Instagram publishes in one tick. */
-export const maxDuration = 300
+/** Allow maximum allowed duration (60s on Vercel Hobby) for Instagram publishes in one tick. */
+export const maxDuration = 60
 
 /**
  * Unattended scheduled publishing.

@@ -116,13 +116,13 @@ export async function fetchInboxConversation(
 
 export async function markMessageRead(
   messageId: string,
-  businessProfileId: string
+  businessProfileId?: string
 ): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/inbox/messages/${messageId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ business_profile_id: businessProfileId }),
+    body: JSON.stringify(businessProfileId ? { business_profile_id: businessProfileId } : {}),
   })
 
   if (!res.ok) {

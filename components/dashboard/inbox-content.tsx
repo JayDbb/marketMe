@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
@@ -11,15 +10,12 @@ import {
   Link2,
   Loader2,
   RefreshCw,
-  Send,
-  ExternalLink,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { useInbox } from '@/hooks/use-inbox'
-import { InboxColumn } from '@/components/dashboard/inbox/inbox-message-card'
-import type { InboxMessage } from '@/types/social'
+import { InboxAvatar } from '@/components/dashboard/inbox/inbox-message-card'
+import { InboxThread } from '@/components/dashboard/inbox/inbox-thread'
+import type { InboxConversation, InboxMessage } from '@/types/social'
 import { formatDistanceToNow } from '@/lib/social/format-relative'
 import { replyToMessage } from '@/lib/social/inbox-api'
 
@@ -37,99 +33,118 @@ const itemVariants = {
   },
 }
 
-function InboxDetailPanel({
-  message,
-  onClose,
+function ConversationCard({
+  conversation,
+  isSelected,
+  onSelect,
 }: {
-  message: InboxMessage | null
-  onClose: () => void
+  conversation: InboxConversation
+  isSelected: boolean
+  onSelect: () => void
 }) {
-  const [reply, setReply] = useState('')
-  const [sending, setSending] = useState(false)
-
-  if (!message) {
-    return (
-      <div className="hidden lg:flex flex-1 min-w-[280px] max-w-md flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 bg-white/30 dark:bg-white/2 p-8 text-center">
-        <MessageCircle className="w-10 h-10 text-zinc-300 dark:text-white/15 mb-3" />
-        <p className="text-sm text-zinc-500 dark:text-white/40">
-          Select a conversation to view and reply
-        </p>
-      </div>
-    )
-  }
-
-  const handleReply = async () => {
-    if (!reply.trim()) return
-    setSending(true)
-    try {
-      await replyToMessage(message.id, reply, message.connectionId)
-      setReply('')
-    } catch (error) {
-      console.error('Failed to send reply:', error)
-    } finally {
-      setSending(false)
-    }
-  }
+  const latest = conversation.latestMessage
+  const isUnread = (conversation.unreadCount || 0) > 0
 
   return (
-    <div className="hidden lg:flex flex-1 min-w-[280px] max-w-md flex-col rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/3 overflow-hidden">
-      <div className="px-5 py-4 border-b border-zinc-200 dark:border-white/8 flex items-center justify-between">
-        <div>
-          <p className="font-semibold text-zinc-900 dark:text-white">{message.authorName}</p>
-          <p className="text-xs text-zinc-500 dark:text-white/40">@{message.authorHandle}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-        >
-          Close
-        </button>
-      </div>
-
-      <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
-        <p className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-white/30 mb-3">
-          {message.type} · {formatDistanceToNow(message.receivedAt)} ago
-        </p>
-        <p className="text-sm text-zinc-800 dark:text-white/85 leading-relaxed whitespace-pre-wrap">
-          {message.body}
-        </p>
-        {message.postUrl && (
-          <a
-            href={message.postUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-4 text-xs text-blue-500 hover:underline"
+    <motion.button
+      type="button"
+      layout
+      onClick={onSelect}
+      className={`w-full text-left rounded-xl p-3.5 border transition-all ${isSelected
+          ? 'bg-blue-500/10 border-blue-500/40'
+          : isUnread
+            ? 'bg-white dark:bg-white/8 border-zinc-200 dark:border-white/15 hover:bg-zinc-50 dark:hover:bg-white/10'
+            : 'bg-white/60 dark:bg-white/3 border-zinc-200/80 dark:border-white/8 hover:bg-white dark:hover:bg-white/6'
+        }`}
+    >
+      <div className="flex items-start gap-3">
+        <InboxAvatar
+          name={conversation.participantName || conversation.participantHandle}
+          src={conversation.participantAvatarUrl}
+          size={36}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <span className="text-sm font-semibold text-zinc-900 dark:text-white truncate">
+              {conversation.participantName || conversation.participantHandle}
+            </span>
+            {conversation.updatedAt && (
+              <span className="text-[10px] text-zinc-400 dark:text-white/35 shrink-0">
+                {formatDistanceToNow(conversation.updatedAt)}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-zinc-500 dark:text-white/40 mb-1">
+            @{conversation.participantHandle}
+          </p>
+          <p
+            className={`text-xs leading-relaxed line-clamp-2 ${isUnread
+                ? 'text-zinc-800 dark:text-white/85 font-medium'
+                : 'text-zinc-500 dark:text-white/55'
+              }`}
           >
-            View on Instagram
-            <ExternalLink className="w-3 h-3" />
-          </a>
+            {latest?.preview || latest?.body || 'No messages yet'}
+          </p>
+        </div>
+        {isUnread && (
+          <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />
         )}
       </div>
+    </motion.button>
+  )
+}
 
-      <div className="p-4 border-t border-zinc-200 dark:border-white/8 space-y-2">
-        <Textarea
-          value={reply}
-          onChange={(e) => setReply(e.target.value)}
-          placeholder="Write a reply…"
-          className="min-h-[80px] bg-zinc-50 dark:bg-white/5 border-zinc-200 dark:border-white/10 resize-none text-sm"
-        />
-        <Button
-          onClick={handleReply}
-          disabled={sending || !reply.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl border-0"
-        >
-          {sending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <Send className="w-4 h-4 mr-2" />
-              Send reply
-            </>
-          )}
-        </Button>
+function MessageCard({
+  message,
+  isSelected,
+  onSelect,
+}: {
+  message: InboxMessage
+  isSelected: boolean
+  onSelect: () => void
+}) {
+  const isUnread = message.status === 'unread'
+
+  return (
+    <motion.button
+      type="button"
+      layout
+      onClick={onSelect}
+      className={`w-full text-left rounded-xl p-3.5 border transition-all ${isSelected
+          ? 'bg-blue-500/10 border-blue-500/40'
+          : isUnread
+            ? 'bg-white dark:bg-white/8 border-zinc-200 dark:border-white/15 hover:bg-zinc-50 dark:hover:bg-white/10'
+            : 'bg-white/60 dark:bg-white/3 border-zinc-200/80 dark:border-white/8 hover:bg-white dark:hover:bg-white/6'
+        }`}
+    >
+      <div className="flex items-start gap-3">
+        <InboxAvatar message={message} size={36} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <span className="text-sm font-semibold text-zinc-900 dark:text-white truncate">
+              {message.authorName}
+            </span>
+            <span className="text-[10px] text-zinc-400 dark:text-white/35 shrink-0">
+              {formatDistanceToNow(message.receivedAt)}
+            </span>
+          </div>
+          <p className="text-[11px] text-zinc-500 dark:text-white/40 mb-1">
+            @{message.authorHandle}
+          </p>
+          <p
+            className={`text-xs leading-relaxed line-clamp-2 ${isUnread
+                ? 'text-zinc-800 dark:text-white/85 font-medium'
+                : 'text-zinc-500 dark:text-white/55'
+              }`}
+          >
+            {message.preview || message.body}
+          </p>
+        </div>
+        {isUnread && (
+          <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />
+        )}
       </div>
-    </div>
+    </motion.button>
   )
 }
 
@@ -162,7 +177,10 @@ function InboxConnectBanner() {
 
 export function InboxContent() {
   const {
-    dms,
+    conversations,
+    activeConversation,
+    openConversation,
+    threadLoading,
     mentions,
     comments,
     isLoading,
@@ -171,15 +189,9 @@ export function InboxContent() {
     hasInstagram,
     unreadCount,
     refresh,
-    markRead,
+    archive,
+    appendOutgoing,
   } = useInbox()
-
-  const [selected, setSelected] = useState<InboxMessage | null>(null)
-
-  const handleSelect = (message: InboxMessage) => {
-    setSelected(message)
-    if (message.status === 'unread') markRead(message.id)
-  }
 
   return (
     <motion.div
@@ -241,34 +253,121 @@ export function InboxContent() {
           variants={itemVariants}
           className="flex gap-4 overflow-x-auto pb-4 flex-1 min-h-0"
         >
-          <InboxColumn
-            title="DMs"
-            icon={MessageCircle}
-            messages={dms}
-            emptyTitle="No DMs yet"
-            emptyDescription="Direct messages from Instagram will show up here."
-            selectedId={selected?.id}
-            onSelect={handleSelect}
-          />
-          <InboxColumn
-            title="@ Mentions"
-            icon={AtSign}
-            messages={mentions}
-            emptyTitle="No mentions"
-            emptyDescription="When someone @mentions you, it appears here."
-            selectedId={selected?.id}
-            onSelect={handleSelect}
-          />
-          <InboxColumn
-            title="Comments"
-            icon={MessageSquareText}
-            messages={comments}
-            emptyTitle="No comments"
-            emptyDescription="Comments on your posts sync to this column."
-            selectedId={selected?.id}
-            onSelect={handleSelect}
-          />
-          <InboxDetailPanel message={selected} onClose={() => setSelected(null)} />
+          {/* DMs Column - Uses Conversations */}
+          <div className="flex-1 min-w-[300px] max-w-[400px] flex flex-col rounded-2xl overflow-hidden bg-white/40 dark:bg-white/2 border border-zinc-200 dark:border-white/8">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-zinc-200 dark:border-white/8 bg-zinc-50/80 dark:bg-white/5">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-zinc-500 dark:text-white/50" />
+                <h3 className="font-semibold text-sm text-zinc-900 dark:text-white">DMs</h3>
+              </div>
+              <span className="min-w-[1.5rem] h-6 px-1.5 rounded-full bg-zinc-200 dark:bg-white/10 text-zinc-600 dark:text-white/60 flex items-center justify-center text-[11px] font-bold">
+                {conversations.length}
+              </span>
+            </div>
+            <div className="flex-1 p-3 flex flex-col gap-2 overflow-y-auto min-h-[320px] max-h-[calc(100vh-20rem)] custom-scrollbar">
+              {conversations.length > 0 ? (
+                conversations.map((conv) => (
+                  <ConversationCard
+                    key={conv.id}
+                    conversation={conv}
+                    isSelected={activeConversation?.id === conv.id}
+                    onSelect={() => openConversation(conv)}
+                  />
+                ))
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+                  <p className="text-sm font-medium text-zinc-700 dark:text-white/70 mb-1">
+                    No DMs yet
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-white/35 max-w-[200px] leading-relaxed">
+                    Direct messages from Instagram will show up here.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Mentions Column */}
+          <div className="flex-1 min-w-[300px] max-w-[400px] flex flex-col rounded-2xl overflow-hidden bg-white/40 dark:bg-white/2 border border-zinc-200 dark:border-white/8">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-zinc-200 dark:border-white/8 bg-zinc-50/80 dark:bg-white/5">
+              <div className="flex items-center gap-2">
+                <AtSign className="w-4 h-4 text-zinc-500 dark:text-white/50" />
+                <h3 className="font-semibold text-sm text-zinc-900 dark:text-white">@ Mentions</h3>
+              </div>
+              <span className="min-w-[1.5rem] h-6 px-1.5 rounded-full bg-zinc-200 dark:bg-white/10 text-zinc-600 dark:text-white/60 flex items-center justify-center text-[11px] font-bold">
+                {mentions.length}
+              </span>
+            </div>
+            <div className="flex-1 p-3 flex flex-col gap-2 overflow-y-auto min-h-[320px] max-h-[calc(100vh-20rem)] custom-scrollbar">
+              {mentions.length > 0 ? (
+                mentions.map((msg) => (
+                  <MessageCard
+                    key={msg.id}
+                    message={msg}
+                    isSelected={false}
+                    onSelect={() => { }}
+                  />
+                ))
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+                  <p className="text-sm font-medium text-zinc-700 dark:text-white/70 mb-1">
+                    No mentions
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-white/35 max-w-[200px] leading-relaxed">
+                    When someone @mentions you, it appears here.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Comments Column */}
+          <div className="flex-1 min-w-[300px] max-w-[400px] flex flex-col rounded-2xl overflow-hidden bg-white/40 dark:bg-white/2 border border-zinc-200 dark:border-white/8">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-zinc-200 dark:border-white/8 bg-zinc-50/80 dark:bg-white/5">
+              <div className="flex items-center gap-2">
+                <MessageSquareText className="w-4 h-4 text-zinc-500 dark:text-white/50" />
+                <h3 className="font-semibold text-sm text-zinc-900 dark:text-white">Comments</h3>
+              </div>
+              <span className="min-w-[1.5rem] h-6 px-1.5 rounded-full bg-zinc-200 dark:bg-white/10 text-zinc-600 dark:text-white/60 flex items-center justify-center text-[11px] font-bold">
+                {comments.length}
+              </span>
+            </div>
+            <div className="flex-1 p-3 flex flex-col gap-2 overflow-y-auto min-h-[320px] max-h-[calc(100vh-20rem)] custom-scrollbar">
+              {comments.length > 0 ? (
+                comments.map((msg) => (
+                  <MessageCard
+                    key={msg.id}
+                    message={msg}
+                    isSelected={false}
+                    onSelect={() => { }}
+                  />
+                ))
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+                  <p className="text-sm font-medium text-zinc-700 dark:text-white/70 mb-1">
+                    No comments
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-white/35 max-w-[200px] leading-relaxed">
+                    Comments on your posts sync to this column.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Panel - New InboxThread Component */}
+          <div className="hidden lg:flex flex-1 min-w-[320px] max-w-md flex-col rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/3 overflow-hidden">
+            <InboxThread
+              item={null}
+              conversation={activeConversation}
+              threadLoading={threadLoading}
+              onArchive={archive}
+              onReplyConversation={async (conv, body) => {
+                await replyToMessage(conv.id, body, conv.connectionId)
+                appendOutgoing(conv.id, body)
+              }}
+            />
+          </div>
         </motion.div>
       ) : null}
     </motion.div>

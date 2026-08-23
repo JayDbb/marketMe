@@ -133,3 +133,5 @@ export async function publishDueScheduledPosts(): Promise<ScheduledPublishResult
     errors,
   }
 }
+
+//updated the due posts query to only return posts that are scheduled and approved 

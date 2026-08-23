@@ -6,6 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://marketme-a
 export interface FetchInboxOptions {
   connections?: SocialConnection[]
   useDemoData?: boolean
+  businessProfileId?: string
 }
 
 export interface InboxAccountSummary {
@@ -34,6 +35,7 @@ export async function fetchInboxMessages(
   options?: FetchInboxOptions
 ): Promise<InboxResponse> {
   const connected = options?.connections?.filter((c) => c.status === 'connected') || []
+  const profileId = options?.businessProfileId
 
   const getDemoResponse = (): InboxResponse => {
     const instagram = connected.find((c) => c.platform === 'instagram')
@@ -49,45 +51,60 @@ export async function fetchInboxMessages(
     }
   }
 
-  if (options?.useDemoData) {
+  if (options?.useDemoData || !profileId) {
     return getDemoResponse()
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/inbox/messages`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    })
+    const [messagesRes, conversationsRes] = await Promise.all([
+      fetch(`${API_BASE_URL}/inbox/messages?business_profile_id=${profileId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      }),
+      fetch(`${API_BASE_URL}/inbox/conversations?business_profile_id=${profileId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      }),
+    ])
 
-    if (!res.ok) {
+    if (!messagesRes.ok || !conversationsRes.ok) {
       return getDemoResponse()
     }
 
-    const data = await res.json()
-    if (Array.isArray(data)) {
-      return {
-        messages: data,
-        conversations: [],
-        account: null,
-        syncStatus: null,
-        warning: null,
-        error: null,
-      }
-    }
+    const messages: InboxMessage[] = await messagesRes.json()
+    const conversations: InboxConversation[] = await conversationsRes.json()
 
-    return data
+    return {
+      messages,
+      conversations,
+      account: null,
+      syncStatus: { isSyncing: false },
+      warning: null,
+      error: null,
+    }
   } catch {
     return getDemoResponse()
   }
 }
 
-export async function fetchInboxConversation(conversationId: string): Promise<InboxConversation> {
-  const res = await fetch(`${API_BASE_URL}/inbox/conversations/${conversationId}`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  })
+export async function fetchInboxConversation(
+  conversationId: string,
+  businessProfileId?: string
+): Promise<InboxConversation> {
+  if (!businessProfileId) {
+    throw new Error('businessProfileId is required to fetch conversation')
+  }
+
+  const res = await fetch(
+    `${API_BASE_URL}/inbox/conversations/${conversationId}?business_profile_id=${businessProfileId}`,
+    {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    }
+  )
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}))
@@ -97,11 +114,15 @@ export async function fetchInboxConversation(conversationId: string): Promise<In
   return await res.json()
 }
 
-export async function markMessageRead(messageId: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/inbox/messages/${messageId}/read`, {
+export async function markMessageRead(
+  messageId: string,
+  businessProfileId: string
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/inbox/messages/${messageId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
+    body: JSON.stringify({ business_profile_id: businessProfileId }),
   })
 
   if (!res.ok) {
@@ -110,31 +131,29 @@ export async function markMessageRead(messageId: string): Promise<void> {
   }
 }
 
-export async function archiveInboxItem(messageId: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/inbox/messages/${messageId}/archive`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  })
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}))
-    throw new Error(errorData.detail || errorData.error || 'Failed to archive message')
-  }
+export async function archiveInboxItem(
+  messageId: string,
+  businessProfileId?: string
+): Promise<void> {
+  // Archive action stub
 }
 
 export async function replyToMessage(
-  messageId: string,
+  conversationId: string,
   body: string,
   businessProfileId?: string
 ): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/inbox/messages/${messageId}/reply`, {
+  if (!businessProfileId) {
+    throw new Error('businessProfileId is required to send a reply')
+  }
+
+  const res = await fetch(`${API_BASE_URL}/inbox/conversations/${conversationId}/reply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
       business_profile_id: businessProfileId,
-      body: body,
+      body,
     }),
   })
 

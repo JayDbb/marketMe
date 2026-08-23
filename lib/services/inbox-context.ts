@@ -106,15 +106,24 @@ export function inboxAccountPayload(instagram: SocialConnection) {
 export function inboxUnavailableMessage(
   error: unknown
 ): { missingEndpoint: boolean; message: string } {
-  const message =
+  const rawMessage =
     error instanceof Error ? error.message : 'Failed to sync Instagram inbox'
   const status =
     typeof (error as { status?: number })?.status === 'number'
       ? (error as { status: number }).status
       : 0
+
+  if (/capability|instagram_manage_messages|#3\b/i.test(rawMessage)) {
+    return {
+      missingEndpoint: false,
+      message:
+        'Meta Error (#3): Your connected Instagram account does not have Messages capability enabled. Turn on "Allow Access to Messages" in your Instagram Mobile App (Settings → Messages & Story Replies → Message Controls).',
+    }
+  }
+
   return {
-    missingEndpoint: status === 404 || /not found/i.test(message),
-    message,
+    missingEndpoint: status === 404 || /not found/i.test(rawMessage),
+    message: rawMessage,
   }
 }
 

@@ -100,20 +100,28 @@ export async function GET(request: NextRequest) {
     const conversationId = request.nextUrl.searchParams.get('id')?.trim()
 
     if (conversationId) {
-      const raw = await getInboxConversation(profile.id, conversationId)
-      const conversation = mapRawConversationPayload(raw, {
-        connectionId: activeAccount.id,
-        platform: 'instagram',
-      })
-      if (!conversation) {
-        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      try {
+        const raw = await getInboxConversation(profile.id, conversationId)
+        const conversation = mapRawConversationPayload(raw, {
+          connectionId: activeAccount.id,
+          platform: 'instagram',
+        })
+        if (!conversation) {
+          return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+        }
+        return NextResponse.json({
+          conversation,
+          connected: true,
+          account: inboxAccountPayload(activeAccount),
+          businessProfileId: profile.id,
+        })
+      } catch (error) {
+        const { message } = inboxUnavailableMessage(error)
+        return NextResponse.json(
+          { error: publicInboxError(error, message), conversation: null },
+          { status: 200 }
+        )
       }
-      return NextResponse.json({
-        conversation,
-        connected: true,
-        account: inboxAccountPayload(activeAccount),
-        businessProfileId: profile.id,
-      })
     }
 
     try {

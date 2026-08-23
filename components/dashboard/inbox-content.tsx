@@ -10,6 +10,7 @@ import {
   Link2,
   Loader2,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useInbox } from '@/hooks/use-inbox'
@@ -188,6 +189,8 @@ export function InboxContent() {
     setSearchQuery,
     hasInstagram,
     unreadCount,
+    warning,
+    error,
     refresh,
     archive,
     appendOutgoing,
@@ -242,6 +245,19 @@ export function InboxContent() {
       </motion.div>
 
       {!hasInstagram && !isLoading && <InboxConnectBanner />}
+
+      {(warning || error) && !isLoading && (
+        <motion.div
+          variants={itemVariants}
+          className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-3 text-amber-900 dark:text-amber-200 text-xs leading-relaxed"
+        >
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold mb-0.5">Instagram Sync Notice</p>
+            <p>{warning || error}</p>
+          </div>
+        </motion.div>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-24 text-zinc-500 dark:text-white/40 gap-2">

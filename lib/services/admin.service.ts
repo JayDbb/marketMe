@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { PLAN_CREDIT_ALLOWANCES } from '@/types/pipeline'
+import { percentile } from '@/lib/analytics/first-party'
 import type {
   AdminAuditEvent,
   AdminDashboardStats,
@@ -20,6 +21,12 @@ function monthStart(): string {
 function todayStart(): string {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
+  return d.toISOString()
+}
+
+function daysAgoIso(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
   return d.toISOString()
 }
 
@@ -53,6 +60,54 @@ async function pingDatabase(): Promise<SystemService> {
       status: 'down',
       latencyMs: Date.now() - t0,
       detail: (err as Error).message,
+    }
+  }
+}
+
+async function pingMarketMeAi(): Promise<SystemService> {
+  const t0 = Date.now()
+  const base = (
+    process.env.MARKETME_AI_API_URL ||
+    process.env.NEXT_PUBLIC_MARKETME_AI_API_URL ||
+    ''
+  ).replace(/\/+$/, '')
+  if (!base) {
+    return {
+      name: 'MarketMe AI',
+      status: 'unknown',
+      latencyMs: null,
+      detail: 'MARKETME_AI_API_URL missing',
+    }
+  }
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 5000)
+    const res = await fetch(`${base}/api/v1/health`, {
+      method: 'GET',
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+    const latencyMs = Date.now() - t0
+    if (!res.ok) {
+      return {
+        name: 'MarketMe AI',
+        status: 'degraded',
+        latencyMs,
+        detail: `HTTP ${res.status}`,
+      }
+    }
+    return {
+      name: 'MarketMe AI',
+      status: 'operational',
+      latencyMs,
+      detail: 'Health check OK',
+    }
+  } catch (err) {
+    return {
+      name: 'MarketMe AI',
+      status: 'down',
+      latencyMs: Date.now() - t0,
+      detail: (err as Error).message.slice(0, 160),
     }
   }
 }
@@ -119,6 +174,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
   const supabase = getSupabaseAdmin()
   const ms = monthStart()
   const td = todayStart()
+  const weekAgo = daysAgoIso(7)
   const now = new Date().toISOString()
 
   const [
@@ -139,7 +195,18 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     recentSessionsRes,
     recentCreditTxRes,
     recentAdminAuditRes,
+    publishedTotalRes,
+    publishedWeekRes,
+    failedWeekRes,
+    scheduledOpenRes,
+    creditsWeekRes,
+    onboardedUsersRes,
+    igConnectedRes,
+    publishedUsersRes,
+    vitalsWeekRes,
+    pageViewsWeekRes,
     dbPing,
+    aiPing,
   ] = await Promise.all([
     supabase.from('user' as never).select('id', { count: 'exact', head: true }),
     supabase
@@ -190,8 +257,135 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       .select('id, actor_email, action, target_user_id, target_email, metadata, created_at')
       .order('created_at', { ascending: false })
       .limit(30),
+    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+    supabase
+      .from('posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'published')
+      .gte('updated_at', weekAgo),
+    supabase
+      .from('posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'failed')
+      .gte('updated_at', weekAgo),
+    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('status', 'scheduled'),
+    supabase
+      .from('credit_transactions')
+      .select('credits_spent')
+      .gte('created_at', weekAgo),
+    supabase.from('business_profiles').select('user_id'),
+    supabase
+      .from('business_social_connections')
+      .select('user_id')
+      .eq('platform', 'instagram')
+      .eq('status', 'connected'),
+    supabase.from('posts').select('user_id').eq('status', 'published'),
+    supabase
+      .from('performance_events')
+      .select('metric, value, path')
+      .gte('created_at', weekAgo)
+      .limit(2000),
+    supabase
+      .from('page_events')
+      .select('path')
+      .gte('created_at', weekAgo)
+      .limit(5000),
     pingDatabase(),
+    pingMarketMeAi(),
   ])
+
+  const publishedLast7Days = publishedWeekRes.count ?? 0
+  const failedLast7Days = failedWeekRes.count ?? 0
+  const publishAttempts = publishedLast7Days + failedLast7Days
+  const publishSuccessRate7d =
+    publishAttempts > 0
+      ? Math.round((publishedLast7Days / publishAttempts) * 1000) / 10
+      : null
+
+  const spentLast7Days = (creditsWeekRes.data ?? []).reduce(
+    (sum, row) => sum + (row.credits_spent ?? 0),
+    0
+  )
+
+  const onboarded = new Set(
+    (onboardedUsersRes.data ?? []).map((r) => r.user_id).filter(Boolean)
+  ).size
+  const igConnected = new Set(
+    (igConnectedRes.data ?? []).map((r) => r.user_id).filter(Boolean)
+  ).size
+  const publishedUsers = new Set(
+    (publishedUsersRes.data ?? []).map((r) => r.user_id).filter(Boolean)
+  ).size
+
+  type VitalRow = { metric: string; value: number; path: string | null }
+  const vitalsRows =
+    ((vitalsWeekRes as unknown as { data: VitalRow[] | null; error?: { message: string } })
+      .data ?? [])
+  const byMetric = new Map<string, number[]>()
+  const byPathMetric = new Map<string, number[]>()
+  for (const row of vitalsRows) {
+    const metric = row.metric
+    if (!byMetric.has(metric)) byMetric.set(metric, [])
+    byMetric.get(metric)!.push(row.value)
+    const path = row.path || '/'
+    const key = `${path}::${metric}`
+    if (!byPathMetric.has(key)) byPathMetric.set(key, [])
+    byPathMetric.get(key)!.push(row.value)
+  }
+  const sortNums = (arr: number[]) => [...arr].sort((a, b) => a - b)
+  const lcpP75 = percentile(sortNums(byMetric.get('LCP') ?? []), 75)
+  const clsP75 = percentile(sortNums(byMetric.get('CLS') ?? []), 75)
+  const inpP75 = percentile(sortNums(byMetric.get('INP') ?? []), 75)
+
+  const slowPaths = [...byPathMetric.entries()]
+    .map(([key, values]) => {
+      const [path, metric] = key.split('::')
+      const p75 = percentile(sortNums(values), 75)
+      return {
+        path: path || '/',
+        metric: metric || '',
+        p75: p75 ?? 0,
+        samples: values.length,
+      }
+    })
+    .filter((row) => {
+      if (row.metric === 'LCP') return row.p75 >= 2500
+      if (row.metric === 'INP') return row.p75 >= 200
+      if (row.metric === 'CLS') return row.p75 >= 0.1
+      return false
+    })
+    .sort((a, b) => b.p75 - a.p75)
+    .slice(0, 5)
+
+  type PageRow = { path: string }
+  const pageRows =
+    ((pageViewsWeekRes as unknown as { data: PageRow[] | null }).data ?? [])
+  const pathCounts = new Map<string, number>()
+  for (const row of pageRows) {
+    const path = row.path || '/'
+    pathCounts.set(path, (pathCounts.get(path) ?? 0) + 1)
+  }
+  const topPaths = [...pathCounts.entries()]
+    .map(([path, views]) => ({ path, views }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 8)
+
+  const publishHealth: SystemService = {
+    name: 'Instagram publish (7d)',
+    status:
+      publishSuccessRate7d == null
+        ? 'unknown'
+        : publishSuccessRate7d >= 90
+          ? 'operational'
+          : publishSuccessRate7d >= 70
+            ? 'degraded'
+            : 'down',
+    latencyMs: null,
+    detail:
+      publishSuccessRate7d == null
+        ? 'No publish attempts in the last 7 days'
+        : `${publishSuccessRate7d}% success · ${publishedLast7Days} ok · ${failedLast7Days} failed`,
+  }
 
   const subs = subscriptionsRes.data ?? []
   const planBreakdown = { free: 0, pro: 0, team: 0 }
@@ -389,6 +583,8 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
 
   const systemServices: SystemService[] = [
     dbPing,
+    aiPing,
+    publishHealth,
     envConfigured('Resend', 'RESEND_API_KEY'),
     envConfigured('Stripe', 'STRIPE_SECRET_KEY'),
     envConfigured('Trigger.dev', 'TRIGGER_SECRET_KEY'),
@@ -401,8 +597,11 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
     envConfigured('Pexels API', 'PEXELS_API_KEY'),
   ]
 
+  const totalUsers =
+    ((totalUsersRes as unknown as { count: number | null }).count) ?? 0
+
   return {
-    totalUsers: ((totalUsersRes as unknown as { count: number | null }).count) ?? 0,
+    totalUsers,
     activeUsers,
     newUsersThisMonth: ((newUsersRes as unknown as { count: number | null }).count) ?? 0,
     totalBusinesses: totalBusinessesRes.count ?? 0,
@@ -411,6 +610,7 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       totalAllocated: totalAllocated,
       totalUsed,
       totalRemaining: totalRemaining,
+      spentLast7Days,
     },
     workflowStats: {
       totalWorkflows: workflowsCountRes.count ?? 0,
@@ -422,6 +622,28 @@ export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
       totalPosts: totalPostsRes.count ?? 0,
       postsThisMonth: postsMonthRes.count ?? 0,
       totalPlans: totalPlansRes.count ?? 0,
+      publishedTotal: publishedTotalRes.count ?? 0,
+      publishedLast7Days,
+      failedLast7Days,
+      scheduledOpen: scheduledOpenRes.count ?? 0,
+      publishSuccessRate7d,
+    },
+    funnel: {
+      signedUp: totalUsers,
+      onboarded,
+      instagramConnected: igConnected,
+      published: publishedUsers,
+    },
+    webVitals: {
+      sampleCount: vitalsRows.length,
+      lcpP75,
+      clsP75,
+      inpP75,
+      slowPaths,
+    },
+    pageStats: {
+      viewsLast7Days: pageRows.length,
+      topPaths,
     },
     systemServices,
     recentAuditEvents,

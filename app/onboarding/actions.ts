@@ -24,7 +24,18 @@ export async function completeOnboardingAction(
   input: BusinessProfileInput
 ): Promise<{ data: BusinessProfile | null; error: string | null }> {
   const result = await upsertBusinessProfileAction(input)
-  if (result.data?.id) revalidateOnboardingPaths()
+  if (result.data?.id) {
+    revalidateOnboardingPaths()
+    const user = await getAuthenticatedUser()
+    const { trackProductEvent, PRODUCT_EVENTS } = await import(
+      '@/lib/analytics/first-party'
+    )
+    void trackProductEvent({
+      userId: user?.id,
+      event: PRODUCT_EVENTS.onboardingCompleted,
+      props: { business_profile_id: result.data.id },
+    })
+  }
   return result
 }
 

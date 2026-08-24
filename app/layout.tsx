@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import { createPageMetadata } from "@/lib/metadata";
 import { OrganizationJsonLd } from "@/components/marketing/organization-json-ld";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
+import { FirstPartyTelemetry } from "@/components/analytics/first-party-telemetry";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeScript } from "@/components/theme-script";
 import "./globals.css";
@@ -71,6 +73,9 @@ export default function RootLayout({
             Skip to content
           </a>
           {children}
+          <Suspense fallback={null}>
+            <FirstPartyTelemetry />
+          </Suspense>
           <CookieConsentBanner />
         </ThemeProvider>
       </body>

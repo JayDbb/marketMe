@@ -1,4 +1,5 @@
 import { defineConfig } from "@trigger.dev/sdk/v3";
+import { syncEnvVars } from "@trigger.dev/build/extensions/core";
 
 export default defineConfig({
   project: "proj_tzdygkuaynmpopiwidtt",
@@ -19,4 +20,28 @@ export default defineConfig({
     },
   },
   dirs: ["./src/trigger"],
+  build: {
+    extensions: [
+      // Scheduled publishing needs Supabase admin + MarketMe AI URL in cloud env.
+      syncEnvVars(async () => {
+        const vars: Array<{ name: string; value: string; isSecret?: boolean }> = []
+        const push = (name: string, value: string | undefined, isSecret = false) => {
+          const trimmed = value?.trim()
+          if (trimmed) vars.push({ name, value: trimmed, isSecret })
+        }
+
+        push('NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL)
+        push('SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY, true)
+        push('ENABLE_AUTO_PUBLISH', process.env.ENABLE_AUTO_PUBLISH ?? 'true')
+        push('INSTAGRAM_PUBLISH_ENABLED', process.env.INSTAGRAM_PUBLISH_ENABLED ?? 'true')
+        push(
+          'MARKETME_AI_API_URL',
+          process.env.MARKETME_AI_API_URL || process.env.NEXT_PUBLIC_MARKETME_AI_API_URL
+        )
+        push('MARKETME_AI_API_KEY', process.env.MARKETME_AI_API_KEY, true)
+
+        return vars
+      }),
+    ],
+  },
 });

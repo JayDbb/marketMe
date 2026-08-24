@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
       const status =
         lastError instanceof MarketingAIError && lastError.status === 404
           ? 501
-          : 502
+          : 400
       console.error('[inbox/conversations/reply]', {
         businessProfileId: profile.id,
         conversationIdLength: conversationId.length,
@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json(
       { error: publicInboxError(e, 'Conversation reply failed') },
-      { status: 500 }
+      { status: 400 }
     )
   }
 }

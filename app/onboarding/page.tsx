@@ -41,7 +41,7 @@ export default async function OnboardingPage({
   }
 
   return (
-    <MarketingPageShell showNavbar={false} showFooter={false} mainClassName="min-h-dvh">
+    <MarketingPageShell showNavbar={false} showFooter={false} mainClassName="h-dvh max-h-dvh overflow-hidden sm:h-auto sm:max-h-none sm:overflow-visible">
       <OnboardingWizard initialProfile={profile} />
     </MarketingPageShell>
   )

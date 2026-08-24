@@ -265,11 +265,12 @@ export function StudioEditor({
           </div>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-zinc-100 p-3 sm:p-4 md:p-6 dark:border-white/10 dark:bg-black/40">
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-black/5 bg-zinc-100 p-2 sm:p-4 md:p-6 dark:border-white/10 dark:bg-black/40">
           <CanvasEditor
             canvasData={canvasData}
             onChange={(data) => patchLayers(data.layers)}
             selectedId={selectedId}
+            maxWidth={560}
             onSelect={(id) => {
               setSelectedId(id)
               if (id) {
@@ -277,7 +278,10 @@ export function StudioEditor({
                 if (layer?.type === 'text') setToolTab('text')
                 else if (layer?.type === 'image') setToolTab('photos')
                 else if (layer?.type === 'rect' || layer?.type === 'circle') setToolTab('elements')
-                setToolsOpen(true)
+                // Keep mobile canvas free; open tools only from the Tools button.
+                if (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
+                  setToolsOpen(true)
+                }
               }
             }}
             exportApiRef={exportApiRef}
@@ -298,13 +302,13 @@ export function StudioEditor({
 
       <Sheet open={toolsOpen} onOpenChange={setToolsOpen}>
         <SheetContent
-          side="left"
-          className="w-[min(22rem,92vw)] border-border bg-zinc-50 p-0 dark:bg-[#161b22] md:hidden"
+          side="bottom"
+          className="flex h-[min(85dvh,40rem)] flex-col gap-0 border-border bg-zinc-50 p-0 dark:bg-[#161b22] md:hidden"
         >
-          <SheetHeader className="border-b border-border px-4 py-3">
+          <SheetHeader className="shrink-0 border-b border-border px-4 py-3">
             <SheetTitle>Tools</SheetTitle>
           </SheetHeader>
-          <div className="custom-scrollbar max-h-[calc(100dvh-4rem)] overflow-y-auto">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <StudioToolsPanel
               canvasData={canvasData}
               activeTab={toolTab}
@@ -333,19 +337,24 @@ export function StudioEditor({
 
       <Sheet open={layersOpen} onOpenChange={setLayersOpen}>
         <SheetContent
-          side="right"
-          className="w-[min(20rem,92vw)] border-border bg-zinc-50 p-0 dark:bg-[#161b22] md:hidden"
+          side="bottom"
+          className="flex h-[min(75dvh,36rem)] flex-col gap-0 border-border bg-zinc-50 p-0 dark:bg-[#161b22] md:hidden"
         >
-          <SheetHeader className="border-b border-border px-4 py-3">
+          <SheetHeader className="shrink-0 border-b border-border px-4 py-3">
             <SheetTitle>Layers</SheetTitle>
           </SheetHeader>
-          <StudioLayersPanel
-            canvasData={{ ...canvasData, layers }}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onChange={(data) => patchLayers(data.layers)}
-            onDeleteLayer={deleteLayer}
-          />
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <StudioLayersPanel
+              canvasData={{ ...canvasData, layers }}
+              selectedId={selectedId}
+              onSelect={(id) => {
+                setSelectedId(id)
+                setLayersOpen(false)
+              }}
+              onChange={(data) => patchLayers(data.layers)}
+              onDeleteLayer={deleteLayer}
+            />
+          </div>
         </SheetContent>
       </Sheet>
     </div>

@@ -400,24 +400,24 @@ function CalendarPageInner() {
   );
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-[28rem] w-full gap-4 overflow-hidden p-4 lg:gap-6 lg:p-6">
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 w-full gap-4 overflow-hidden p-2 sm:p-4 lg:gap-6 lg:p-6">
       <div className="hidden h-full lg:flex">{sidebar}</div>
 
-      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-border bg-card shadow-xl dark:border-white/10 dark:bg-[#161b22]">
-        <div className="flex shrink-0 flex-col gap-4 border-b border-zinc-200 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8 dark:border-white/5">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl sm:rounded-[2rem] dark:border-white/10 dark:bg-[#161b22]">
+        <div className="flex shrink-0 flex-col gap-2 border-b border-zinc-200 px-3 py-3 sm:gap-3 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-8 lg:py-5 dark:border-white/5">
           <div className="min-w-0 lg:flex-1 lg:pr-4">
-            <p className="mb-1 text-[10px] font-bold tracking-widest text-blue-500 uppercase dark:text-blue-400">
+            <p className="mb-0.5 hidden text-[10px] font-bold tracking-widest text-blue-500 uppercase sm:block dark:text-blue-400">
               Planner
             </p>
-            <h2 className="truncate text-2xl font-bold tracking-tight text-zinc-900 lg:text-3xl dark:text-white">
+            <h2 className="truncate text-lg font-bold tracking-tight text-zinc-900 sm:text-2xl lg:text-3xl dark:text-white">
               {getHeaderTitle(selectedDate, viewMode, weekStartsOn)}
             </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:mt-1 sm:block sm:text-xs">
               Times in {formatTimezoneLabel(timeZone)}
             </p>
           </div>
 
-          <div className="flex w-full flex-col gap-3 sm:w-auto">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:gap-3">
             <div className="flex w-full flex-wrap items-center gap-2 sm:justify-end">
               <Button
                 type="button"
@@ -426,11 +426,11 @@ function CalendarPageInner() {
                 onClick={() => setDetailsOpen(true)}
               >
                 <CalendarDays className="h-4 w-4" />
-                Day details
+                <span className="sm:inline">Details</span>
               </Button>
               <Button
                 onClick={() => openCreateModal()}
-                className="h-11 min-h-11 flex-1 gap-2 rounded-xl border-0 bg-blue-600 px-5 font-bold text-white hover:bg-blue-500 sm:flex-none"
+                className="h-11 min-h-11 flex-1 gap-2 rounded-xl border-0 bg-blue-600 px-4 font-bold text-white hover:bg-blue-500 sm:flex-none sm:px-5"
               >
                 <Plus className="h-4 w-4" /> Create
               </Button>
@@ -522,7 +522,7 @@ function CalendarPageInner() {
         </div>
 
         <div
-          className="flex shrink-0 gap-1 overflow-x-auto px-5 py-3 lg:px-8"
+          className="flex shrink-0 gap-1 overflow-x-auto px-3 py-2 sm:px-5 sm:py-3 lg:px-8"
           aria-label="Filter by channel"
         >
           {POST_INBOX_PLATFORMS.map((id) => {
@@ -555,7 +555,7 @@ function CalendarPageInner() {
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1 overflow-hidden p-4 lg:p-6">
+        <div className="min-h-0 flex-1 overflow-hidden p-2 sm:p-4 lg:p-6">
           {isLoading ? (
             <PlannerSkeleton />
           ) : (

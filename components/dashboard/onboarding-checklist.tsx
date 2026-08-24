@@ -105,7 +105,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
         transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
         className="relative mb-6 overflow-hidden rounded-2xl border border-border bg-card"
       >
-        <div className="relative z-10 flex items-center gap-4 px-6 py-5">
+        <div className="relative z-10 flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10">
             <Rocket className="size-5 text-blue-400" aria-hidden="true" />
           </div>
@@ -170,7 +170,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
               transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
               className="overflow-hidden"
             >
-              <div className="relative z-10 flex flex-col gap-1 px-6 pb-5">
+              <div className="relative z-10 flex flex-col gap-1 px-4 pb-4 sm:px-6 sm:pb-5">
                 <div className="mb-4 h-px bg-border" />
                 {items.map((item) => {
                   const done = state[item.id]
@@ -178,10 +178,11 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                   return (
                     <div
                       key={item.id}
-                      className={`flex items-start gap-4 rounded-xl px-4 py-3 ${
+                      className={`flex flex-col gap-2.5 rounded-xl px-2 py-3 sm:flex-row sm:items-start sm:gap-4 sm:px-4 ${
                         done ? 'opacity-50' : ''
                       }`}
                     >
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
                       <div className="mt-0.5 shrink-0">
                         {done ? (
                           <CheckCircle2 className="size-5 text-blue-400" />
@@ -191,7 +192,7 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                       </div>
 
                       <div
-                        className={`flex size-8 shrink-0 items-center justify-center rounded-lg border ${
+                        className={`hidden size-8 shrink-0 items-center justify-center rounded-lg border sm:flex ${
                           done
                             ? 'border-blue-500/15 bg-blue-500/8'
                             : 'border-border bg-muted/40'
@@ -216,11 +217,12 @@ export function OnboardingChecklist({ state }: { state: OnboardingState }) {
                           </p>
                         ) : null}
                       </div>
+                      </div>
 
                       {!done ? (
                         <Link
                           href={item.href}
-                          className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-blue-500/20 bg-blue-500/8 px-3 py-1.5 text-[11px] font-semibold text-blue-400 ui-transition hover:border-blue-500/30 hover:bg-blue-500/14 hover:text-blue-300"
+                          className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 rounded-lg border border-blue-500/20 bg-blue-500/8 px-3 text-[11px] font-semibold text-blue-400 ui-transition hover:border-blue-500/30 hover:bg-blue-500/14 hover:text-blue-300 sm:mt-0.5 sm:h-auto sm:w-auto sm:justify-start sm:py-1.5"
                         >
                           {item.cta}
                           <ArrowRight className="size-3" />

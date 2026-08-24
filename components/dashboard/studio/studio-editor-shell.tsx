@@ -238,9 +238,9 @@ export function StudioEditorShell({
   }
 
   const shell = (
-    <div className="fixed inset-0 z-100 bg-[#0d1117] flex flex-col isolate">
-      <div className="flex shrink-0 flex-col gap-3 border-b border-white/8 bg-[#0d1117]/95 px-4 py-3 backdrop-blur-xl sm:flex-row sm:items-center sm:gap-4 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+    <div className="fixed inset-0 z-100 flex flex-col isolate bg-[#0d1117]">
+      <div className="flex shrink-0 flex-col gap-2 border-b border-white/8 bg-[#0d1117]/95 px-3 py-2.5 backdrop-blur-xl sm:gap-3 sm:px-6 sm:py-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={handleBack}
@@ -269,15 +269,15 @@ export function StudioEditorShell({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <div className="flex items-center gap-2 sm:justify-end">
           {autoSaveStatus === 'saving' && (
-            <span className="flex items-center gap-1 text-[10px] text-white/40">
+            <span className="hidden items-center gap-1 text-[10px] text-white/40 sm:flex">
               <Cloud className="h-3 w-3 animate-pulse" />
               Auto-saving…
             </span>
           )}
           {autoSaveStatus === 'saved' && (
-            <span className="flex items-center gap-1 text-[10px] text-emerald-400/80">
+            <span className="hidden items-center gap-1 text-[10px] text-emerald-400/80 sm:flex">
               <Cloud className="h-3 w-3" />
               Saved
             </span>
@@ -285,15 +285,16 @@ export function StudioEditorShell({
           <button
             type="button"
             onClick={() => handleDownload('png')}
-            className="inline-flex h-11 min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 px-3 text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white sm:flex-none"
+            className="inline-flex size-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/10 text-white/70 hover:bg-white/5 hover:text-white sm:h-11 sm:w-auto sm:gap-2 sm:px-3"
+            aria-label="Download"
           >
             <ImageDown className="h-4 w-4" />
-            <span className="sm:inline">Download</span>
+            <span className="hidden sm:inline text-sm font-medium">Download</span>
           </button>
           <Button
             type="button"
             onClick={() => void handleGenerate()}
-            className="h-11 min-h-11 flex-1 gap-2 rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-500 sm:flex-none"
+            className="h-11 min-h-11 flex-1 gap-2 rounded-xl bg-blue-600 px-3 font-semibold text-white hover:bg-blue-500 sm:flex-none sm:px-4"
           >
             <Sparkles className="h-4 w-4" />
             <span className="hidden min-[400px]:inline">Use in Generate</span>
@@ -304,7 +305,7 @@ export function StudioEditorShell({
             onClick={handleSave}
             disabled={isSaving}
             variant="outline"
-            className="h-11 min-h-11 flex-1 gap-2 rounded-xl border-white/15 bg-transparent px-5 font-semibold text-white hover:bg-white/5 sm:flex-none"
+            className="h-11 min-h-11 flex-1 gap-2 rounded-xl border-white/15 bg-transparent px-3 font-semibold text-white hover:bg-white/5 sm:flex-none sm:px-5"
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {isSaving ? 'Saving…' : 'Save'}
@@ -312,7 +313,7 @@ export function StudioEditorShell({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden p-4 md:p-6">
+      <div className="min-h-0 flex-1 overflow-hidden p-2 sm:p-4 md:p-6">
         <StudioEditor
           canvasData={canvasData}
           onChange={handleChange}

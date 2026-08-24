@@ -6,17 +6,17 @@ export function Hero() {
   return (
     <section
       aria-labelledby="hero-heading"
-      className="relative w-full min-h-dvh overflow-hidden px-6 pt-28 pb-16 md:pt-32 md:pb-20"
+      className="relative w-full min-h-dvh overflow-x-clip px-5 pb-14 pt-[calc(6.5rem+env(safe-area-inset-top))] sm:px-6 sm:pb-16 md:pt-32 md:pb-20"
     >
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16">
-        <div className="z-10 max-w-xl space-y-8 text-left">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-16">
+        <div className="z-10 max-w-xl space-y-6 text-left sm:space-y-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-400/80 motion-safe:animate-hero-in motion-safe:animation-delay-100">
             Marketme
           </p>
 
           <h1
             id="hero-heading"
-            className="font-serif text-[clamp(2.75rem,6vw,4.75rem)] font-medium leading-[1.05] tracking-tight text-white motion-safe:animate-hero-in motion-safe:animation-delay-150"
+            className="font-serif text-[clamp(2.25rem,8vw,4.75rem)] font-medium leading-[1.05] tracking-tight text-white motion-safe:animate-hero-in motion-safe:animation-delay-150"
           >
             Draft, review,{" "}
             <span className="font-serif italic font-medium text-sky-400">

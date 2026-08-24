@@ -360,17 +360,17 @@ export function OnboardingWizard({
         : 'Continue'
 
   return (
-    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center px-4 py-12 font-sans">
+    <div className="relative flex h-dvh max-h-dvh w-full flex-col items-center overflow-hidden px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(4.5rem,calc(env(safe-area-inset-top)+3.25rem))] font-sans sm:h-auto sm:max-h-none sm:justify-center sm:overflow-visible sm:py-12">
       <button
         type="button"
         onClick={() => void handleSkip()}
         disabled={isBusy}
-        className="absolute top-6 right-6 z-10 inline-flex min-h-11 items-center text-sm text-white/35 ui-transition hover:text-white/70 disabled:opacity-40"
+        className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 z-10 inline-flex min-h-11 items-center text-sm text-white/35 ui-transition hover:text-white/70 disabled:opacity-40 sm:top-6 sm:right-6"
       >
         {isSkipping ? 'Opening dashboard…' : 'Skip'}
       </button>
 
-      <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
+      <div className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 z-10 flex items-center gap-3 sm:top-6 sm:left-6">
         <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500">
           <Activity className="size-5 text-white" aria-hidden="true" />
         </div>
@@ -384,14 +384,15 @@ export function OnboardingWizard({
           e.preventDefault()
           void handleNext()
         }}
-        className="relative z-10 w-full max-w-2xl rounded-2xl border border-white/15 bg-[#0d1117] p-8 md:p-10"
+        className="relative z-10 flex min-h-0 w-full max-w-2xl flex-1 flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0d1117] sm:max-h-[min(42rem,calc(100dvh-6rem))] sm:flex-none"
       >
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pt-5 pb-4 sm:px-8 sm:pt-8 md:px-10 md:pt-10 [overflow-scrolling:touch]">
         <div className="mb-2 text-xs font-medium uppercase tracking-widest text-white/40">
           Step {currentStep + 1} of {steps.length}
           <span className="normal-case tracking-normal text-white/30"> · about 2 minutes</span>
         </div>
 
-        <div className="mb-8 flex items-center gap-2" role="navigation" aria-label="Onboarding steps">
+        <div className="mb-5 flex items-center gap-2 sm:mb-8" role="navigation" aria-label="Onboarding steps">
           {steps.map((step, i) => {
             const isReached = i <= currentStep
             const isClickable = i < currentStep && !isBusy
@@ -404,7 +405,7 @@ export function OnboardingWizard({
                 aria-current={i === currentStep ? 'step' : undefined}
                 aria-label={`${step.title}${i < currentStep ? ', completed, go back' : i === currentStep ? ', current step' : ''}`}
                 className={cn(
-                  'flex min-h-11 flex-1 flex-col justify-center gap-1.5 text-left',
+                  'flex min-h-8 flex-1 flex-col justify-center gap-1.5 text-left sm:min-h-11',
                   isClickable && 'cursor-pointer'
                 )}
               >
@@ -417,7 +418,7 @@ export function OnboardingWizard({
                 />
                 <span
                   className={cn(
-                    'text-[9px] font-bold uppercase tracking-widest',
+                    'hidden text-[9px] font-bold uppercase tracking-widest sm:block',
                     isReached ? 'text-white/70' : 'text-white/20'
                   )}
                 >
@@ -435,7 +436,7 @@ export function OnboardingWizard({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: direction * -16 }}
             transition={{ ease: [0.23, 1, 0.32, 1], duration: 0.24 }}
-            className="min-h-[300px]"
+            className="min-h-0 sm:min-h-[280px]"
           >
             <div className="mb-8">
               <h2 className="mb-1.5 font-sans text-2xl font-semibold tracking-tight text-white md:text-3xl">
@@ -736,8 +737,9 @@ export function OnboardingWizard({
             className="mt-6"
           />
         ) : null}
+        </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-6">
+        <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-[#0d1117] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-8 sm:py-6 sm:pb-6 md:px-10">
           <Button
             type="button"
             variant="ghost"
@@ -764,7 +766,7 @@ export function OnboardingWizard({
             <button
               type="submit"
               disabled={!canContinue || isBusy}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-500 px-8 text-sm font-semibold text-white ui-transition hover:bg-blue-400 disabled:pointer-events-none disabled:opacity-40 active:scale-[0.97]"
+              className="inline-flex h-11 min-w-[8.5rem] items-center justify-center gap-2 rounded-xl bg-blue-500 px-6 text-sm font-semibold text-white ui-transition hover:bg-blue-400 disabled:pointer-events-none disabled:opacity-40 active:scale-[0.97] sm:px-8"
             >
               {isBusy && currentStep === steps.length - 1 ? (
                 <Loader2 className="size-4 animate-spin" />

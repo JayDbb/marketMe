@@ -48,7 +48,7 @@ export function WeekView({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 pb-3 pl-[52px] pr-1">
+      <div className="flex shrink-0 pb-2 pl-10 pr-1 sm:pb-3 sm:pl-[52px]">
         {weekDays.map((day) => {
           const selected = isSameDay(day, selectedDate)
           const today = isToday(day, timeZone)
@@ -58,17 +58,17 @@ export function WeekView({
               key={day.toISOString()}
               type="button"
               onClick={() => onDateSelect(day)}
-              className={`mx-0.5 flex flex-1 flex-col items-center justify-center rounded-xl border py-2.5 ui-transition ${
+              className={`mx-0.5 flex flex-1 flex-col items-center justify-center rounded-lg border py-1.5 ui-transition sm:rounded-xl sm:py-2.5 ${
                 selected
                   ? 'border-blue-500/40 bg-blue-500/15'
                   : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-white/5 dark:bg-white/5 dark:hover:bg-white/8'
               }`}
             >
-              <span className="mb-0.5 text-[10px] font-bold tracking-wider text-zinc-500 uppercase dark:text-white/40">
-                {day.toLocaleDateString('en-US', { weekday: 'short' })}
+              <span className="mb-0.5 text-[9px] font-bold tracking-wider text-zinc-500 uppercase sm:text-[10px] dark:text-white/40">
+                {day.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3)}
               </span>
               <span
-                className={`text-xl font-bold tracking-tight ${
+                className={`text-base font-bold tracking-tight sm:text-xl ${
                   today
                     ? 'text-blue-400'
                     : selected

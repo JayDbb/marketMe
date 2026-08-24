@@ -8,7 +8,7 @@ import type {
 export type InboxTypeFilter = 'all' | InboxMessageType
 export type InboxStatusFilter = 'all' | 'unread'
 
-export const INSTAGRAM_DM_REPLY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+export const INSTAGRAM_DM_REPLY_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export function parseInboxTypeFilter(
   value: string | null | undefined
@@ -34,18 +34,25 @@ export function isInstagramDmWindowClosed(lastInboundAt?: string | null): boolea
 }
 
 export function latestInboundAt(conversation: InboxConversation): string | undefined {
-  const incoming = [...conversation.messages]
-    .reverse()
-    .find(
-      (message) =>
-        message.direction !== 'outgoing' && Boolean(message.receivedAt)
-    )
-  return (
-    incoming?.receivedAt ||
-    conversation.latestMessage?.receivedAt ||
-    conversation.updatedAt ||
-    undefined
+  const incoming = [...conversation.messages].filter(
+    (message) => message.direction !== 'outgoing' && Boolean(message.receivedAt)
   )
+
+  if (incoming.length > 0) {
+    const latestCustomerMsgTimestamp = Math.max(
+      ...incoming.map((msg) => new Date(msg.receivedAt).getTime())
+    )
+    if (Number.isFinite(latestCustomerMsgTimestamp)) {
+      return new Date(latestCustomerMsgTimestamp).toISOString()
+    }
+  }
+
+  // Fallback to latestMessage ONLY if it is an incoming message
+  if (conversation.latestMessage?.direction !== 'outgoing' && conversation.latestMessage?.receivedAt) {
+    return conversation.latestMessage.receivedAt
+  }
+
+  return undefined
 }
 
 export function latestReplyTargetId(
@@ -98,7 +105,7 @@ export function overlayLocalInboxStatus(
     ...message,
     status: preferStatus(
       byKey.get(message.id) ??
-        (message.externalId ? byKey.get(message.externalId) : undefined),
+      (message.externalId ? byKey.get(message.externalId) : undefined),
       message.status
     ),
   }))
@@ -129,13 +136,13 @@ export function overlayConversationStatus(
     const latestRead = latestId ? read.has(latestId) : false
     const latest = conversation.latestMessage
       ? {
-          ...conversation.latestMessage,
-          status: latestArchived
-            ? 'archived'
-            : latestRead
-              ? 'read'
-              : conversation.latestMessage.status,
-        }
+        ...conversation.latestMessage,
+        status: latestArchived
+          ? 'archived'
+          : latestRead
+            ? 'read'
+            : conversation.latestMessage.status,
+      }
       : conversation.latestMessage
     return {
       ...conversation,

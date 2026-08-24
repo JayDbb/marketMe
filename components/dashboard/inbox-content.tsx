@@ -19,6 +19,7 @@ import { InboxThread } from '@/components/dashboard/inbox/inbox-thread'
 import type { InboxConversation, InboxMessage } from '@/types/social'
 import { formatDistanceToNow } from '@/lib/social/format-relative'
 import { replyToMessage } from '@/lib/social/inbox-api'
+import { latestReplyTargetId, latestInboundAt } from '@/lib/inbox-utils'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -379,7 +380,14 @@ export function InboxContent() {
               threadLoading={threadLoading}
               onArchive={archive}
               onReplyConversation={async (conv, body) => {
-                await replyToMessage(conv.id, body, conv.connectionId)
+                await replyToMessage(
+                  conv.id,
+                  body,
+                  conv.connectionId,
+                  latestReplyTargetId(conv),
+                  conv.participantId,
+                  latestInboundAt(conv)
+                )
                 appendOutgoing(conv.id, body)
               }}
             />
@@ -400,4 +408,4 @@ export function InboxSkeleton() {
   )
 }
 
-//updated
+//updated again

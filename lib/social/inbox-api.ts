@@ -148,7 +148,8 @@ export async function replyToMessage(
   body: string,
   _businessProfileId?: string,
   messageId?: string,
-  recipientId?: string
+  recipientId?: string,
+  lastInboundAt?: string
 ): Promise<void> {
   const res = await fetch('/api/inbox/conversations', {
     method: 'POST',
@@ -159,6 +160,7 @@ export async function replyToMessage(
       body,
       messageId,
       recipientId,
+      lastInboundAt,
     }),
   })
 

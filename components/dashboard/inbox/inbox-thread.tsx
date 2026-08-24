@@ -255,7 +255,7 @@ export function InboxThread({
       <div className="shrink-0 space-y-2 border-t border-zinc-200 p-4 dark:border-white/8">
         {windowClosed ? (
           <p className="rounded-lg bg-zinc-100 px-3 py-2 text-xs leading-relaxed text-zinc-600 dark:bg-white/6 dark:text-white/55">
-            Instagram only allows replies within 7 days of the last customer
+            Instagram only allows replies within 24 hours of the last customer
             message. Reply in the Instagram app, or wait for them to message
             again.
           </p>

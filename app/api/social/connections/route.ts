@@ -209,6 +209,18 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const { trackProductEvent, PRODUCT_EVENTS } = await import(
+    '@/lib/analytics/first-party'
+  )
+  void trackProductEvent({
+    userId: session.user.id,
+    event: PRODUCT_EVENTS.instagramConnected,
+    props: {
+      handle: connection.handle,
+      business_profile_id: profile.id,
+    },
+  })
+
   return NextResponse.json({
     success: true,
     connection,

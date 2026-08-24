@@ -86,6 +86,7 @@ export interface AdminDashboardStats {
     totalAllocated: number
     totalUsed: number
     totalRemaining: number
+    spentLast7Days: number
   }
   workflowStats: {
     totalWorkflows: number
@@ -97,6 +98,29 @@ export interface AdminDashboardStats {
     totalPosts: number
     postsThisMonth: number
     totalPlans: number
+    publishedTotal: number
+    publishedLast7Days: number
+    failedLast7Days: number
+    scheduledOpen: number
+    publishSuccessRate7d: number | null
+  }
+  /** Funnel derived from live tables (historical coverage). */
+  funnel: {
+    signedUp: number
+    onboarded: number
+    instagramConnected: number
+    published: number
+  }
+  webVitals: {
+    sampleCount: number
+    lcpP75: number | null
+    clsP75: number | null
+    inpP75: number | null
+    slowPaths: Array<{ path: string; metric: string; p75: number; samples: number }>
+  }
+  pageStats: {
+    viewsLast7Days: number
+    topPaths: Array<{ path: string; views: number }>
   }
   systemServices: SystemService[]
   recentAuditEvents: AdminAuditEvent[]

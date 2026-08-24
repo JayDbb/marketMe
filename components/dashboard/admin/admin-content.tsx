@@ -118,7 +118,8 @@ function AdminContentInner({ stats }: { stats: AdminDashboardStats }) {
               Admin Console
             </h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Find accounts, fix credits and plans, and chase failed automations.
+              Users, credits, activation funnel, publish health, and first-party performance — all
+              from MarketMe data.
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -146,27 +147,35 @@ function AdminContentInner({ stats }: { stats: AdminDashboardStats }) {
             onClick={() => setParams({ tab: 'users', plan: 'pro' })}
           />
           <KpiCell
+            label="Publish 7d"
+            value={
+              stats.contentStats.publishSuccessRate7d == null
+                ? '—'
+                : `${stats.contentStats.publishSuccessRate7d}%`
+            }
+            sub={`${stats.contentStats.publishedLast7Days} ok · ${stats.contentStats.failedLast7Days} failed`}
+            alert={(stats.contentStats.failedLast7Days ?? 0) > 0}
+            onClick={() => setParams({ tab: 'overview' })}
+          />
+          <KpiCell
             label="Failures today"
             value={stats.workflowStats.failuresToday}
             sub={
               stats.workflowStats.failuresToday > 0
                 ? 'Open failed workflows'
-                : 'No failures'
+                : `${stats.funnel.instagramConnected} IG connected`
             }
             alert={stats.workflowStats.failuresToday > 0}
             onClick={() => setParams({ tab: 'workflows', wf: 'failed' })}
-          />
-          <KpiCell
-            label="New users"
-            value={stats.newUsersThisMonth}
-            sub={`${stats.totalBusinesses} businesses`}
-            onClick={() => setParams({ tab: 'users' })}
           />
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Coins className="size-3 text-sky-500" aria-hidden />
             {stats.creditStats.totalRemaining.toLocaleString()} credits remaining
+            {stats.creditStats.spentLast7Days > 0
+              ? ` · ${stats.creditStats.spentLast7Days.toLocaleString()} spent (7d)`
+              : ''}
           </span>
           <span>
             Plans · Free {stats.planBreakdown.free} · Pro {stats.planBreakdown.pro} ·

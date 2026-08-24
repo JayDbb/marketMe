@@ -408,6 +408,15 @@ export async function publishPostNow(
         .eq('id', postId)
         .eq('user_id', userId)
 
+      const { trackProductEvent, PRODUCT_EVENTS } = await import(
+        '@/lib/analytics/first-party'
+      )
+      void trackProductEvent({
+        userId,
+        event: PRODUCT_EVENTS.postPublishFailed,
+        props: { post_id: postId, error: message.slice(0, 200) },
+      })
+
       return { data: null, error: message }
     }
 
@@ -422,6 +431,18 @@ export async function publishPostNow(
       .eq('user_id', userId)
       .select()
       .single()
+
+    const { trackProductEvent, PRODUCT_EVENTS } = await import(
+      '@/lib/analytics/first-party'
+    )
+    void trackProductEvent({
+      userId,
+      event: PRODUCT_EVENTS.postPublished,
+      props: {
+        post_id: postId,
+        instagram_post_id: instagramPostId ?? null,
+      },
+    })
 
     if (error || !data) {
       // Instagram already succeeded — surface a soft warning via returned data shape

@@ -615,11 +615,11 @@ export const scheduledPublishing = schedules.task({
       return { success: true, count: 0, skipped: true }
     }
 
-    if (result.count === 0 && result.failed === 0) {
+    if (result.count === 0 && result.failed === 0 && result.deferred === 0) {
       console.log('No scheduled posts due at this time.')
     } else {
       console.log(
-        `[scheduled-publishing] published=${result.count} failed=${result.failed}`
+        `[scheduled-publishing] published=${result.count} failed=${result.failed} deferred=${result.deferred}`
       )
     }
 
@@ -627,6 +627,7 @@ export const scheduledPublishing = schedules.task({
       success: result.success,
       count: result.count,
       failed: result.failed,
+      deferred: result.deferred,
       postIds: result.postIds,
       errors: result.errors,
     }

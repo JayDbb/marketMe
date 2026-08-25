@@ -457,9 +457,11 @@ function ConnectionsInner({
         ? {
             tone: 'info' as const,
             title:
-              health === 'saved_locally'
-                ? 'Saved in MarketMe — not verified with Meta'
-                : 'Instagram needs attention',
+              health === 'connected'
+                ? 'Publish service is slow to respond'
+                : health === 'saved_locally'
+                  ? 'Saved in MarketMe — not verified with Meta'
+                  : 'Instagram needs attention',
             body: warning,
           }
         : null)
@@ -471,7 +473,7 @@ function ConnectionsInner({
     health === 'connected'
       ? `Connected for ${connectedHandle ?? 'Instagram'}. Tokens stay on the publish service — you can leave the site and scheduled posts still go out.`
       : health === 'saved_locally'
-        ? 'Saved in MarketMe. Reconnect so Posts, Planner, and Inbox can verify with Meta.'
+        ? 'Saved in MarketMe, but Meta verification is incomplete. Reconnect only if publishing keeps failing.'
         : health === 'needs_reconnect'
           ? 'Reconnect Instagram before you publish or open Inbox.'
           : 'Connect Instagram to unlock Posts, Planner, and Inbox.'

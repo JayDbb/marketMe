@@ -1596,7 +1596,8 @@ export async function getSocialConnections(
  * Publish one approved post to Instagram.
  */
 export async function publishToInstagram(
-  input: PublishRequest
+  input: PublishRequest,
+  retryOptions?: FetchRetryOptions
 ): Promise<PublishResponse> {
   const businessProfileId =
     normalizeRequiredId(
@@ -1638,7 +1639,8 @@ export async function publishToInstagram(
         image_url:
           imageUrl,
       }),
-    }
+    },
+    retryOptions ?? { retries: MAX_RETRIES, timeoutMs: DEFAULT_TIMEOUT }
   )
 }
 

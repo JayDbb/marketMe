@@ -112,10 +112,15 @@ export async function GET() {
     console.error('[social/connections]', message)
 
     // Still show locally mirrored OAuth success so MarketMe UI reflects Meta connect.
+    // Do not push users to reconnect for transient AI outages (common on cold starts).
     if (mirrored.length > 0) {
-      const friendly =
-        /SecretStr/i.test(message)
-          ? 'Instagram is saved in MarketMe, but the publish API cannot verify tokens yet (SecretStr). Tokens may still be on Meta — reconnect after the AI API fix.'
+      const hasRealHandle = mirrored.some(
+        (c) => c.platform === 'instagram' && hasRealInstagramHandle(c.handle)
+      )
+      const friendly = /SecretStr/i.test(message)
+        ? 'Instagram is saved in MarketMe, but the publish API cannot verify tokens yet (SecretStr). Tokens may still be on Meta — reconnect after the AI API fix.'
+        : hasRealHandle
+          ? `Publish service is temporarily unreachable (${message.replace(/^MarketMe-AI error:\s*/i, '').slice(0, 160)}). Your Instagram connection is still saved — try again in a minute; you usually do not need to reconnect.`
           : `Instagram is saved in MarketMe. Publish service list failed: ${message.replace(/^MarketMe-AI error:\s*/i, '')}`
       return NextResponse.json({
         connections: mirrored,

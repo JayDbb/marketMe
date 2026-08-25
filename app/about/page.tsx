@@ -17,7 +17,7 @@ export const dynamic = 'force-static'
 const principles = [
   {
     title: 'Assist, do not autopilot',
-    body: 'AI fills the blank page. You approve the message. Generation is a draft step so your brand — and Jamaica’s advertising expectations around truthfulness — stay under human control.',
+    body: 'AI fills the blank page. You approve the message. Generation drafts so your brand — and Jamaica’s advertising expectations around truthfulness — stay under human control.',
   },
   {
     title: 'One weekly loop',
@@ -29,11 +29,18 @@ const principles = [
   },
 ]
 
+const notYet = [
+  'Fake customer logos or invented testimonials',
+  'Autopilot publishing without your approval',
+  'Password-based social logins',
+  'Enterprise sales theatre before the core loop is excellent',
+]
+
 export default function AboutPage() {
   return (
     <MarketingPageShell mainClassName="pb-24">
       <div className="mx-auto max-w-6xl px-6 pt-36 md:pt-40">
-        <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-400/80">
+        <p className="mb-4 text-[11px] font-semibold tracking-[0.22em] text-sky-400/80 uppercase">
           Company
         </p>
         <div className="grid gap-8 border-b border-white/8 pb-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
@@ -57,14 +64,47 @@ export default function AboutPage() {
             </p>
             <p>
               We are based in {legalCompany.country}, building for Caribbean and international
-              teams who care about tone, accuracy, and platform rules. {legalCompany.legalEntityName}{' '}
-              is the trading name behind the product you use at marketme.app.
+              teams who care about tone, accuracy, and platform rules.{' '}
+              {legalCompany.legalEntityName} is the trading name behind the product you use at
+              marketme.app.
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-20 grid gap-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:grid-cols-[0.85fr_1.15fr] md:p-8">
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.2em] text-sky-400/80 uppercase">
+              Based in
+            </p>
+            <h2 className="mt-2 font-serif text-2xl font-light text-white">
+              {legalCompany.country}
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-white/50">
+              {legalCompany.address}
+              {legalCompany.registrationNumber
+                ? ` · Reg. ${legalCompany.registrationNumber}`
+                : ''}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.2em] text-white/35 uppercase">
+              Team
+            </p>
+            <p className="mt-2 font-serif text-xl text-white">Small product team, operator-first</p>
+            <p className="mt-3 text-sm leading-relaxed text-white/50">
+              We ship the weekly loop — Generate, Studio, Calendar, Connections — and publish
+              what changed on the{' '}
+              <Link href="/changelog" className="text-sky-300 hover:text-sky-200">
+                changelog
+              </Link>
+              . No bloated org chart page yet; when we grow the roster, we will introduce people
+              here by name.
             </p>
           </div>
         </section>
 
         <section className="mt-20">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
+          <h2 className="text-[11px] font-semibold tracking-[0.2em] text-white/35 uppercase">
             How we build
           </h2>
           <ul className="mt-6 grid gap-4 md:grid-cols-3">
@@ -75,6 +115,23 @@ export default function AboutPage() {
               >
                 <h3 className="font-serif text-xl text-white">{item.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-white/45">{item.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="mt-20">
+          <h2 className="font-serif text-2xl font-light text-white">What we do not do yet</h2>
+          <ul className="mt-5 grid gap-2 sm:grid-cols-2">
+            {notYet.map((item) => (
+              <li
+                key={item}
+                className="flex gap-2.5 rounded-xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/55"
+              >
+                <span className="text-white/25" aria-hidden="true">
+                  —
+                </span>
+                {item}
               </li>
             ))}
           </ul>
@@ -92,16 +149,22 @@ export default function AboutPage() {
               href="/contact"
               className={cn(
                 buttonVariants({ size: 'lg' }),
-                'rounded-full border-0 bg-white px-6 text-black hover:bg-white/90'
+                'min-h-11 rounded-full border-0 bg-white px-6 text-black hover:bg-white/90'
               )}
             >
               Contact
             </Link>
             <Link
               href="/customers"
-              className="inline-flex items-center text-sm font-medium text-sky-300 hover:text-sky-200"
+              className="inline-flex min-h-11 items-center text-sm font-medium text-sky-300 hover:text-sky-200"
             >
               Who it&apos;s for →
+            </Link>
+            <Link
+              href="/changelog"
+              className="inline-flex min-h-11 items-center text-sm font-medium text-sky-300 hover:text-sky-200"
+            >
+              Changelog →
             </Link>
           </div>
         </section>

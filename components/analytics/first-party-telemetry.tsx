@@ -3,22 +3,10 @@
 import { useEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useReportWebVitals } from 'next/web-vitals'
-
-const STORAGE_KEY = 'marketme-cookie-consent-v1'
-
-type ConsentState = {
-  analytics?: boolean
-}
+import { readCookieConsent } from '@/lib/cookie-consent'
 
 function hasAnalyticsConsent(): boolean {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return false
-    const parsed = JSON.parse(raw) as ConsentState
-    return parsed.analytics === true
-  } catch {
-    return false
-  }
+  return readCookieConsent()?.analytics === true
 }
 
 function postBeacon(payload: unknown) {

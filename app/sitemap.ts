@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { getAllBlogPosts } from '@/lib/blog-posts'
+import { getAllHelpArticles } from '@/lib/help-articles'
 import { marketingRoutes, siteConfig } from '@/lib/site'
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -19,5 +20,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }))
 
-  return [...marketing, ...posts]
+  const help = getAllHelpArticles().map((article) => ({
+    url: `${siteConfig.url}/help/${article.slug}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.55,
+  }))
+
+  return [...marketing, ...posts, ...help]
 }

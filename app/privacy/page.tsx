@@ -20,8 +20,10 @@ export default function PrivacyPage() {
       relatedLinks={[
         { href: '/cookies', label: 'Cookie Policy' },
         { href: '/terms', label: 'Terms of Service' },
+        { href: '/dpa', label: 'Data Processing Agreement' },
         { href: '/do-not-sell', label: 'Do Not Sell or Share' },
         { href: '/ai-ethics', label: 'AI Transparency' },
+        { href: '/contact?topic=privacy', label: 'Request my data / delete' },
       ]}
       sections={[
         {
@@ -117,8 +119,9 @@ export default function PrivacyPage() {
           title: 'Your rights',
           paragraphs: [
             'Subject to applicable law (including Jamaica’s Data Protection Act), you may request access to your personal data, correction of inaccuracies, deletion, restriction or objection to certain processing, and information about automated decision-taking where relevant.',
-            `To exercise rights, email ${legalCompany.privacyEmail} from your account email with enough detail for us to verify your identity and locate the data. We will respond within applicable statutory timelines.`,
+            `To exercise rights, use the Contact form with topic “Privacy / data request” (or email ${legalCompany.privacyEmail} from your account email) with enough detail for us to verify your identity and locate the data. Signed-in users can also delete their account from Account settings. We will respond within applicable statutory timelines.`,
           ],
+          note: 'Quick path: /contact?topic=privacy — Request my data or deletion.',
         },
         {
           id: 'cookies',

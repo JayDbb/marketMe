@@ -59,7 +59,7 @@ export function HowItWorks() {
             </h2>
           </div>
           <p className="max-w-md text-sm text-white/45 md:justify-self-end md:text-base">
-            Three steps. Generation is a draft step — you stay in the loop.
+            Three steps. AI drafts — you approve before anything goes live.
           </p>
         </div>
 

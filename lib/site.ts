@@ -21,6 +21,7 @@ export const marketingRoutes = [
   '/privacy',
   '/terms',
   '/cookies',
+  '/dpa',
   '/acceptable-use',
   '/ai-ethics',
   '/do-not-sell',

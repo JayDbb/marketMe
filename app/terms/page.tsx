@@ -19,6 +19,7 @@ export default function TermsPage() {
       intro={`By creating an account or using ${legalCompany.tradingName}, you agree to these Terms. Please read them with our Privacy Policy, Acceptable Use Policy, Refund Policy, and AI Transparency page. If you do not agree, do not use the service.`}
       relatedLinks={[
         { href: '/privacy', label: 'Privacy Policy' },
+        { href: '/dpa', label: 'Data Processing Agreement' },
         { href: '/acceptable-use', label: 'Acceptable Use' },
         { href: '/refunds', label: 'Refunds & Billing' },
         { href: '/ai-ethics', label: 'AI Transparency' },

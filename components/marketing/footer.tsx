@@ -12,7 +12,7 @@ const productLinks = [
 
 const companyLinks = [
   { label: 'About', href: '/about' },
-  { label: 'Customers', href: '/customers' },
+  { label: "Who it's for", href: '/customers' },
   { label: 'Contact', href: '/contact' },
 ]
 
@@ -20,12 +20,18 @@ const legalNavLinks = [
   { label: 'Privacy', href: '/privacy' },
   { label: 'Terms of Service', href: '/terms' },
   { label: 'Cookies', href: '/cookies' },
+  { label: 'DPA', href: '/dpa' },
+  { label: 'Refunds', href: '/refunds' },
+  { label: 'Acceptable Use', href: '/acceptable-use' },
+  { label: 'AI Ethics', href: '/ai-ethics' },
+  { label: 'Do Not Sell', href: '/do-not-sell' },
 ]
 
 const bottomLegalLinks = [
   { label: 'Privacy', href: '/privacy' },
-  { label: 'Terms of Service', href: '/terms' },
+  { label: 'Terms', href: '/terms' },
   { label: 'Cookies', href: '/cookies' },
+  { label: 'DPA', href: '/dpa' },
 ]
 
 export function Footer() {

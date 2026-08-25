@@ -18,36 +18,51 @@ const mockPosts = [
 ];
 
 function StatusBadge({ status }: { status: string }) {
+  const base =
+    'flex size-5 shrink-0 items-center justify-center rounded-full border'
+
   if (status === 'published') {
     return (
-      <div className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/20 px-1.5 py-0.5 text-[8px] text-emerald-400 sm:px-2 sm:text-[9px]">
+      <div
+        className={`${base} border-emerald-500/30 bg-emerald-500/20 text-emerald-400`}
+        title="Published"
+        aria-label="Published"
+      >
         <Send className="h-2.5 w-2.5" aria-hidden="true" />
-        <span className="hidden sm:inline">Published</span>
       </div>
-    );
+    )
   }
   if (status === 'scheduled') {
     return (
-      <div className="flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/20 px-1.5 py-0.5 text-[8px] text-sky-300 sm:px-2 sm:text-[9px]">
+      <div
+        className={`${base} border-sky-500/30 bg-sky-500/20 text-sky-300`}
+        title="Scheduled"
+        aria-label="Scheduled"
+      >
         <Clock className="h-2.5 w-2.5" aria-hidden="true" />
-        <span className="hidden sm:inline">Scheduled</span>
       </div>
-    );
+    )
   }
   if (status === 'approved') {
     return (
-      <div className="flex items-center gap-1 rounded-full border border-sky-400/25 bg-sky-500/15 px-1.5 py-0.5 text-[8px] text-sky-300 sm:px-2 sm:text-[9px]">
+      <div
+        className={`${base} border-sky-400/25 bg-sky-500/15 text-sky-300`}
+        title="Approved"
+        aria-label="Approved"
+      >
         <CheckCircle2 className="h-2.5 w-2.5" aria-hidden="true" />
-        <span className="hidden sm:inline">Approved</span>
       </div>
-    );
+    )
   }
   return (
-    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-1.5 py-0.5 text-[8px] text-white/30 sm:px-2 sm:text-[9px]">
+    <div
+      className={`${base} border-white/10 bg-white/5 text-white/30`}
+      title="Draft"
+      aria-label="Draft"
+    >
       <FileEdit className="h-2.5 w-2.5" aria-hidden="true" />
-      <span className="hidden sm:inline">Draft</span>
     </div>
-  );
+  )
 }
 
 export function HeroCalendarVisual() {

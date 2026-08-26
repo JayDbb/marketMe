@@ -197,10 +197,10 @@ export function StudioToolsPanel({
               key={tab.id}
               type="button"
               onClick={() => onTabChange(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+              className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold uppercase tracking-wide transition-colors ${
                 activeTab === tab.id
-                  ? 'text-blue-400 border-b-2 border-blue-500 bg-blue-500/5'
-                  : 'text-zinc-500 dark:text-white/40 hover:text-zinc-800 dark:hover:text-white/70'
+                  ? 'border-b-2 border-blue-500 bg-blue-500/5 text-blue-400'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:text-white/40 dark:hover:text-white/70'
               }`}
             >
               <Icon className="w-4 h-4" />

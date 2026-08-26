@@ -86,6 +86,11 @@ export function StudioEditor({
     (layer: CanvasNode) => {
       patchLayers([...layers, layer])
       setSelectedId(layer.id)
+      // Mobile tools live in a bottom sheet — close it so the user sees the new layer.
+      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+        setToolsOpen(false)
+        setLayersOpen(false)
+      }
     },
     [layers, patchLayers]
   )
@@ -192,10 +197,11 @@ export function StudioEditor({
           <button
             type="button"
             onClick={() => setToolsOpen(true)}
-            className="inline-flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/5 hover:text-white md:hidden"
+            className="inline-flex h-11 min-h-11 items-center justify-center gap-1.5 rounded-lg border border-sky-400/40 bg-sky-500/10 px-3 text-sky-200 hover:bg-sky-500/20 md:hidden"
             aria-label="Open tools"
           >
             <Wrench className="h-4 w-4" />
+            <span className="text-xs font-semibold">Tools</span>
           </button>
           <button
             type="button"
@@ -303,12 +309,12 @@ export function StudioEditor({
       <Sheet open={toolsOpen} onOpenChange={setToolsOpen}>
         <SheetContent
           side="bottom"
-          className="flex h-[min(85dvh,40rem)] flex-col gap-0 border-border bg-zinc-50 p-0 dark:bg-[#161b22] md:hidden"
+          className="flex max-h-[85dvh] flex-col gap-0 border-border bg-zinc-50 p-0 dark:bg-[#161b22] data-[side=bottom]:h-[min(85dvh,40rem)] data-[side=bottom]:max-h-[85dvh] md:hidden"
         >
-          <SheetHeader className="shrink-0 border-b border-border px-4 py-3">
+          <SheetHeader className="shrink-0 border-b border-border px-4 py-3 pr-14 text-left">
             <SheetTitle>Tools</SheetTitle>
           </SheetHeader>
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">
             <StudioToolsPanel
               canvasData={canvasData}
               activeTab={toolTab}
@@ -316,7 +322,11 @@ export function StudioEditor({
               onCanvasChange={onChange}
               onFormatChange={handleFormatChange}
               onAddLayer={addLayer}
-              onImageUpload={() => fileInputRef.current?.click()}
+              onImageUpload={() => {
+                // Keep the sheet open until the file dialog returns — closing early
+                // cancels the user gesture on iOS and makes Upload appear broken.
+                fileInputRef.current?.click()
+              }}
               brandKit={brandKit}
               onSaveCopyAs={onSaveCopyAs}
             />
@@ -338,12 +348,12 @@ export function StudioEditor({
       <Sheet open={layersOpen} onOpenChange={setLayersOpen}>
         <SheetContent
           side="bottom"
-          className="flex h-[min(75dvh,36rem)] flex-col gap-0 border-border bg-zinc-50 p-0 dark:bg-[#161b22] md:hidden"
+          className="flex max-h-[75dvh] flex-col gap-0 border-border bg-zinc-50 p-0 dark:bg-[#161b22] data-[side=bottom]:h-[min(75dvh,36rem)] data-[side=bottom]:max-h-[75dvh] md:hidden"
         >
-          <SheetHeader className="shrink-0 border-b border-border px-4 py-3">
+          <SheetHeader className="shrink-0 border-b border-border px-4 py-3 pr-14 text-left">
             <SheetTitle>Layers</SheetTitle>
           </SheetHeader>
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">
             <StudioLayersPanel
               canvasData={{ ...canvasData, layers }}
               selectedId={selectedId}

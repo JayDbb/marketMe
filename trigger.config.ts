@@ -40,6 +40,14 @@ export default defineConfig({
         )
         push('MARKETME_AI_API_KEY', process.env.MARKETME_AI_API_KEY, true)
 
+        // Caption/image tasks (regenerate-caption, generate-image) call OpenAI/OpenRouter.
+        const aiKey =
+          process.env.OPENAI_API_KEY?.trim() ||
+          process.env.OPENROUTER_API_KEY?.trim()
+        push('OPENAI_API_KEY', aiKey, true)
+        push('OPENROUTER_API_KEY', process.env.OPENROUTER_API_KEY, true)
+        push('NEXT_PUBLIC_SITE_URL', process.env.NEXT_PUBLIC_SITE_URL)
+
         return vars
       }),
     ],

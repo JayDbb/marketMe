@@ -46,7 +46,9 @@ import {
 } from '@/lib/services/brand-memory.service'
 import { buildGenerationContext } from '@/lib/services/generation-context.service'
 import { getUserAiPreferences } from '@/lib/services/ai-preferences.service'
-import { resolveImageModel } from '@/lib/ai-models'
+import { resolveChatModel, resolveImageModel } from '@/lib/ai-models'
+import { hasOpenAiConfigured } from '@/lib/openai-config'
+import { generateImageBuffer } from '@/lib/image-generation'
 import { openai } from '@/lib/openai'
 import { calculateGenerationCreditCost } from '@/types/pipeline'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -439,10 +441,11 @@ export async function reviseCaptionAction(
     ? buildMarketingSystemPrompt(profile)
     : ''
 
-  if (process.env.OPENAI_API_KEY?.trim()) {
+  if (hasOpenAiConfigured()) {
     try {
+      const prefs = user ? await getUserAiPreferences(user.id) : null
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: resolveChatModel(prefs?.captionModel),
         messages: [
           {
             role: 'system',
@@ -521,10 +524,11 @@ export async function revisePostImageAction(input: {
     }
   }
 
-  if (!process.env.OPENAI_API_KEY?.trim()) {
+  if (!hasOpenAiConfigured()) {
     return {
       success: false,
-      error: 'Image revision needs OPENAI_API_KEY configured on the server.',
+      error:
+        'Image revision needs OPENAI_API_KEY or OPENROUTER_API_KEY configured on the server.',
     }
   }
 
@@ -568,7 +572,7 @@ export async function revisePostImageAction(input: {
   let imagePrompt = seedPrompt
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: resolveChatModel((await getUserAiPreferences(user.id)).captionModel),
       messages: [
         {
           role: 'system',
@@ -615,30 +619,19 @@ export async function revisePostImageAction(input: {
   try {
     const prefs = await getUserAiPreferences(user.id)
     const imageModel = resolveImageModel(prefs.imageModel)
-    const imageResponse = await openai.images.generate({
-      model: imageModel as 'dall-e-3',
-      prompt: imagePrompt.slice(0, 4000),
-      n: 1,
-      size: '1024x1024',
-    })
-    const tempUrl = imageResponse.data?.[0]?.url
-    if (!tempUrl) {
-      return { success: false, error: 'Image model returned no URL.' }
-    }
-
-    const fetchResponse = await fetch(tempUrl)
-    if (!fetchResponse.ok) {
-      return { success: false, error: 'Failed to download generated image.' }
-    }
-    const buffer = Buffer.from(await fetchResponse.arrayBuffer())
-    const fileName = `Posts/post-${postId}-${Date.now()}.png`
+    const { buffer, contentType } = await generateImageBuffer(
+      imagePrompt,
+      imageModel
+    )
+    const extension = contentType.includes('jpeg') ? 'jpg' : 'png'
+    const fileName = `Posts/post-${postId}-${Date.now()}.${extension}`
     const bucketName =
       process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'generated-content'
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from(bucketName)
       .upload(fileName, buffer, {
-        contentType: 'image/png',
+        contentType,
         upsert: true,
       })
 

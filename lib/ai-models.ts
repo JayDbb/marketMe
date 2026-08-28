@@ -129,10 +129,12 @@ export function isAllowedImageModel(id: string): boolean {
   return IMAGE_MODEL_OPTIONS.some((m) => m.id === id)
 }
 
+import { getOpenAiApiKey, isOpenRouterApiKey } from '@/lib/openai-config'
+
 /** Map stored preference to a model id the configured OpenAI/OpenRouter client accepts. */
 export function resolveChatModel(preferred: string | null | undefined): string {
-  const apiKey = process.env.OPENAI_API_KEY?.trim() || ''
-  const isOpenRouter = apiKey.startsWith('sk-or-')
+  const apiKey = getOpenAiApiKey()
+  const isOpenRouter = isOpenRouterApiKey(apiKey)
   const chosen =
     preferred && isAllowedCaptionModel(preferred) ? preferred : DEFAULT_CAPTION_MODEL
 

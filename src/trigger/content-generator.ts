@@ -23,6 +23,7 @@ import {
 } from '@/lib/services/brand-memory.service'
 import { buildGenerationContext } from '@/lib/services/generation-context.service'
 import { resolveChatModel, resolveImageModel } from '@/lib/ai-models'
+import { generateImageBuffer } from '@/lib/image-generation'
 import { imagePromptSystemInstructions } from '@/lib/image-prompt'
 import type {
   GenerateWeeklyContentPayload,
@@ -512,26 +513,41 @@ export const generateImage = task({
       ? resolveImageModel((await getUserAiPreferences(post.user_id)).imageModel)
       : resolveImageModel(null)
 
-    const imageResponse = await openai.images.generate({
-      model: imageModel as 'dall-e-3',
-      prompt: prompt.trim(),
-      n: 1,
-      size: '1024x1024',
-    })
+    const { buffer, contentType } = await generateImageBuffer(
+      prompt.trim(),
+      imageModel
+    )
 
-    const imageUrl = imageResponse.data?.[0]?.url
-    if (!imageUrl) throw new Error(`No image generated from ${imageModel}`)
+    const extension = contentType.includes('jpeg') ? 'jpg' : 'png'
+    const fileName = `Posts/post-${payload.postId}-${Date.now()}.${extension}`
+    const bucketName =
+      process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'generated-content'
 
-    const uploadResult = await imageUpload.triggerAndWait({
-      postId: payload.postId,
-      imageUrl,
-    })
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(bucketName)
+      .upload(fileName, buffer, {
+        contentType,
+        upsert: true,
+      })
 
-    if (!uploadResult.ok || !uploadResult.output.permanentUrl) {
-      throw new Error('Failed to upload image via subtask')
+    if (uploadError) {
+      throw new Error(
+        `Storage upload failed: ${uploadError.message}. Make sure the bucket '${bucketName}' exists and is public!`
+      )
     }
 
-    return { success: true, imageUrl: uploadResult.output.permanentUrl }
+    const { data: publicUrlData } = supabaseAdmin.storage
+      .from(bucketName)
+      .getPublicUrl(fileName)
+
+    const permanentUrl = publicUrlData.publicUrl
+
+    await supabaseAdmin
+      .from('posts')
+      .update({ image_url: permanentUrl, status: 'draft' })
+      .eq('id', payload.postId)
+
+    return { success: true, imageUrl: permanentUrl }
   },
 })
 

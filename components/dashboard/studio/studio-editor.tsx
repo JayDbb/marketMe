@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Undo2, Redo2 } from 'lucide-react'
+import { Undo2, Redo2, Layers, Wrench } from 'lucide-react'
 import { CanvasData, CanvasNode, ImageNode } from '@/types/canvas'
 import { StudioToolsPanel, type StudioToolTab } from './studio-tools-panel'
 import { StudioElementProperties } from './studio-element-properties'
@@ -14,6 +14,12 @@ import { getActiveLayers, withActiveLayers } from '@/lib/canvas-pages'
 import type { StudioBrandKit } from '@/lib/studio-brand-kit'
 import type { CanvasExportApi } from './canvas-editor'
 import { Loader2 } from 'lucide-react'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 
 const CanvasEditor = dynamic(
   () => import('./canvas-editor').then((m) => m.CanvasEditor),
@@ -37,6 +43,8 @@ interface StudioEditorProps {
   onRedo?: () => void
   exportApiRef?: React.MutableRefObject<CanvasExportApi | null>
   initialSelectedLayerId?: string
+  designName?: string
+  onSaveCopyAs?: (formatId: InstagramFormatId) => void
 }
 
 export function StudioEditor({
@@ -49,11 +57,15 @@ export function StudioEditor({
   onRedo,
   exportApiRef,
   initialSelectedLayerId,
+  designName,
+  onSaveCopyAs,
 }: StudioEditorProps) {
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedLayerId ?? null)
   const [toolTab, setToolTab] = useState<StudioToolTab>(
     initialSelectedLayerId ? 'text' : 'design'
   )
+  const [toolsOpen, setToolsOpen] = useState(false)
+  const [layersOpen, setLayersOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const layers = getActiveLayers(canvasData)
@@ -74,6 +86,11 @@ export function StudioEditor({
     (layer: CanvasNode) => {
       patchLayers([...layers, layer])
       setSelectedId(layer.id)
+      // Mobile tools live in a bottom sheet — close it so the user sees the new layer.
+      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+        setToolsOpen(false)
+        setLayersOpen(false)
+      }
     },
     [layers, patchLayers]
   )
@@ -173,32 +190,51 @@ export function StudioEditor({
   }, [selectedId, selectedLayer, onUndo, onRedo, deleteLayer, handleDuplicate])
 
   return (
-    <div className="w-full h-full min-h-0 flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3 shrink-0">
+    <div className="flex h-full min-h-0 w-full flex-col gap-2">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <StudioPageTabs canvasData={canvasData} onChange={onChange} />
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setToolsOpen(true)}
+            className="inline-flex h-11 min-h-11 items-center justify-center gap-1.5 rounded-lg border border-sky-400/40 bg-sky-500/10 px-3 text-sky-200 hover:bg-sky-500/20 md:hidden"
+            aria-label="Open tools"
+          >
+            <Wrench className="h-4 w-4" />
+            <span className="text-xs font-semibold">Tools</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayersOpen(true)}
+            className="inline-flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:bg-white/5 hover:text-white md:hidden"
+            aria-label="Open layers"
+          >
+            <Layers className="h-4 w-4" />
+          </button>
           <button
             type="button"
             onClick={onUndo}
             disabled={!canUndo}
-            className="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none"
+            className="inline-flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:bg-white/5 hover:text-white disabled:pointer-events-none disabled:opacity-30"
             title="Undo (Ctrl+Z)"
+            aria-label="Undo (Ctrl+Z)"
           >
-            <Undo2 className="w-3.5 h-3.5" />
+            <Undo2 className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             onClick={onRedo}
             disabled={!canRedo}
-            className="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none"
+            className="inline-flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:bg-white/5 hover:text-white disabled:pointer-events-none disabled:opacity-30"
             title="Redo (Ctrl+Y)"
+            aria-label="Redo (Ctrl+Y)"
           >
-            <Redo2 className="w-3.5 h-3.5" />
+            <Redo2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex gap-4">
+      <div className="flex min-h-0 flex-1 gap-4">
         <input
           type="file"
           ref={fileInputRef}
@@ -207,8 +243,8 @@ export function StudioEditor({
           className="hidden"
         />
 
-        <div className="w-72 shrink-0 flex flex-col min-h-0 overflow-hidden bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl shadow-xl">
-          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+        <div className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-black/5 bg-zinc-50 shadow-xl md:flex dark:border-white/10 dark:bg-[#161b22]">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
             <StudioToolsPanel
               canvasData={canvasData}
               activeTab={toolTab}
@@ -218,6 +254,7 @@ export function StudioEditor({
               onAddLayer={addLayer}
               onImageUpload={() => fileInputRef.current?.click()}
               brandKit={brandKit}
+              onSaveCopyAs={onSaveCopyAs}
             />
 
             {selectedLayer && (
@@ -234,11 +271,12 @@ export function StudioEditor({
           </div>
         </div>
 
-        <div className="flex-1 min-w-0 bg-zinc-100 dark:bg-black/40 border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden p-4 md:p-6 flex items-center justify-center min-h-0">
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-black/5 bg-zinc-100 p-2 sm:p-4 md:p-6 dark:border-white/10 dark:bg-black/40">
           <CanvasEditor
             canvasData={canvasData}
             onChange={(data) => patchLayers(data.layers)}
             selectedId={selectedId}
+            maxWidth={560}
             onSelect={(id) => {
               setSelectedId(id)
               if (id) {
@@ -246,13 +284,18 @@ export function StudioEditor({
                 if (layer?.type === 'text') setToolTab('text')
                 else if (layer?.type === 'image') setToolTab('photos')
                 else if (layer?.type === 'rect' || layer?.type === 'circle') setToolTab('elements')
+                // Keep mobile canvas free; open tools only from the Tools button.
+                if (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
+                  setToolsOpen(true)
+                }
               }
             }}
             exportApiRef={exportApiRef}
+            designName={designName}
           />
         </div>
 
-        <div className="w-64 shrink-0 flex flex-col bg-zinc-50/80 dark:bg-[#161b22]/80 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-xl min-h-0">
+        <div className="hidden w-64 shrink-0 flex-col overflow-hidden rounded-2xl border border-black/5 bg-zinc-50 shadow-xl md:flex dark:border-white/10 dark:bg-[#161b22]">
           <StudioLayersPanel
             canvasData={{ ...canvasData, layers }}
             selectedId={selectedId}
@@ -262,6 +305,68 @@ export function StudioEditor({
           />
         </div>
       </div>
+
+      <Sheet open={toolsOpen} onOpenChange={setToolsOpen}>
+        <SheetContent
+          side="bottom"
+          className="flex max-h-[85dvh] flex-col gap-0 border-border bg-zinc-50 p-0 dark:bg-[#161b22] data-[side=bottom]:h-[min(85dvh,40rem)] data-[side=bottom]:max-h-[85dvh] md:hidden"
+        >
+          <SheetHeader className="shrink-0 border-b border-border px-4 py-3 pr-14 text-left">
+            <SheetTitle>Tools</SheetTitle>
+          </SheetHeader>
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">
+            <StudioToolsPanel
+              canvasData={canvasData}
+              activeTab={toolTab}
+              onTabChange={setToolTab}
+              onCanvasChange={onChange}
+              onFormatChange={handleFormatChange}
+              onAddLayer={addLayer}
+              onImageUpload={() => {
+                // Keep the sheet open until the file dialog returns — closing early
+                // cancels the user gesture on iOS and makes Upload appear broken.
+                fileInputRef.current?.click()
+              }}
+              brandKit={brandKit}
+              onSaveCopyAs={onSaveCopyAs}
+            />
+            {selectedLayer ? (
+              <div className="border-t border-black/8 dark:border-white/10">
+                <StudioElementProperties
+                  canvasData={canvasData}
+                  selectedLayer={selectedLayer}
+                  onUpdateLayer={updateLayer}
+                  onDeleteLayer={deleteLayer}
+                  onDuplicateLayer={handleDuplicate}
+                />
+              </div>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={layersOpen} onOpenChange={setLayersOpen}>
+        <SheetContent
+          side="bottom"
+          className="flex max-h-[75dvh] flex-col gap-0 border-border bg-zinc-50 p-0 dark:bg-[#161b22] data-[side=bottom]:h-[min(75dvh,36rem)] data-[side=bottom]:max-h-[75dvh] md:hidden"
+        >
+          <SheetHeader className="shrink-0 border-b border-border px-4 py-3 pr-14 text-left">
+            <SheetTitle>Layers</SheetTitle>
+          </SheetHeader>
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y">
+            <StudioLayersPanel
+              canvasData={{ ...canvasData, layers }}
+              selectedId={selectedId}
+              onSelect={(id) => {
+                setSelectedId(id)
+                setLayersOpen(false)
+              }}
+              onChange={(data) => patchLayers(data.layers)}
+              onDeleteLayer={deleteLayer}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

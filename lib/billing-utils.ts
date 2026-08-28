@@ -38,7 +38,7 @@ export const PLANS: Record<
       postsPerMonth: 100,
       aiCredits: 500,
     },
-    badgeClass: 'bg-purple-600 text-white',
+    badgeClass: 'bg-primary text-primary-foreground',
   },
   team: {
     label: 'Team',
@@ -50,7 +50,7 @@ export const PLANS: Record<
       teamMembers: 10,
       socialProfiles: 25,
       postsPerMonth: null,
-      aiCredits: null,
+      aiCredits: 2000,
     },
     badgeClass: 'bg-amber-500 text-zinc-900',
   },
@@ -117,6 +117,13 @@ export function formatRenewalText(
   const d = new Date(currentPeriodEnd)
   if (Number.isNaN(d.getTime())) return null
   return `Renews ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+}
+
+export function formatCreditsResetText(value: string | null): string | null {
+  if (!value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return `Resets ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
 }
 
 export function formatUsageLabel(used: number, limit: number | null): string {

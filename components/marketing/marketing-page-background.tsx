@@ -10,16 +10,18 @@ export function MarketingPageBackground({ children, className }: MarketingPageBa
   return (
     <div
       className={cn(
-        'relative min-h-dvh bg-[#0d1117] text-zinc-50 overflow-x-hidden font-sans selection:bg-blue-500/30 selection:text-white',
+        // overflow-x stays on body — clipping here turns fixed nav into a
+        // containing-block child and chops the condensed pill on scroll.
+        'marketing-canvas relative min-h-dvh bg-[#0d1117] font-sans text-zinc-50 selection:bg-sky-500/30 selection:text-white',
         className
       )}
     >
       <div
-        className="fixed inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-size-[40px_40px] pointer-events-none"
+        className="fixed inset-0 bg-[linear-gradient(to_right,#ffffff04_1px,transparent_1px),linear-gradient(to_bottom,#ffffff04_1px,transparent_1px)] bg-size-[40px_40px] pointer-events-none opacity-25"
         aria-hidden="true"
       />
       <div
-        className="fixed top-0 right-0 -mt-20 -mr-20 w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none"
+        className="fixed top-0 right-0 -mt-20 -mr-20 w-[500px] h-[500px] bg-sky-500/10 blur-[120px] rounded-full pointer-events-none"
         aria-hidden="true"
       />
       <div

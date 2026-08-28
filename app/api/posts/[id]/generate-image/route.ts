@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import "@/lib/trigger-env";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { generateImage } from "@/src/trigger/content-generator";
 import { requireAuth, AuthError } from "@/lib/services/auth.service";
@@ -6,7 +7,7 @@ import {
   PostLifecycleError,
   verifyPostOwnership,
 } from "@/lib/services/post-lifecycle.service";
-import { rateLimitOrThrow } from "@/lib/rate-limit";
+import { isRateLimitError, rateLimitOrThrow } from "@/lib/rate-limit";
 
 export async function POST(
   request: NextRequest,
@@ -31,7 +32,7 @@ export async function POST(
     if (e instanceof PostLifecycleError) {
       return NextResponse.json({ error: e.message }, { status: e.status })
     }
-    if (e instanceof Error && e.message.includes('Rate limit')) {
+    if (isRateLimitError(e)) {
       return NextResponse.json({ error: e.message }, { status: 429 })
     }
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -39,11 +40,17 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { style } = body;
+    const { style, revisionInstruction } = body as {
+      style?: string
+      revisionInstruction?: string
+    };
 
     const handle = await tasks.trigger<typeof generateImage>("generate-image", {
       postId: id,
       style,
+      ...(revisionInstruction?.trim()
+        ? { revisionInstruction: revisionInstruction.trim() }
+        : {}),
     });
 
     return NextResponse.json({ success: true, jobId: handle.id });

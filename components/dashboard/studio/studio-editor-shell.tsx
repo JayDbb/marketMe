@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import Link from 'next/link'
-import { ChevronLeft, Save, Sparkles, Loader2, Cloud } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ChevronLeft, Save, Sparkles, Loader2, Cloud, ImageDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { StudioEditor } from './studio-editor'
@@ -13,10 +13,12 @@ import {
   saveCanvasTemplateAction,
   updateCanvasTemplateAction,
 } from '@/app/dashboard/studio/actions'
-import { previewUrlFromCanvas } from '@/lib/studio-utils'
+import { designDownloadFilename, previewUrlFromCanvas } from '@/lib/studio-utils'
 import { useCanvasHistory } from '@/hooks/use-canvas-history'
 import type { StudioBrandKit } from '@/lib/studio-brand-kit'
 import type { CanvasExportApi } from './canvas-editor'
+import { resizeCanvasData } from '@/lib/canvas-layer-utils'
+import { getInstagramFormat, type InstagramFormatId } from '@/lib/instagram-formats'
 import { toast } from 'sonner'
 import { useIsClient } from '@/hooks/use-is-client'
 
@@ -29,6 +31,7 @@ interface StudioEditorShellProps {
   brandKit?: StudioBrandKit
   onBack: () => void
   onSaved: (template: StudioTemplate, canvasData: CanvasData) => void
+  onLibraryChange?: (template: StudioTemplate) => void
 }
 
 export function StudioEditorShell({
@@ -40,7 +43,9 @@ export function StudioEditorShell({
   brandKit,
   onBack,
   onSaved,
+  onLibraryChange,
 }: StudioEditorShellProps) {
+  const router = useRouter()
   const {
     canvasData,
     push,
@@ -54,16 +59,19 @@ export function StudioEditorShell({
   const [savedTemplate, setSavedTemplate] = useState<StudioTemplate | null>(template)
   const [isSaving, setIsSaving] = useState(false)
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [dirty, setDirty] = useState(!template?.id)
   const mounted = useIsClient()
   const templateIdRef = useRef<string | undefined>(template?.id)
   const exportApiRef = useRef<CanvasExportApi | null>(null)
   const canvasDataRef = useRef(canvasData)
   const nameRef = useRef(name)
+  const dirtyRef = useRef(dirty)
 
   useEffect(() => {
     canvasDataRef.current = canvasData
     nameRef.current = name
-  }, [canvasData, name])
+    dirtyRef.current = dirty
+  }, [canvasData, name, dirty])
 
   useEffect(() => {
     templateIdRef.current = savedTemplate?.id ?? template?.id
@@ -77,7 +85,15 @@ export function StudioEditorShell({
     }
   }, [])
 
-  const activeTemplateId = savedTemplate?.id ?? template?.id
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
 
   const resolvePreviewUrl = useCallback(() => {
     const rendered = exportApiRef.current?.getPreviewDataUrl('jpeg')
@@ -124,6 +140,8 @@ export function StudioEditorShell({
 
       templateIdRef.current = result.template.id
       setSavedTemplate(result.template)
+      setDirty(false)
+      dirtyRef.current = false
 
       if (silent) {
         setAutoSaveStatus('saved')
@@ -138,77 +156,164 @@ export function StudioEditorShell({
     [savedTemplate, template, initialCategory, onSaved, resolvePreviewUrl]
   )
 
-  const handleSave = () => void persist(false)
+  useEffect(() => {
+    let cancelled = false
+    const timeout = window.setTimeout(() => {
+      if (cancelled || templateIdRef.current) return
+      void persist(true)
+    }, 700)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeout)
+    }
+    // Create the file once when the editor opens, not on every persist identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
-    if (!activeTemplateId) return
-
     const interval = setInterval(() => {
+      if (!dirtyRef.current) return
       void persist(true)
     }, 30_000)
-
     return () => clearInterval(interval)
-  }, [persist, activeTemplateId])
+  }, [persist])
+
+  const handleSave = () => void persist(false)
 
   const handleChange = (data: CanvasData) => {
+    setDirty(true)
     push(data)
   }
 
-  const shell = (
-    <div className="fixed inset-0 z-[100] bg-[#0d1117] flex flex-col isolate">
-      <div className="shrink-0 flex items-center gap-4 px-4 sm:px-6 py-3 border-b border-white/8 bg-[#0d1117]/95 backdrop-blur-xl">
-        <button
-          onClick={onBack}
-          className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition-all"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
+  const handleBack = () => {
+    if (dirtyRef.current) {
+      const leave = window.confirm('Leave Studio? Unsaved changes will be lost.')
+      if (!leave) return
+    }
+    onBack()
+  }
 
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] uppercase tracking-widest text-blue-400/80 font-medium mb-0.5">
-            Studio Editor
-          </p>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-9 max-w-xs bg-white/5 border-white/10 text-white font-semibold rounded-lg text-sm"
-          />
+  const handleGenerate = async () => {
+    if (dirtyRef.current || !templateIdRef.current) {
+      const ok = await persist(false)
+      if (!ok) return
+    }
+    const id = templateIdRef.current
+    if (id) router.push(`/dashboard/generate?templateId=${id}`)
+  }
+
+  const handleDownload = (format: 'png' | 'jpeg') => {
+    const dataUrl = exportApiRef.current?.getPreviewDataUrl(format === 'jpeg' ? 'jpeg' : 'png')
+    if (!dataUrl) {
+      toast.error('Could not export this design')
+      return
+    }
+    const link = document.createElement('a')
+    link.download = designDownloadFilename(nameRef.current, format === 'jpeg' ? 'jpg' : 'png')
+    link.href = dataUrl
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleSaveCopyAs = async (formatId: InstagramFormatId) => {
+    const format = getInstagramFormat(formatId)
+    const resized = resizeCanvasData(
+      JSON.parse(JSON.stringify(canvasDataRef.current)) as CanvasData,
+      format
+    )
+    const copyName = `${nameRef.current.trim() || 'Untitled'} · ${format.label}`
+    const result = await saveCanvasTemplateAction({
+      name: copyName,
+      category: savedTemplate?.category ?? template?.category ?? initialCategory ?? 'Other',
+      canvasData: resized,
+      previewUrl: previewUrlFromCanvas(resized),
+    })
+    if (!result.success || !result.template) {
+      toast.error(result.error ?? 'Could not save a copy')
+      return
+    }
+    onLibraryChange?.(result.template)
+    toast.success(`Saved ${format.label} copy`)
+  }
+
+  const shell = (
+    <div className="fixed inset-0 z-100 flex flex-col isolate bg-[#0d1117]">
+      <div className="flex shrink-0 flex-col gap-2 border-b border-white/8 bg-[#0d1117]/95 px-3 py-2.5 backdrop-blur-xl sm:gap-3 sm:px-6 sm:py-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Back to Studio"
+            className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/10 text-white/60 hover:bg-white/5 hover:text-white ui-transition"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <label htmlFor="studio-design-name" className="sr-only">
+              Design name
+            </label>
+            <Input
+              id="studio-design-name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                setDirty(true)
+              }}
+              onBlur={() => {
+                if (dirtyRef.current) void persist(true)
+              }}
+              className="h-11 max-w-full rounded-lg border-white/10 bg-white/5 text-sm font-semibold text-white sm:max-w-xs"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:justify-end">
           {autoSaveStatus === 'saving' && (
-            <span className="text-[10px] text-white/40 flex items-center gap-1">
-              <Cloud className="w-3 h-3 animate-pulse" />
+            <span className="hidden items-center gap-1 text-[10px] text-white/40 sm:flex">
+              <Cloud className="h-3 w-3 animate-pulse" />
               Auto-saving…
             </span>
           )}
           {autoSaveStatus === 'saved' && (
-            <span className="text-[10px] text-emerald-400/80 flex items-center gap-1">
-              <Cloud className="w-3 h-3" />
+            <span className="hidden items-center gap-1 text-[10px] text-emerald-400/80 sm:flex">
+              <Cloud className="h-3 w-3" />
               Saved
             </span>
           )}
-          {activeTemplateId ? (
-            <Link
-              href={`/dashboard/generate?templateId=${activeTemplateId}`}
-              className="h-9 px-4 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 text-sm font-medium flex items-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Use in Generate
-            </Link>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => handleDownload('png')}
+            className="inline-flex size-11 min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/10 text-white/70 hover:bg-white/5 hover:text-white sm:h-11 sm:w-auto sm:gap-2 sm:px-3"
+            aria-label="Download"
+          >
+            <ImageDown className="h-4 w-4" />
+            <span className="hidden sm:inline text-sm font-medium">Download</span>
+          </button>
           <Button
+            type="button"
+            onClick={() => void handleGenerate()}
+            className="h-11 min-h-11 flex-1 gap-2 rounded-xl bg-blue-600 px-3 font-semibold text-white hover:bg-blue-500 sm:flex-none sm:px-4"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden min-[400px]:inline">Use in Generate</span>
+            <span className="min-[400px]:hidden">Generate</span>
+          </Button>
+          <Button
+            type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="h-9 px-5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold gap-2"
+            variant="outline"
+            className="h-11 min-h-11 flex-1 gap-2 rounded-xl border-white/15 bg-transparent px-3 font-semibold text-white hover:bg-white/5 sm:flex-none sm:px-5"
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isSaving ? 'Saving…' : 'Save design'}
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {isSaving ? 'Saving…' : 'Save'}
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden p-4 md:p-6">
+      <div className="min-h-0 flex-1 overflow-hidden p-2 sm:p-4 md:p-6">
         <StudioEditor
           canvasData={canvasData}
           onChange={handleChange}
@@ -219,6 +324,8 @@ export function StudioEditorShell({
           onRedo={redo}
           exportApiRef={exportApiRef}
           initialSelectedLayerId={initialSelectedLayerId}
+          designName={name}
+          onSaveCopyAs={handleSaveCopyAs}
         />
       </div>
     </div>

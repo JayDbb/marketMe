@@ -14,13 +14,13 @@ import {
   getMinScheduleDatetime,
   getPlatformCharLimit,
   getSchedulePresets,
+  parseDatetimeLocal,
 } from "@/lib/post-schedule-utils";
 import { Platform } from "@/types/content";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Briefcase,
   CalendarIcon,
-  Camera,
   Clock,
   Globe,
   Heart,
@@ -38,7 +38,9 @@ import { toast } from "sonner";
 import { useIsClient } from "@/hooks/use-is-client";
 import { ImageUpload } from "./image-upload";
 import { PannablePreviewImage } from "./pannable-preview-image";
+import { InstagramFeedPreview } from "./instagram-feed-preview";
 import { toDatetimeLocalValue } from "@/lib/calendar-utils";
+import { DEFAULT_PREFERENCES, formatTimezoneLabel } from "@/lib/settings-utils";
 
 export interface CreatePostPayload {
   caption: string;
@@ -58,11 +60,16 @@ interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (post: CreatePostPayload) => void | Promise<void>;
+  /** Edit mode only — publish the existing post to Instagram immediately. */
+  onPublishNow?: (
+    postId: string,
+  ) => void | Promise<{ success: boolean; error?: string } | void>;
   initialScheduledFor?: string;
   editPost?: EditPostInitial | null;
+  timeZone?: string;
 }
 
-const PLATFORMS: Platform[] = ["twitter", "linkedin", "instagram"];
+const PLATFORMS: Platform[] = ["instagram"];
 
 const PLATFORM_LABELS: Record<string, string> = {
   twitter: "X / Twitter",
@@ -139,49 +146,19 @@ function PostPreview({
 
   if (platform === "instagram") {
     return (
-      <div className="w-full max-w-[360px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col transition-all">
-        <div className="p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-linear-to-tr from-yellow-400 via-red-500 to-pink-500 p-[2px] shrink-0">
-              <div className="w-full h-full bg-white rounded-full border-2 border-white flex items-center justify-center overflow-hidden">
-                <span className="font-bold text-gray-900 text-[10px]">
-                  {ctx.initials}
-                </span>
-              </div>
-            </div>
-            <span className="text-[13px] font-semibold text-gray-900 truncate">
-              {handle}
-            </span>
-          </div>
-          <Camera className="w-5 h-5 text-gray-400 shrink-0" />
-        </div>
-
-        <PreviewMedia previewUrl={previewUrl} variant="square" />
-
-        <div className="px-3 pt-3 pb-1 flex justify-between">
-          <div className="flex gap-4">
-            <Heart className="w-6 h-6 text-gray-900" />
-            <MessageCircle className="w-6 h-6 text-gray-900" />
-            <Send className="w-6 h-6 text-gray-900 -rotate-45 -mt-1" />
-          </div>
-          <div className="w-6 h-6 border-2 border-gray-900 rounded-sm" />
-        </div>
-
-        <div className="px-3 pb-4 pt-1 text-[13px] text-gray-900 leading-snug">
-          <span className="font-semibold mr-1.5">{handle}</span>
-          {content ? (
-            <span className="whitespace-pre-wrap">{content}</span>
-          ) : (
-            <span className="text-gray-400 italic">Write a caption...</span>
-          )}
-        </div>
-      </div>
+      <InstagramFeedPreview
+        handle={handle}
+        initials={ctx.initials}
+        avatarUrl={ctx.avatarUrl}
+        caption={content}
+        previewUrl={previewUrl}
+      />
     );
   }
 
   if (platform === "linkedin") {
     return (
-      <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xl flex flex-col transition-all">
+      <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-lg overflow-hidden shadow-xl flex flex-col ui-transition">
         <div className="p-4 flex items-start gap-3">
           <div className="w-12 h-12 rounded bg-blue-100 flex items-center justify-center shrink-0">
             <span className="font-bold text-blue-700 text-sm">
@@ -241,7 +218,7 @@ function PostPreview({
   }
 
   return (
-    <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col transition-all">
+    <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col ui-transition">
       <div className="p-4 pb-2 flex items-start gap-3">
         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
           <div className="w-full h-full bg-blue-500/10 flex items-center justify-center">
@@ -293,24 +270,29 @@ const FALLBACK_CTX: PostModalContext = {
   displayName: "Your Brand",
   handle: "yourbrand",
   initials: "YB",
+  avatarUrl: null,
 };
 
 export function CreatePostModal({
   isOpen,
   onClose,
   onSubmit,
+  onPublishNow,
   initialScheduledFor,
   editPost = null,
+  timeZone = DEFAULT_PREFERENCES.timezone,
 }: CreatePostModalProps) {
   const [content, setContent] = useState("");
   const [platform, setPlatform] = useState<Platform>("instagram");
-  const [scheduledFor, setScheduledFor] = useState(
-    getDefaultScheduleDatetime(),
+  const [scheduledFor, setScheduledFor] = useState(() =>
+    getDefaultScheduleDatetime(timeZone),
   );
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [ctx, setCtx] = useState<PostModalContext>(FALLBACK_CTX);
   const mounted = useIsClient();
+  const busy = isSubmitting || isPublishing;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -335,6 +317,8 @@ export function CreatePostModal({
   useEffect(() => {
     if (!isOpen) return;
     startTransition(() => {
+      setIsSubmitting(false);
+      setIsPublishing(false);
       if (editPost) {
         setContent(editPost.caption);
         setPlatform(editPost.platform);
@@ -343,8 +327,8 @@ export function CreatePostModal({
             (() => {
               const d = new Date(editPost.scheduled_date);
               return Number.isNaN(d.getTime())
-                ? getDefaultScheduleDatetime()
-                : toDatetimeLocalValue(d);
+                ? getDefaultScheduleDatetime(timeZone)
+                : toDatetimeLocalValue(d, timeZone);
             })(),
         );
         setFile(null);
@@ -352,15 +336,15 @@ export function CreatePostModal({
       }
       setContent("");
       setPlatform("instagram");
-      setScheduledFor(initialScheduledFor ?? getDefaultScheduleDatetime());
+      setScheduledFor(initialScheduledFor ?? getDefaultScheduleDatetime(timeZone));
       setFile(null);
     });
-  }, [isOpen, initialScheduledFor, editPost]);
+  }, [isOpen, initialScheduledFor, editPost, timeZone]);
 
   const charLimit = getPlatformCharLimit(platform);
   const charCount = content.length;
-  const schedulePresets = getSchedulePresets();
-  const minSchedule = getMinScheduleDatetime();
+  const schedulePresets = getSchedulePresets(timeZone);
+  const minSchedule = getMinScheduleDatetime(timeZone);
   const isEditMode = Boolean(editPost);
 
   useEffect(() => {
@@ -374,8 +358,8 @@ export function CreatePostModal({
     setContent("");
     setPlatform("instagram");
     setFile(null);
-    setScheduledFor(getDefaultScheduleDatetime());
-  }, []);
+    setScheduledFor(getDefaultScheduleDatetime(timeZone));
+  }, [timeZone]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,7 +375,7 @@ export function CreatePostModal({
       return;
     }
 
-    const scheduledDate = new Date(scheduledFor);
+    const scheduledDate = parseDatetimeLocal(scheduledFor, timeZone);
     if (Number.isNaN(scheduledDate.getTime())) {
       toast.error("Please pick a valid date and time");
       return;
@@ -411,7 +395,7 @@ export function CreatePostModal({
           file,
         }),
       );
-      toast.success("Post scheduled successfully!");
+      toast.success(isEditMode ? "Post updated" : "Post scheduled successfully!");
       resetForm();
       onClose();
     } catch (error) {
@@ -419,10 +403,66 @@ export function CreatePostModal({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to schedule post. Please try again.",
+          : isEditMode
+            ? "Failed to update post. Please try again."
+            : "Failed to schedule post. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePublishNow = async () => {
+    if (!editPost?.postId || !onPublishNow) return;
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      toast.error("Post content cannot be empty");
+      return;
+    }
+    if (charCount > charLimit) {
+      toast.error(
+        `Caption exceeds ${charLimit} characters for ${PLATFORM_LABELS[platform] ?? platform}`,
+      );
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      // Persist any edits first so Instagram gets the latest caption/media.
+      const scheduledDate = parseDatetimeLocal(scheduledFor, timeZone);
+      const scheduledIso = Number.isNaN(scheduledDate.getTime())
+        ? new Date().toISOString()
+        : scheduledDate < new Date()
+          ? new Date().toISOString()
+          : scheduledDate.toISOString();
+
+      await Promise.resolve(
+        onSubmit({
+          caption: trimmed,
+          platform,
+          scheduled_date: scheduledIso,
+          file,
+        }),
+      );
+
+      const result = await Promise.resolve(onPublishNow(editPost.postId));
+      if (result && result.success === false) {
+        // Parent handler surfaces the error toast.
+        return;
+      }
+
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("Failed to publish post:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to publish. Please try again.",
+      );
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -508,6 +548,10 @@ export function CreatePostModal({
                             </button>
                           ))}
                         </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Instagram publishing is live now. Additional channels will appear here
+                          once they are supported.
+                        </p>
                       </div>
 
                       <div className="space-y-2">
@@ -543,8 +587,11 @@ export function CreatePostModal({
 
                       <div className="space-y-3">
                         <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                          Schedule For
+                          Schedule for
                         </Label>
+                        <p className="text-[11px] text-muted-foreground">
+                          Times in {formatTimezoneLabel(timeZone)}
+                        </p>
                         <div className="relative">
                           <Input
                             type="datetime-local"
@@ -558,7 +605,7 @@ export function CreatePostModal({
                         </div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 shrink-0" />
-                          {formatScheduledPreview(scheduledFor)}
+                          {formatScheduledPreview(scheduledFor, timeZone)}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {schedulePresets.map((preset) => (
@@ -580,20 +627,40 @@ export function CreatePostModal({
                     </form>
                   </div>
 
-                  <div className="px-6 py-4 border-t border-border bg-muted/30 flex justify-end gap-3 shrink-0">
+                  <div className="px-6 py-4 border-t border-border bg-muted/30 flex flex-wrap justify-end gap-3 shrink-0">
                     <Button
                       type="button"
                       variant="ghost"
                       onClick={onClose}
-                      disabled={isSubmitting}
+                      disabled={busy}
                       className="text-foreground"
                     >
                       Cancel
                     </Button>
+                    {isEditMode && onPublishNow ? (
+                      <Button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void handlePublishNow()}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2 border-0 min-w-[140px]"
+                      >
+                        {isPublishing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Posting…
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            Post now
+                          </>
+                        )}
+                      </Button>
+                    ) : null}
                     <Button
                       type="submit"
                       form="create-post-form"
-                      disabled={isSubmitting}
+                      disabled={busy}
                       className="bg-blue-600 hover:bg-blue-500 text-white gap-2 border-0 min-w-[140px]"
                     >
                       {isSubmitting ? (
@@ -618,7 +685,7 @@ export function CreatePostModal({
                       Live Preview
                     </h3>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Drag image to peek at crop · releases back on mouse up
+                      Feed frame follows 1:1 / 4:5 / 1.91:1 · drag image to peek at crop
                     </p>
                   </div>
                   <div className="flex-1 overflow-y-auto p-6 flex items-start justify-center dashboard-grid-bg">

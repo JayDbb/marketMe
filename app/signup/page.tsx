@@ -10,8 +10,10 @@ import {
   AuthAlert,
   AuthDivider,
   AuthField,
+  AuthPasswordField,
   AuthPrimaryButton,
 } from '@/components/auth/auth-ui'
+import { Label } from '@/components/ui/label'
 
 function SignupForm() {
   const searchParams = useSearchParams()
@@ -26,23 +28,28 @@ function SignupForm() {
   return (
     <AuthShell
       mode="signup"
-      headline="Create your account"
+      headline="Create Your Account"
       alternatePrompt="Already have an account?"
       alternateHref="/login"
       alternateLabel="Sign in"
     >
       <AuthAlert message={message} type={type} />
+      <div className="mb-5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[11px] leading-relaxed text-zinc-600">
+        Start with the fewest steps possible. Business details and profile setup can wait until onboarding.
+      </div>
+
+      <div className="space-y-3">
+        <GoogleAuthButton disabled={!acceptedTerms} />
+        {!acceptedTerms ? (
+          <p className="text-center text-[11px] text-zinc-500">
+            Accept the Terms to continue with Google.
+          </p>
+        ) : null}
+      </div>
+
+      <AuthDivider />
 
       <form id="signup-form" action={formAction} className="space-y-4">
-        <AuthField
-          id="name"
-          label="Full name"
-          name="name"
-          type="text"
-          placeholder="Alex Rivera"
-          autoComplete="name"
-          required
-        />
         <AuthField
           id="email"
           label="Email"
@@ -52,19 +59,22 @@ function SignupForm() {
           autoComplete="email"
           required
         />
-        <AuthField
-          id="password"
-          label="Password"
-          name="password"
-          type="password"
-          placeholder="At least 6 characters"
-          autoComplete="new-password"
-          required
-          minLength={6}
-        />
+        <div className="space-y-2">
+          <Label htmlFor="password" className="text-sm font-medium text-zinc-700">
+            Password
+          </Label>
+          <AuthPasswordField
+            id="password"
+            name="password"
+            autoComplete="new-password"
+            placeholder="Create a password"
+            minLength={6}
+            hint="Use at least 6 characters. You can add business details after you get in."
+          />
+        </div>
 
-        <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3">
-          <label className="flex items-start gap-3 text-[11px] leading-relaxed text-zinc-400">
+        <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <label className="flex items-start gap-3 text-xs leading-relaxed text-zinc-600">
             <input
               type="checkbox"
               name="accepted_terms"
@@ -72,35 +82,41 @@ function SignupForm() {
               required
               checked={acceptedTerms}
               onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5"
+              className="mt-0.5 accent-zinc-900"
             />
             <span>
               I agree to the{' '}
-              <Link href="/terms" className="underline underline-offset-2 hover:text-zinc-200">
+              <Link
+                href="/terms"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
+              >
                 Terms of Service
               </Link>
               ,{' '}
-              <Link href="/privacy" className="underline underline-offset-2 hover:text-zinc-200">
+              <Link
+                href="/privacy"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
+              >
                 Privacy Policy
               </Link>
               , and{' '}
               <Link
                 href="/acceptable-use"
-                className="underline underline-offset-2 hover:text-zinc-200"
+                className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700"
               >
                 Acceptable Use Policy
               </Link>
               .
             </span>
           </label>
-          <label className="flex items-start gap-3 text-[11px] leading-relaxed text-zinc-400">
+          <label className="flex items-start gap-3 text-xs leading-relaxed text-zinc-600">
             <input
               type="checkbox"
               name="marketing_opt_in"
               value="yes"
               checked={marketingOptIn}
               onChange={(e) => setMarketingOptIn(e.target.checked)}
-              className="mt-0.5"
+              className="mt-0.5 accent-zinc-900"
             />
             <span>
               Optional: send me product tips and updates by email. I can unsubscribe anytime.
@@ -109,21 +125,11 @@ function SignupForm() {
         </div>
 
         <AuthPrimaryButton
-          idleLabel="Create account"
-          pendingLabel="Creating account..."
+          idleLabel="Create Account"
+          pendingLabel="Creating Account…"
           disabled={!acceptedTerms}
         />
       </form>
-
-      <AuthDivider />
-      <div className={!acceptedTerms ? 'pointer-events-none opacity-50' : undefined}>
-        <GoogleAuthButton />
-      </div>
-      {!acceptedTerms ? (
-        <p className="mt-2 text-center text-[11px] text-zinc-500">
-          Accept the Terms to continue with Google.
-        </p>
-      ) : null}
     </AuthShell>
   )
 }

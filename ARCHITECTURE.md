@@ -90,10 +90,59 @@ Always scope queries by `user_id` from `getAuthenticatedUser()`.
 
 | Env var | Service |
 |---------|---------|
-| `MARKETME_AI_API_URL` | FastAPI AI backend (strategy, briefs) |
-| `OPENAI_API_KEY` | Direct OpenAI / OpenRouter generation |
+| `MARKETME_AI_API_URL` | FastAPI creative pipeline (strategy → schedule → posts → creative brief → publish) |
+| `MARKETME_AI_API_KEY` | Optional bearer / X-API-Key for the AI API |
+| `MARKETME_AI_BUSINESS_ID` | Optional override for integer `business_id` sent to the AI API |
+| `OPENAI_API_KEY` | Direct OpenAI / OpenRouter (caption revise, image gen, Generate fallback) |
 | `STRIPE_SECRET_KEY` | Billing |
 | `PEXELS_API_KEY` | Stock images in studio |
+
+### MarketMe AI creative pipeline
+
+Dashboard Generate and `/api/content-plans/generate` call `lib/services/creative-pipeline.service.ts`, which orchestrates:
+
+1. Business profile → strategy (`POST /api/v1/strategy/generate`)
+2. Strategy → weekly schedule (`POST /api/v1/schedules/generate`)
+3. Schedule items → posts (`POST /api/v1/posts/generate`)
+4. Optional creative briefs (`POST /api/v1/creative/generate`)
+5. Image generation stays on OpenAI/OpenRouter (DALL·E) via Trigger
+6. Publish via `POST /api/v1/publish/instagram`
+
+### Brand memory (prompt context)
+
+Invisible style learning — no fine-tuning. On revise / approve / reject, MarketMe stores short style notes on `business_profiles` (`style_notes`, `preferred_ctas`, `avoid_phrases`) and loads the last few approved captions into Generate, Revise, and pipeline `additional_instructions`.
+
+### Instagram OAuth (Connections)
+
+Flow:
+
+1. User clicks **Connect** on `/dashboard/connections`
+2. Next `POST /api/social/connect` resolves the user’s `business_profiles.id` (UUID)
+3. Browser is sent to MarketMe AI `GET /api/v1/auth/meta/login?business_profile_id=…` (signed state → Facebook)
+4. Meta redirects to the AI API callback (`/api/v1/auth/meta/callback`)
+5. AI API stores Instagram credentials and redirects to the frontend
+6. Frontend confirms OAuth success via `POST /api/social/connections` (local mirror in `business_social_connections`) so MarketMe shows the account even if publish list fails
+7. `GET /api/social/connections` merges MarketMe AI publish list + local mirror
+
+**MarketMe AI Meta callback** currently redirects to:
+
+```text
+{FRONTEND_URL}/dashboard/settings?instagram=connected|cancelled|not_found
+```
+
+This Next app rewrites those returns to Connections via `proxy.ts`. Prefer configuring the AI service to use:
+
+```text
+{FRONTEND_URL}/dashboard/connections?oauth=instagram&status=success
+```
+
+On error:
+
+```text
+{FRONTEND_URL}/dashboard/connections?oauth=instagram&status=error&error=<message>
+```
+
+`FRONTEND_URL` on Render must match the host you’re actually using (e.g. `http://localhost:3000` for local, or your Vercel URL for preview/prod).
 
 ## CI/CD
 

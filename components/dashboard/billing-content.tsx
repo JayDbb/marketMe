@@ -1,11 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import { motion, Variants } from 'framer-motion'
+import { useState, useTransition } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { LayoutDashboard, Users, Link2, Sparkles, Info } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Link2,
+  Sparkles,
+  Info,
+  Loader2,
+  Coins,
+  ReceiptText,
+} from 'lucide-react'
 import { UpgradeModal } from './upgrade-modal'
 import { InvoicesDrawer } from './invoices-drawer'
 import type { AccountContext } from '@/types/billing'
@@ -13,13 +21,10 @@ import {
   formatLimitLabel,
   formatUsageLabel,
   usagePercent,
-  PLANS,
 } from '@/lib/billing-utils'
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 20 } },
-}
+import { createBillingPortalSession } from '@/app/dashboard/account/actions'
+import { toast } from 'sonner'
+import { SettingsHeading } from '@/components/dashboard/settings/settings-ui'
 
 const USAGE_ICONS = {
   workspaces: LayoutDashboard,
@@ -29,111 +34,223 @@ const USAGE_ICONS = {
   aiCredits: Sparkles,
 } as const
 
+const CREDIT_STAGE_LABEL: Record<string, string> = {
+  marketing_strategy_generation: 'Strategy generation',
+  content_schedule_generation: 'Schedule generation',
+  post_generation: 'Draft generation',
+  creative_brief_generation: 'Creative brief',
+  image_generation: 'Image generation',
+  publishing: 'Publishing',
+}
+
 export function BillingContent({ account }: { account: AccountContext }) {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
   const [isInvoicesDrawerOpen, setIsInvoicesDrawerOpen] = useState(false)
-
-  const planConfig = PLANS[account.plan]
+  const [portalPending, startPortal] = useTransition()
 
   const usageRows = [
-    { key: 'workspaces' as const, description: 'Workspaces let you split work by client or channel.' },
-    { key: 'teamMembers' as const, description: 'Team members with access to this workspace.' },
-    { key: 'socialProfiles' as const, description: 'Connected social accounts across workspaces.' },
-    { key: 'posts' as const, description: 'Posts created or scheduled this month.' },
-    { key: 'aiCredits' as const, description: 'AI credits used this billing period (generation, images, etc.).' },
+    {
+      key: 'workspaces' as const,
+      description: 'This account is a single workspace.',
+    },
+    {
+      key: 'teamMembers' as const,
+      description: 'Seats on this plan. Invites are not available yet.',
+    },
+    {
+      key: 'socialProfiles' as const,
+      description: 'Instagram accounts you can connect.',
+    },
+    {
+      key: 'posts' as const,
+      description: 'Posts created or scheduled this month.',
+    },
+    {
+      key: 'aiCredits' as const,
+      description: 'AI credits used this billing period.',
+    },
   ]
 
+  const openPortalOrPlans = () => {
+    if (!account.stripePortalAvailable) {
+      setIsUpgradeModalOpen(true)
+      return
+    }
+    startPortal(async () => {
+      const result = await createBillingPortalSession()
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      if (result.url) window.location.href = result.url
+    })
+  }
+
   return (
-    <motion.div variants={itemVariants} className="space-y-6">
-      <div className="rounded-xl border border-blue-500/20 bg-blue-500/8 px-4 py-3 flex gap-3">
-        <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+    <div className="flex flex-col gap-6">
+      <div className="flex gap-3 rounded-xl border border-border bg-primary/8 px-4 py-3">
+        <Info className="mt-0.5 size-5 shrink-0 text-accent-foreground" />
         <div>
-          <p className="text-sm font-medium text-zinc-900 dark:text-white">Payments preview</p>
-          <p className="text-xs text-zinc-500 dark:text-white/45 mt-0.5">
-            Plan and usage below are live from your account. Checkout (Stripe or other) is not connected
-            yet — upgrade buttons show planned pricing only.
+          <p className="text-sm font-medium text-foreground">Payments preview</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Plan and usage below are live from your account. Checkout is not
+            connected yet — upgrade shows planned Free, Pro, and Team pricing only.
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Billing</h3>
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <SettingsHeading
+          title="Billing"
+          description={account.planDescription}
+        />
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             variant="outline"
             onClick={() => setIsUpgradeModalOpen(true)}
-            className="h-10 border-zinc-200 dark:border-white/10 rounded-xl"
+            className="h-10 rounded-xl"
           >
             View all plans
           </Button>
           <Button
-            onClick={() => setIsUpgradeModalOpen(true)}
-            className="h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl"
+            onClick={openPortalOrPlans}
+            disabled={portalPending}
+            className="h-10 rounded-xl"
           >
-            Manage plan
+            {portalPending ? <Loader2 className="size-4 animate-spin" /> : null}
+            {account.stripePortalAvailable ? 'Manage plan' : 'See plans'}
           </Button>
           <Button
             variant="outline"
             onClick={() => setIsInvoicesDrawerOpen(true)}
-            className="h-10 border-zinc-200 dark:border-white/10 rounded-xl"
+            className="h-10 rounded-xl"
           >
             View invoices
           </Button>
         </div>
       </div>
 
-      <Card className="bg-card border-border shadow-xl rounded-2xl overflow-hidden">
-        <CardContent className="p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      <Card className="overflow-hidden rounded-2xl border-border bg-card">
+        <CardContent className="flex flex-col justify-between gap-6 p-8 sm:flex-row sm:items-center">
           <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{account.planLabel}</h2>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${planConfig.badgeClass}`}
-              >
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <h3 className="text-2xl font-semibold tracking-tight text-foreground">
+                {account.planLabel}
+              </h3>
+              <span className="rounded-sm bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
                 {account.planBadge}
               </span>
             </div>
-            <p className="text-sm text-zinc-500 dark:text-white/40">{account.planDescription}</p>
+            <p className="text-sm text-muted-foreground">{account.planDescription}</p>
           </div>
           <div className="text-left sm:text-right">
-            <div className="text-2xl font-bold text-zinc-900 dark:text-white mb-1">
+            <div className="mb-1 text-2xl font-semibold tabular-nums text-foreground">
               ${account.priceMonthly}{' '}
-              <span className="text-sm font-normal text-zinc-500 dark:text-white/40">/ month</span>
+              <span className="text-sm font-normal text-muted-foreground">/ month</span>
             </div>
-            <p className="text-xs text-zinc-500 dark:text-white/30">
+            <p className="text-xs text-muted-foreground">
               {account.renewalText ?? 'No payment method on file'}
             </p>
           </div>
         </CardContent>
       </Card>
 
-      <div>
-        <h4 className="text-base font-bold text-zinc-900 dark:text-white mb-4">Usage</h4>
-        <Card className="bg-card border-border shadow-xl rounded-2xl overflow-hidden">
-          <CardContent className="p-0 divide-y divide-zinc-100 dark:divide-white/5">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="overflow-hidden rounded-2xl border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Coins className="size-4 text-muted-foreground" />
+              AI credits
+            </div>
+            <div className="mt-4 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-3xl font-semibold tabular-nums text-foreground">
+                  {account.creditsRemaining}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  remaining this billing period
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-foreground">
+                  {account.usage.aiCredits.limit ?? 'Unlimited'} included
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {account.creditsResetAt ?? 'Resets with your next cycle'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden rounded-2xl border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <ReceiptText className="size-4 text-muted-foreground" />
+              Recent AI usage
+            </div>
+            <div className="mt-4 flex flex-col gap-3">
+              {account.recentCreditUsage.length > 0 ? (
+                account.recentCreditUsage.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {CREDIT_STAGE_LABEL[item.stage] ?? item.stage.replaceAll('_', ' ')}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(item.createdAt).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <div className="text-sm font-semibold tabular-nums text-foreground">
+                      -{item.creditsSpent}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No AI credit activity yet. Generate a run to start the ledger.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <h3 className="text-base font-semibold text-foreground">Usage</h3>
+        <Card className="overflow-hidden rounded-2xl border-border bg-card">
+          <CardContent className="divide-y divide-border p-0">
             {usageRows.map(({ key, description }) => {
               const metric = account.usage[key]
               const Icon = USAGE_ICONS[key]
               return (
                 <div
                   key={key}
-                  className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6"
+                  className="flex flex-col justify-between gap-6 p-6 md:flex-row md:items-center"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-white mb-1">
-                      <Icon className="w-4 h-4 text-zinc-500 dark:text-white/50" />
+                    <div className="mb-1 flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Icon className="size-4 text-muted-foreground" />
                       {metric.label}
                     </div>
-                    <p className="text-xs text-zinc-500 dark:text-white/40">{description}</p>
+                    <p className="text-xs text-muted-foreground">{description}</p>
                   </div>
-                  <div className="w-full md:w-[300px]">
-                    <div className="flex justify-between text-xs text-zinc-500 dark:text-white/50 mb-2">
+                  <div className="w-full md:w-75">
+                    <div className="mb-2 flex justify-between text-xs tabular-nums text-muted-foreground">
                       <span>{formatUsageLabel(metric.used, metric.limit)}</span>
                       <span>{formatLimitLabel(metric.limit)}</span>
                     </div>
                     <Progress
                       value={usagePercent(metric.used, metric.limit)}
-                      className="h-3 bg-zinc-100 dark:bg-white/10 [&>div]:bg-blue-500"
+                      className="h-3"
                     />
                   </div>
                 </div>
@@ -143,8 +260,13 @@ export function BillingContent({ account }: { account: AccountContext }) {
         </Card>
       </div>
 
-      <UpgradeModal open={isUpgradeModalOpen} onOpenChange={setIsUpgradeModalOpen} />
+      <UpgradeModal
+        open={isUpgradeModalOpen}
+        onOpenChange={setIsUpgradeModalOpen}
+        currentPlan={account.plan}
+        stripePortalAvailable={account.stripePortalAvailable}
+      />
       <InvoicesDrawer open={isInvoicesDrawerOpen} onOpenChange={setIsInvoicesDrawerOpen} />
-    </motion.div>
+    </div>
   )
 }

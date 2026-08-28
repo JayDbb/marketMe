@@ -1,51 +1,26 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useSyncExternalStore } from 'react'
-
-const STORAGE_KEY = 'marketme-cookie-consent-v1'
-
-type ConsentState = {
-  necessary: true
-  analytics: boolean
-  marketing: boolean
-  decidedAt: string
-}
-
-function readConsent(): ConsentState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw) as ConsentState
-  } catch {
-    return null
-  }
-}
-
-function writeConsent(next: Omit<ConsentState, 'necessary' | 'decidedAt'>) {
-  const value: ConsentState = {
-    necessary: true,
-    analytics: next.analytics,
-    marketing: next.marketing,
-    decidedAt: new Date().toISOString(),
-  }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
-  window.dispatchEvent(new CustomEvent('marketme:cookie-consent', { detail: value }))
-  return value
-}
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import {
+  COOKIE_CONSENT_EVENT,
+  COOKIE_PREFERENCES_OPEN_EVENT,
+  readCookieConsent,
+  writeCookieConsent,
+} from '@/lib/cookie-consent'
 
 function subscribeConsent(onStoreChange: () => void) {
   const handler = () => onStoreChange()
   window.addEventListener('storage', handler)
-  window.addEventListener('marketme:cookie-consent', handler)
+  window.addEventListener(COOKIE_CONSENT_EVENT, handler)
   return () => {
     window.removeEventListener('storage', handler)
-    window.removeEventListener('marketme:cookie-consent', handler)
+    window.removeEventListener(COOKIE_CONSENT_EVENT, handler)
   }
 }
 
 function getConsentSnapshot() {
-  return readConsent() !== null
+  return readCookieConsent() !== null
 }
 
 /** SSR: hide banner to avoid hydration mismatch; client decides after hydrate. */
@@ -59,18 +34,32 @@ export function CookieConsentBanner() {
     getConsentSnapshot,
     getServerConsentSnapshot
   )
+  const [forceOpen, setForceOpen] = useState(false)
   const [customize, setCustomize] = useState(false)
   const [analytics, setAnalytics] = useState(false)
   const [marketing, setMarketing] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
 
-  const visible = !hasStoredConsent && !dismissed
+  useEffect(() => {
+    const onOpen = () => {
+      const existing = readCookieConsent()
+      if (existing) {
+        setAnalytics(existing.analytics)
+        setMarketing(existing.marketing)
+      }
+      setCustomize(true)
+      setForceOpen(true)
+    }
+    window.addEventListener(COOKIE_PREFERENCES_OPEN_EVENT, onOpen)
+    return () => window.removeEventListener(COOKIE_PREFERENCES_OPEN_EVENT, onOpen)
+  }, [])
+
+  const visible = forceOpen || !hasStoredConsent
 
   if (!visible) return null
 
   const save = (next: { analytics: boolean; marketing: boolean }) => {
-    writeConsent(next)
-    setDismissed(true)
+    writeCookieConsent(next)
+    setForceOpen(false)
   }
 
   return (
@@ -135,14 +124,14 @@ export function CookieConsentBanner() {
           <button
             type="button"
             onClick={() => save({ analytics: true, marketing: true })}
-            className="rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-sky-400"
+            className="min-h-11 rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-sky-400"
           >
             Accept all
           </button>
           <button
             type="button"
             onClick={() => save({ analytics: false, marketing: false })}
-            className="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5"
+            className="min-h-11 rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5"
           >
             Necessary only
           </button>
@@ -150,7 +139,7 @@ export function CookieConsentBanner() {
             <button
               type="button"
               onClick={() => save({ analytics, marketing })}
-              className="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5"
+              className="min-h-11 rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/5"
             >
               Save choices
             </button>
@@ -158,11 +147,20 @@ export function CookieConsentBanner() {
             <button
               type="button"
               onClick={() => setCustomize(true)}
-              className="rounded-lg px-4 py-2.5 text-sm font-medium text-white/70 hover:text-white"
+              className="min-h-11 rounded-lg px-4 py-2.5 text-sm font-medium text-white/70 hover:text-white"
             >
               Customize
             </button>
           )}
+          {forceOpen ? (
+            <button
+              type="button"
+              onClick={() => setForceOpen(false)}
+              className="min-h-11 rounded-lg px-4 py-2.5 text-sm font-medium text-white/50 hover:text-white"
+            >
+              Close
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

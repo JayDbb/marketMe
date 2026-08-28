@@ -96,6 +96,26 @@ const pool = DATABASE_URL
     })
   : undefined
 
+/** Parse a positive integer env value; fall back when unset/invalid. */
+function envSeconds(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim()
+  if (!raw) return fallback
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return parsed
+}
+
+// Absolute login lifetime (default 7 days). Activity can extend it via updateAge.
+const SESSION_EXPIRES_IN = envSeconds(
+  "AUTH_SESSION_EXPIRES_IN",
+  60 * 60 * 24 * 7
+)
+// How often an active session may be extended (default 1 day).
+const SESSION_UPDATE_AGE = envSeconds(
+  "AUTH_SESSION_UPDATE_AGE",
+  60 * 60 * 24
+)
+
 export const auth = betterAuth({
   ...(pool ? { database: pool } : {}),
   baseURL: buildBaseURLConfig(),
@@ -110,6 +130,11 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    deleteUser: {
+      enabled: true,
+    },
+  },
   accountLinking: {
     enabled: true,
     trustedProviders: ["google"],
@@ -121,10 +146,8 @@ export const auth = betterAuth({
     },
   },
   session: {
-    // 30 days session expiry
-    expiresIn: 60 * 60 * 24 * 30,
-    // Refresh session if it's within 1 day of expiring
-    updateAge: 60 * 60 * 24,
+    expiresIn: SESSION_EXPIRES_IN,
+    updateAge: SESSION_UPDATE_AGE,
     cookieCache: {
       enabled: true,
       maxAge: 5 * 60, // 5 minutes

@@ -8,6 +8,7 @@ import { persistCanvasImageLayers, uploadCanvasPreview } from '@/lib/canvas-pers
 import { CanvasData } from '@/types/canvas'
 import { isWithinImageUploadLimit, MAX_IMAGE_UPLOAD_LABEL } from '@/lib/upload-limits'
 import { previewUrlFromCanvas, photoToEditableCanvas } from '@/lib/studio-utils'
+import { rateLimitMessage } from '@/lib/rate-limit'
 
 export interface StudioTemplate {
   id: string
@@ -104,8 +105,13 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
   error?: string
   template?: StudioTemplate
 }> {
+  // Kept for compatibility; prefer prepareStudioTemplateUpload + completeStudioTemplateUpload
+  // so large files are not sent through the Vercel server-action body (413).
   const user = await getAuthenticatedUser()
   if (!user) return { success: false, error: 'Not authenticated' }
+
+  const limited = rateLimitMessage(`studio:upload:${user.id}`, 20, 60_000)
+  if (limited) return { success: false, error: limited }
 
   const file = formData.get('file') as File | null
   const name = (formData.get('name') as string) || 'Untitled'
@@ -113,17 +119,12 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
 
   if (!file) return { success: false, error: 'No file provided' }
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-  if (!allowedTypes.includes(file.type)) {
-    return { success: false, error: 'Only JPEG, PNG, WebP, and GIF files are allowed' }
-  }
+  const typeError = validateImageUploadMeta(file.type, file.size)
+  if (typeError) return { success: false, error: typeError }
 
-  if (!isWithinImageUploadLimit(file.size)) {
-    return { success: false, error: `File must be smaller than ${MAX_IMAGE_UPLOAD_LABEL}` }
-  }
-
-  const ext = file.name.split('.').pop()
-  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg'
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`
   const filePath = `${user.id}/${fileName}`
 
   const { error: uploadError } = await supabaseAdmin.storage
@@ -133,6 +134,99 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
   if (uploadError) {
     console.error('Storage upload error:', uploadError)
     return { success: false, error: 'Upload failed. Please try again.' }
+  }
+
+  return completeStudioTemplateUploadAction({
+    filePath,
+    name,
+    category,
+  })
+}
+
+/**
+ * Step 1 of Vercel-safe uploads: create a short-lived signed upload URL.
+ * The browser uploads the file bytes directly to Supabase (avoids 413 on Vercel).
+ */
+export async function prepareStudioTemplateUploadAction(input: {
+  fileName: string
+  contentType: string
+  fileSize: number
+}): Promise<{
+  success: boolean
+  error?: string
+  path?: string
+  token?: string
+  signedUrl?: string
+}> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  const limited = rateLimitMessage(`studio:prepare:${user.id}`, 30, 60_000)
+  if (limited) return { success: false, error: limited }
+
+  const typeError = validateImageUploadMeta(input.contentType, input.fileSize)
+  if (typeError) return { success: false, error: typeError }
+
+  const ext = input.fileName.split('.').pop()?.toLowerCase() || 'jpg'
+  const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg'
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`
+  const filePath = `${user.id}/${fileName}`
+
+  const { data, error } = await supabaseAdmin.storage
+    .from('studio-templates')
+    .createSignedUploadUrl(filePath)
+
+  if (error || !data) {
+    console.error('Signed upload URL error:', error?.message)
+    return { success: false, error: 'Could not start upload. Please try again.' }
+  }
+
+  return {
+    success: true,
+    path: data.path,
+    token: data.token,
+    signedUrl: data.signedUrl,
+  }
+}
+
+/**
+ * Step 2: after the browser uploads to the signed URL, register the template row.
+ */
+export async function completeStudioTemplateUploadAction(input: {
+  filePath: string
+  name: string
+  category?: string | null
+}): Promise<{
+  success: boolean
+  error?: string
+  template?: StudioTemplate
+}> {
+  const user = await getAuthenticatedUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  const limited = rateLimitMessage(`studio:complete:${user.id}`, 30, 60_000)
+  if (limited) return { success: false, error: limited }
+
+  const name = input.name.trim() || 'Untitled'
+  const category = input.category ?? null
+  const filePath = input.filePath.trim()
+
+  if (!isOwnedStudioUploadPath(user.id, filePath)) {
+    return { success: false, error: 'Invalid upload path.' }
+  }
+
+  const { data: existingFile, error: listError } = await supabaseAdmin.storage
+    .from('studio-templates')
+    .list(user.id)
+
+  if (listError) {
+    console.error('Storage verify error:', listError.message)
+    return { success: false, error: 'Could not verify upload. Please try again.' }
+  }
+
+  const fileName = filePath.split('/')[1]
+  if (!fileName || !existingFile?.some((f) => f.name === fileName)) {
+    return { success: false, error: 'Upload not found. Please try again.' }
   }
 
   const { data: urlData } = supabaseAdmin.storage
@@ -159,6 +253,39 @@ export async function uploadTemplateAction(formData: FormData): Promise<{
 
   revalidatePath('/dashboard/studio')
   return { success: true, template }
+}
+
+function validateImageUploadMeta(contentType: string, fileSize: number): string | null {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(contentType)) {
+    return 'Only JPEG, PNG, WebP, and GIF files are allowed'
+  }
+  if (!isWithinImageUploadLimit(fileSize)) {
+    return `File must be smaller than ${MAX_IMAGE_UPLOAD_LABEL}`
+  }
+  return null
+}
+
+/** Reject path traversal and require the canonical prepareStudioTemplateUpload path shape. */
+function isOwnedStudioUploadPath(userId: string, filePath: string): boolean {
+  if (!userId || !filePath) return false
+  if (
+    filePath.includes('..') ||
+    filePath.includes('\\') ||
+    filePath.includes('%') ||
+    filePath.includes('\0') ||
+    filePath.startsWith('/') ||
+    filePath.includes('//')
+  ) {
+    return false
+  }
+
+  const parts = filePath.split('/')
+  if (parts.length !== 2) return false
+  const [owner, fileName] = parts
+  if (owner !== userId) return false
+
+  return /^\d+-[a-z0-9]+\.(jpg|jpeg|png|webp|gif)$/i.test(fileName)
 }
 
 export async function savePexelsTemplateAction(data: {

@@ -16,7 +16,14 @@ export function getSupabaseAdmin(): SupabaseClient {
       requireEnv(
         'SUPABASE_SERVICE_ROLE_KEY',
         'Add it to .env.local (see .env.example).'
-      )
+      ),
+      {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: {
+          fetch: (input, init) =>
+            fetch(input, { ...init, cache: 'no-store' }),
+        },
+      }
     )
   }
   return adminClient

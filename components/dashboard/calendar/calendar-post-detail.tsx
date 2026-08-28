@@ -4,39 +4,52 @@ import { useState } from 'react'
 import type { Post } from '@/types/content'
 import { Button } from '@/components/ui/button'
 import { PostStatusBadge } from '@/components/dashboard/post-status-badge'
-import { formatTimeRange, DEFAULT_POST_DURATION_MIN } from '@/lib/calendar-utils'
-import { getPlatformEventStyle } from '@/components/dashboard/calendar/calendar-post-event'
-import { CheckCircle2, Clock, Loader2, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { formatTimeRange, DEFAULT_POST_DURATION_MIN, parseScheduledDate } from '@/lib/calendar-utils'
+import { formatPlatform } from '@/lib/post-utils'
+import { CheckCircle2, Clock, Loader2, Pencil, Send, X } from 'lucide-react'
 
 interface CalendarPostDetailProps {
   post: Post
   onClose: () => void
+  onEdit: (post: Post) => void
   onApprove: (postId: string) => Promise<{ success: boolean; error?: string }>
   onSchedule: (postId: string) => Promise<{ success: boolean; error?: string }>
+  onPublishNow?: (postId: string) => Promise<{ success: boolean; error?: string }>
   onUpdated?: () => void
+  timeZone?: string
 }
 
 export function CalendarPostDetail({
   post,
   onClose,
+  onEdit,
   onApprove,
   onSchedule,
+  onPublishNow,
   onUpdated,
+  timeZone,
 }: CalendarPostDetailProps) {
-  const [loading, setLoading] = useState<'approve' | 'schedule' | null>(null)
+  const [loading, setLoading] = useState<'approve' | 'schedule' | 'publish' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const platform = post.social_account?.platform ?? 'Social'
-  const styles = getPlatformEventStyle(platform)
+  const platform = formatPlatform(post.social_account?.platform)
+  const start = parseScheduledDate(post.scheduled_date)
   const postId = String(post.post_id)
-  const timeLabel = formatTimeRange(
-    new Date(post.scheduled_date),
-    DEFAULT_POST_DURATION_MIN
-  )
+  const timeLabel = start
+    ? formatTimeRange(start, DEFAULT_POST_DURATION_MIN, timeZone)
+    : 'Not scheduled'
+
+  const canEdit = post.status !== 'published'
+  const canPublishNow =
+    Boolean(onPublishNow) &&
+    post.status !== 'published' &&
+    (post.status === 'draft' ||
+      post.status === 'approved' ||
+      post.status === 'scheduled' ||
+      post.status === 'failed')
 
   const runAction = async (
-    type: 'approve' | 'schedule',
+    type: 'approve' | 'schedule' | 'publish',
     fn: () => Promise<{ success: boolean; error?: string }>
   ) => {
     setLoading(type)
@@ -55,26 +68,33 @@ export function CalendarPostDetail({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span
-              className={cn(
-                'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md text-white',
-                styles.bg
-              )}
-            >
+            <span className="rounded-md border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-sky-700 uppercase dark:text-sky-300">
               {platform}
             </span>
             <PostStatusBadge status={post.status} />
           </div>
           <p className="text-[11px] font-mono text-zinc-500 dark:text-white/40">{timeLabel}</p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10"
-          aria-label="Close post detail"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {canEdit ? (
+            <button
+              type="button"
+              onClick={() => onEdit(post)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-sky-400 ui-transition hover:bg-sky-500/10 hover:text-sky-300 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80"
+            >
+              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+              Edit
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 ui-transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-white/10 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/80"
+            aria-label="Close post detail"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {post.media_url ? (
@@ -102,12 +122,23 @@ export function CalendarPostDetail({
       ) : null}
 
       <div className="flex flex-col gap-2 pt-1">
+        {canEdit ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onEdit(post)}
+            className="h-11 min-h-11 gap-2 rounded-xl border-border text-xs font-semibold"
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+            Edit post
+          </Button>
+        ) : null}
         {post.status === 'draft' && (
           <Button
             type="button"
             disabled={loading !== null}
             onClick={() => void runAction('approve', () => onApprove(postId))}
-            className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-2"
+            className="h-11 min-h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs gap-2"
           >
             {loading === 'approve' ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -122,7 +153,7 @@ export function CalendarPostDetail({
             type="button"
             disabled={loading !== null}
             onClick={() => void runAction('schedule', () => onSchedule(postId))}
-            className="h-9 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs gap-2"
+            className="h-11 min-h-11 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs gap-2"
           >
             {loading === 'schedule' ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -132,11 +163,31 @@ export function CalendarPostDetail({
             Queue for publish
           </Button>
         )}
-        {post.status === 'scheduled' && (
+        {canPublishNow && onPublishNow ? (
+          <Button
+            type="button"
+            disabled={loading !== null}
+            onClick={() => void runAction('publish', () => onPublishNow(postId))}
+            className="h-11 min-h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-2"
+          >
+            {loading === 'publish' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Send className="w-3.5 h-3.5" />
+            )}
+            Post now
+          </Button>
+        ) : null}
+        {post.status === 'scheduled' && !canPublishNow ? (
           <p className="text-xs text-zinc-500 dark:text-white/45 text-center py-1">
-            Queued — will publish when Instagram is connected.
+            Queued — will publish to Instagram at the scheduled time.
           </p>
-        )}
+        ) : null}
+        {post.status === 'scheduled' && canPublishNow ? (
+          <p className="text-xs text-zinc-500 dark:text-white/45 text-center py-1">
+            Queued for the scheduled time, or post to Instagram now.
+          </p>
+        ) : null}
         {post.status === 'published' && (
           <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center py-1 font-medium">
             Published

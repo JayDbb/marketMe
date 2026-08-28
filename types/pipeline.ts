@@ -68,3 +68,39 @@ export const PLAN_CREDIT_ALLOWANCES: Record<string, number> = {
   pro: 500,
   team: 2000,
 }
+
+export function calculateGenerationCreditCost(postCount: number): number {
+  const posts = Math.max(1, Math.min(14, Math.floor(postCount || 1)))
+
+  return (
+    PIPELINE_CREDIT_COSTS.marketing_strategy_generation +
+    PIPELINE_CREDIT_COSTS.content_schedule_generation +
+    PIPELINE_CREDIT_COSTS.post_generation * posts
+  )
+}
+
+export function getGenerationCreditBreakdown(postCount: number): Array<{
+  key: 'strategy' | 'schedule' | 'posts'
+  label: string
+  credits: number
+}> {
+  const posts = Math.max(1, Math.min(14, Math.floor(postCount || 1)))
+
+  return [
+    {
+      key: 'strategy',
+      label: 'Strategy',
+      credits: PIPELINE_CREDIT_COSTS.marketing_strategy_generation,
+    },
+    {
+      key: 'schedule',
+      label: 'Schedule',
+      credits: PIPELINE_CREDIT_COSTS.content_schedule_generation,
+    },
+    {
+      key: 'posts',
+      label: `Drafts (${posts})`,
+      credits: PIPELINE_CREDIT_COSTS.post_generation * posts,
+    },
+  ]
+}

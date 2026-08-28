@@ -108,6 +108,14 @@ function LayerRow({
   return (
     <div
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect()
+        }
+      }}
+      role="button"
+      tabIndex={0}
       className={`group flex items-center justify-between p-2 rounded-xl cursor-pointer border transition-colors ${
         selected
           ? 'bg-white dark:bg-white/10 border-black/10 dark:border-white/20 shadow-sm'
@@ -118,7 +126,7 @@ function LayerRow({
         <Icon className="w-4 h-4 text-zinc-500 dark:text-white/50 shrink-0" />
         <span className="text-xs text-zinc-900 dark:text-white truncate">{label}</span>
       </div>
-      <div className="flex items-center gap-1 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 shrink-0">
         <div className="flex flex-col">
           <button
             type="button"

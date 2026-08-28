@@ -25,6 +25,15 @@ export type RateLimitResult = {
   resetAt: number
 }
 
+export class RateLimitError extends Error {
+  resetAt: number
+  constructor(resetAt: number) {
+    super('Rate limit exceeded. Please wait before trying again.')
+    this.name = 'RateLimitError'
+    this.resetAt = resetAt
+  }
+}
+
 export function checkRateLimit(
   key: string,
   limit: number,
@@ -55,6 +64,27 @@ export function rateLimitOrThrow(
 ): void {
   const result = checkRateLimit(key, limit, windowMs)
   if (!result.allowed) {
-    throw new Error('Rate limit exceeded. Please wait before trying again.')
+    throw new RateLimitError(result.resetAt)
   }
+}
+
+/** For server actions that return `{ error }` instead of throwing. */
+export function rateLimitMessage(
+  key: string,
+  limit: number,
+  windowMs: number
+): string | null {
+  const result = checkRateLimit(key, limit, windowMs)
+  if (!result.allowed) {
+    return 'Rate limit exceeded. Please wait before trying again.'
+  }
+  return null
+}
+
+export function isRateLimitError(error: unknown): error is RateLimitError {
+  return (
+    error instanceof RateLimitError ||
+    (error instanceof Error &&
+      (error.name === 'RateLimitError' || error.message.includes('Rate limit')))
+  )
 }

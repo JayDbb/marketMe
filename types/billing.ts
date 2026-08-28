@@ -16,11 +16,20 @@ export interface UsageMetric {
   label: string
 }
 
+export interface RecentCreditUsage {
+  id: string
+  stage: string
+  creditsSpent: number
+  createdAt: string
+  generationId: string | null
+}
+
 export interface AccountContext {
   displayName: string
   initials: string
   email: string
   avatarUrl: string | null
+  isAdmin: boolean
   plan: PlanId
   planLabel: string
   planBadge: string
@@ -28,6 +37,8 @@ export interface AccountContext {
   priceMonthly: number
   subscriptionStatus: SubscriptionStatus
   renewalText: string | null
+  creditsRemaining: number
+  creditsResetAt: string | null
   stripePortalAvailable: boolean
   usage: {
     workspaces: UsageMetric
@@ -36,6 +47,7 @@ export interface AccountContext {
     posts: UsageMetric
     aiCredits: UsageMetric
   }
+  recentCreditUsage: RecentCreditUsage[]
 }
 
 export interface UserSubscriptionRow {

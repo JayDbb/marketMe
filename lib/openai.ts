@@ -1,17 +1,22 @@
 import OpenAI from 'openai'
+import {
+  getOpenAiApiKey,
+  hasOpenAiConfigured,
+  isOpenRouterApiKey,
+  openAiClientHeaders,
+} from '@/lib/openai-config'
 
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('OPENAI_API_KEY is missing from the environment variables.')
+if (!hasOpenAiConfigured()) {
+  console.warn(
+    'OPENAI_API_KEY / OPENROUTER_API_KEY is missing from the environment variables.'
+  )
 }
 
-const apiKey = process.env.OPENAI_API_KEY || 'missing-key'
-const isOpenRouter = apiKey.startsWith('sk-or-')
+const apiKey = getOpenAiApiKey() || 'missing-key'
+const isOpenRouter = isOpenRouterApiKey(apiKey)
 
 export const openai = new OpenAI({
   apiKey,
   baseURL: isOpenRouter ? 'https://openrouter.ai/api/v1' : undefined,
-  defaultHeaders: isOpenRouter ? {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-    'X-Title': 'MarketMe AI',
-  } : undefined,
+  defaultHeaders: openAiClientHeaders(),
 })

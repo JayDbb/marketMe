@@ -11,5 +11,11 @@ export interface RegenerateCaptionPayload {
 
 export interface GenerateImagePayload {
   postId: string
-  style?: string // Optional style constraint (e.g. 'minimalist', 'hyper-realistic')
+  /** Optional style constraint (e.g. 'minimalist', 'hyper-realistic') */
+  style?: string
+  /**
+   * User revision instruction from Generate review chat.
+   * When set, the job revises image_prompt before generating.
+   */
+  revisionInstruction?: string
 }

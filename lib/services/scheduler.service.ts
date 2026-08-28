@@ -1,3 +1,4 @@
+import "@/lib/trigger-env"
 import { tasks } from "@trigger.dev/sdk/v3"
 import type {
   generateWeeklyContent,

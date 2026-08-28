@@ -12,6 +12,7 @@ export function isValidUuid(value: string): boolean {
 export interface AuthUser {
   id: string
   email?: string | null
+  image?: string | null
   user_metadata?: {
     full_name?: string
     name?: string
@@ -27,6 +28,7 @@ export const getAuthenticatedUser = cache(async (): Promise<(AuthUser & { id: st
   return {
     id: user.id,
     email: user.email,
+    image: user.image ?? null,
     user_metadata: {
       full_name: user.name ?? undefined,
       name: user.name ?? undefined,

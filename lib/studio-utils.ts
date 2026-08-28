@@ -17,6 +17,56 @@ export const STUDIO_CATEGORIES = [
 
 export type StudioCategory = (typeof STUDIO_CATEGORIES)[number]
 
+const CATEGORY_KEYWORDS: Record<Exclude<StudioCategory, 'All' | 'Other'>, string[]> = {
+  Fashion: ['fashion', 'style', 'outfit', 'clothing', 'wear', 'lookbook', 'apparel'],
+  Food: ['food', 'restaurant', 'cafe', 'coffee', 'brunch', 'eat', 'kitchen', 'dining', 'recipe'],
+  Retail: [
+    'shop',
+    'store',
+    'retail',
+    'sale',
+    'local',
+    'business',
+    'support',
+    'small',
+    'buy',
+  ],
+  Events: ['event', 'wedding', 'party', 'launch', 'conference', 'promo'],
+  Fitness: ['fitness', 'gym', 'workout', 'wellness', 'training', 'health'],
+  Interior: ['interior', 'home', 'decor', 'room', 'furniture', 'space'],
+  Tech: ['tech', 'software', 'app', 'digital', 'saas', 'startup'],
+  Sports: ['sport', 'team', 'game', 'athlete', 'match', 'league'],
+}
+
+export function inferStudioCategory(text: string | null | undefined): Exclude<StudioCategory, 'All'> {
+  const haystack = (text ?? '').toLowerCase()
+  if (!haystack.trim()) return 'Other'
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS) as [
+    Exclude<StudioCategory, 'All' | 'Other'>,
+    string[],
+  ][]) {
+    if (keywords.some((kw) => haystack.includes(kw))) return category
+  }
+  return 'Other'
+}
+
+/** Map stored labels like Pexels / OTHER onto the industry chips. */
+export function resolveStudioCategory(template: {
+  category: string | null
+  name?: string | null
+}): Exclude<StudioCategory, 'All'> {
+  const stored = (template.category ?? '').trim()
+  const match = STUDIO_CATEGORIES.find(
+    (c) => c !== 'All' && c.toLowerCase() === stored.toLowerCase()
+  )
+  if (match && match !== 'All' && match !== 'Other') {
+    return match
+  }
+  const inferred = inferStudioCategory(`${template.name ?? ''} ${stored}`)
+  if (inferred !== 'Other') return inferred
+  return match === 'Other' ? 'Other' : inferred
+}
+
 export function createBlankCanvas(): CanvasData {
   return {
     version: '1.0',
@@ -147,15 +197,28 @@ export function templateToCanvas(template: StudioTemplate): CanvasData {
 }
 
 export function previewUrlFromCanvas(canvasData: CanvasData): string {
-  const imgLayer = canvasData.layers.find((l) => l.type === 'image') as ImageNode | undefined
-  return imgLayer?.src ?? 'https://via.placeholder.com/1080x1080.png?text=Canvas+Design'
+  for (const layer of canvasData.layers) {
+    if (layer.type !== 'image') continue
+    const src = (layer as ImageNode).src ?? ''
+    if (isRasterPreviewUrl(src)) return src
+  }
+  return ''
 }
 
 export function getTemplatePreviewUrl(template: StudioTemplate): string {
+  if (isRasterPreviewUrl(template.file_url)) return template.file_url
   if (template.template_type === 'canvas' && template.canvas_data) {
-    return previewUrlFromCanvas(template.canvas_data)
+    const fromCanvas = previewUrlFromCanvas(template.canvas_data)
+    if (fromCanvas) return fromCanvas
   }
   return template.file_url
+}
+
+export function isRasterPreviewUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  if (url.includes('via.placeholder.com')) return false
+  if (url.startsWith('data:image/')) return true
+  return /^https?:\/\//i.test(url)
 }
 
 export function filterTemplates(
@@ -168,7 +231,7 @@ export function filterTemplates(
   return templates.filter((t) => {
     if (opts.source === 'upload' && t.source !== 'upload') return false
     if (opts.source === 'saved' && t.source === 'upload') return false
-    if (category !== 'All' && t.category !== category) return false
+    if (category !== 'All' && resolveStudioCategory(t) !== category) return false
     if (search && !t.name.toLowerCase().includes(search)) return false
     return true
   })
@@ -184,6 +247,22 @@ export function getStudioStats(templates: StudioTemplate[]) {
     saved: saved.length,
     canvasDesigns: canvasDesigns.length,
   }
+}
+
+/** Category chips that have at least one template in the current list. Always includes All. */
+export function categoriesPresent(templates: StudioTemplate[]): StudioCategory[] {
+  const present = new Set(templates.map((template) => resolveStudioCategory(template)))
+  return STUDIO_CATEGORIES.filter((category) => category === 'All' || present.has(category))
+}
+
+export function designDownloadFilename(name: string, ext: 'png' | 'jpg'): string {
+  const base =
+    name
+      .trim()
+      .replace(/[<>:"/\\|?*]+/g, '')
+      .replace(/\s+/g, '-')
+      .slice(0, 80) || 'design'
+  return `${base}.${ext}`
 }
 
 /** Merge local open-history with templates; fall back to newest created when no history. */

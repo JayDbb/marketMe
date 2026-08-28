@@ -15,6 +15,7 @@ import {
   CanvasNode as CanvasLayer,
 } from '@/types/canvas'
 import { INSTAGRAM_FORMATS } from '@/lib/instagram-formats'
+import { designDownloadFilename } from '@/lib/studio-utils'
 
 interface CanvasEditorProps {
   canvasData: CanvasData
@@ -25,6 +26,7 @@ interface CanvasEditorProps {
   exportApiRef?: React.MutableRefObject<CanvasExportApi | null>
   /** Read-only embed (e.g. Generate review) — no toolbar clutter */
   variant?: 'editor' | 'preview'
+  designName?: string
 }
 
 export interface CanvasExportApi {
@@ -110,14 +112,32 @@ export function CanvasEditor({
   maxWidth = 520,
   exportApiRef,
   variant = 'editor',
+  designName = 'design',
 }: CanvasEditorProps) {
   const isPreview = variant === 'preview'
   const mounted = useIsClient()
   const stageRef = useRef<Konva.Stage>(null)
   const trRef = useRef<Konva.Transformer>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(1)
   const [showGuides, setShowGuides] = useState(!isPreview)
   const [showFeedMockup, setShowFeedMockup] = useState(false)
+  const [fitWidth, setFitWidth] = useState(maxWidth)
+
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+
+    const measure = () => {
+      const next = Math.max(200, Math.floor(el.clientWidth - 8))
+      setFitWidth(next)
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mounted])
 
   const captureDataUrl = (format: 'png' | 'jpeg' = 'png') => {
     const stage = stageRef.current
@@ -161,7 +181,7 @@ export function CanvasEditor({
       const dataURL = captureDataUrl(format)
       if (!dataURL) return
       const link = document.createElement('a')
-      link.download = format === 'jpeg' ? 'instagram-post.jpg' : 'instagram-post.png'
+      link.download = designDownloadFilename(designName, format === 'jpeg' ? 'jpg' : 'png')
       link.href = dataURL
       document.body.appendChild(link)
       link.click()
@@ -169,8 +189,9 @@ export function CanvasEditor({
     }, 100)
   }
 
+  const displayMax = Math.min(maxWidth, fitWidth)
   const baseScale =
-    canvasData.canvas.width > maxWidth ? maxWidth / canvasData.canvas.width : 1.0
+    canvasData.canvas.width > displayMax ? displayMax / canvasData.canvas.width : 1.0
   const scale = baseScale * zoom
   const safeZone = showGuides ? getSafeZone(canvasData.canvas) : null
 
@@ -316,56 +337,62 @@ export function CanvasEditor({
             <button
               type="button"
               onClick={() => setShowFeedMockup((v) => !v)}
-              className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
+              className={`flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg border transition-colors sm:size-8 sm:min-h-8 sm:min-w-8 ${
                 showFeedMockup
                   ? 'border-blue-500/40 bg-blue-500/15 text-blue-400'
                   : 'border-black/10 dark:border-white/10 text-zinc-500'
               }`}
               title="Feed preview mockup"
+              aria-label="Feed preview mockup"
             >
               <Smartphone className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
               onClick={() => setShowGuides((v) => !v)}
-              className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors ${
+              className={`flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg border transition-colors sm:size-8 sm:min-h-8 sm:min-w-8 ${
                 showGuides
                   ? 'border-blue-500/40 bg-blue-500/15 text-blue-400'
                   : 'border-black/10 dark:border-white/10 text-zinc-500'
               }`}
               title="Toggle safe zone guides"
+              aria-label="Toggle safe zone guides"
             >
               <Grid3X3 className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
               onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-              className="w-8 h-8 rounded-lg border border-black/10 dark:border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-400"
+              className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg border border-black/10 text-zinc-500 hover:text-blue-400 sm:size-8 sm:min-h-8 sm:min-w-8 dark:border-white/10"
               title="Zoom out"
+              aria-label="Zoom out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[10px] font-mono text-zinc-500 dark:text-white/40 w-10 text-center">
+            <span className="w-10 text-center font-mono text-[10px] text-zinc-500 dark:text-white/40">
               {Math.round(zoom * 100)}%
             </span>
             <button
               type="button"
               onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}
-              className="w-8 h-8 rounded-lg border border-black/10 dark:border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-400"
+              className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-lg border border-black/10 text-zinc-500 hover:text-blue-400 sm:size-8 sm:min-h-8 sm:min-w-8 dark:border-white/10"
               title="Zoom in"
+              aria-label="Zoom in"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => handleExport('png')}
-              className="ml-1 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors shadow-lg flex items-center gap-1"
+              className="ml-1 hidden items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-bold text-white ui-transition hover:bg-blue-500 sm:flex"
             >
               <ImageDown className="w-3 h-3" />
               PNG
             </button>
             <button
+              type="button"
               onClick={() => handleExport('jpeg')}
-              className="px-2.5 py-1.5 border border-blue-500/40 text-blue-400 hover:bg-blue-500/10 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+              className="hidden items-center gap-1 rounded-lg border border-blue-500/40 px-2.5 py-1.5 text-xs font-bold text-blue-400 ui-transition hover:bg-blue-500/10 sm:flex"
             >
               JPG
             </button>
@@ -373,10 +400,13 @@ export function CanvasEditor({
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-auto w-full flex items-center justify-center custom-scrollbar">
+      <div
+        ref={viewportRef}
+        className="custom-scrollbar flex min-h-0 w-full flex-1 touch-pan-y items-center justify-center overflow-auto overscroll-contain"
+      >
         <div
-          className={`relative shrink-0 transition-all ${
-            showFeedMockup ? 'p-4 rounded-[2rem] bg-zinc-900 border-4 border-zinc-800 shadow-2xl' : ''
+          className={`relative shrink-0 ui-transition ${
+            showFeedMockup ? 'rounded-[2rem] border-4 border-zinc-800 bg-zinc-900 p-2 sm:p-4' : ''
           }`}
         >
           {showFeedMockup && (

@@ -4,6 +4,8 @@ import { getAuthenticatedUser } from '@/lib/supabase/server-auth'
 import { getGenerateContextAction } from '@/app/dashboard/generate/actions'
 import { getUserTemplatesResult } from '@/app/dashboard/studio/actions'
 
+export const dynamic = 'force-dynamic'
+
 export default async function GeneratePage() {
   const user = await getAuthenticatedUser()
 

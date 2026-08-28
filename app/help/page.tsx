@@ -1,39 +1,73 @@
-import { Button } from "@/components/ui/button";
-import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
-import { createPageMetadata } from "@/lib/metadata";
+import { MarketingPageShell } from '@/components/marketing/marketing-page-shell'
+import { HelpCenterContent } from '@/components/marketing/help-center-content'
+import { createPageMetadata } from '@/lib/metadata'
+import { getAllHelpArticles } from '@/lib/help-articles'
 
 export const metadata = createPageMetadata({
-  title: "Help Center",
+  title: 'Help Center',
   description:
-    "Get help with Marketme — documentation, content pipelines, billing support, and more.",
-  path: "/help",
-});
+    'Get help with Marketme — Generate, Studio, Calendar, connections, credits, billing, and account support.',
+  path: '/help',
+})
 
-export const dynamic = "force-static";
+export const dynamic = 'force-static'
+
+const topics = [
+  {
+    title: 'Getting started',
+    items: [
+      {
+        q: 'How do I create an account?',
+        a: 'Sign up with Google or email and password. On login, use Google, a magic link, or your password. After signup you can complete onboarding and open the dashboard.',
+        href: '/signup',
+        linkLabel: 'Sign up',
+      },
+      {
+        q: 'What should I do first?',
+        a: 'Connect a social account (OAuth), generate a small batch of drafts, review them, then place approved posts on Calendar.',
+        href: '/help/first-week-loop',
+        linkLabel: 'First week guide',
+      },
+    ],
+  },
+  {
+    title: 'Generate, Studio & Calendar',
+    items: [
+      {
+        q: 'Does AI publish without me?',
+        a: 'No. Generation creates drafts for you to review. Schedule only what you approve — that is intentional for brand safety and advertising honesty.',
+      },
+      {
+        q: 'How do credits work?',
+        a: 'Free accounts start with a monthly AI credit allowance. Generation spends credits; editing and scheduling existing drafts still works when you hit the limit.',
+        href: '/help/credits-and-generation',
+        linkLabel: 'Credits guide',
+      },
+    ],
+  },
+  {
+    title: 'Connections & billing',
+    items: [
+      {
+        q: 'Why did Instagram connect fail?',
+        a: 'You need an Instagram Business or Creator account. On the Facebook Login path, that account must be linked to a Facebook Page you admin.',
+        href: '/help/connect-instagram',
+        linkLabel: 'Connect Instagram guide',
+      },
+      {
+        q: 'Can I cancel a paid plan?',
+        a: 'Yes. Cancel before renewal to stop future charges. Access continues through the period you already paid for. See Refunds & Billing for details.',
+        href: '/refunds',
+        linkLabel: 'Refunds & Billing',
+      },
+    ],
+  },
+]
 
 export default function HelpPage() {
   return (
-    <MarketingPageShell mainClassName="justify-center min-h-[80vh] px-6 pt-32 pb-24 w-full max-w-4xl mx-auto">
-      <div className="w-full bg-white/4 border border-white/8 backdrop-blur-xl p-12 md:p-20 rounded-3xl text-center shadow-[0_0_80px_rgba(59,130,246,0.05)]">
-        <h1 className="text-4xl md:text-6xl font-serif font-light text-white tracking-tighter mb-6">
-          How can we <span className="text-blue-400 italic">help?</span>
-        </h1>
-        <p className="text-white/50 text-lg max-w-xl mx-auto leading-relaxed font-light mb-10">
-          Whether you are looking for API documentation, trying to set up your content pipelines, or need billing support, our team is ready.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-          <div className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:bg-white/10 transition-colors">
-            <h3 className="text-white font-serif text-xl mb-2">Technical Support</h3>
-            <p className="text-white/40 text-sm mb-6">Help with webhooks, native integrations, and routing logic.</p>
-            <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-full">Contact Engineering</Button>
-          </div>
-          <div className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:bg-white/10 transition-colors">
-            <h3 className="text-white font-serif text-xl mb-2">Billing & Account</h3>
-            <p className="text-white/40 text-sm mb-6">Manage invoices, upgrade your seat capacity, and more.</p>
-            <Button className="w-full bg-white/10 hover:bg-white/20 text-white border-0 rounded-full">Go to Billing Portal</Button>
-          </div>
-        </div>
-      </div>
+    <MarketingPageShell>
+      <HelpCenterContent topics={topics} articles={getAllHelpArticles()} />
     </MarketingPageShell>
-  );
+  )
 }

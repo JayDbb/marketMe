@@ -352,6 +352,13 @@ export function CreatePostModal({
     });
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSubmitting(false);
+      setIsPublishing(false);
+    }
+  }, [isOpen]);
+
   const resetForm = useCallback(() => {
     setContent("");
     setPlatform("instagram");

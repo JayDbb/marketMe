@@ -263,11 +263,18 @@ function CalendarPageInner() {
       throw new Error(result.error ?? "Failed to create post");
     }
 
-    toast.success("Draft post created — approve it before queuing for publish");
+    if (result.postId) {
+      const scheduleResult = await scheduleCalendarPostAction(result.postId);
+      if (!scheduleResult.success) {
+        throw new Error(
+          scheduleResult.error ?? "Post saved but could not be queued for publish",
+        );
+      }
+    }
 
     const scheduledDay = new Date(post.scheduled_date);
     setPlannerQuery({ date: scheduledDay });
-    await loadPosts();
+    void loadPosts();
   };
 
   const handleUpdatePost = async (post: CreatePostPayload) => {
@@ -287,7 +294,7 @@ function CalendarPageInner() {
 
     const scheduledDay = new Date(post.scheduled_date);
     setPlannerQuery({ date: scheduledDay });
-    await loadPosts();
+    void loadPosts();
   };
 
   const handleApprovePost = async (postId: string) => {

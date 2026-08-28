@@ -106,7 +106,9 @@ docs/          Contributor guides
 ```
 
 Deeper architecture: [ARCHITECTURE.md](ARCHITECTURE.md)  
-Auth & data patterns: [docs/auth-and-data.md](docs/auth-and-data.md)
+Auth & data patterns: [docs/auth-and-data.md](docs/auth-and-data.md)  
+User guide: [docs/USER-GUIDE.md](docs/USER-GUIDE.md)  
+Technical reference: [docs/TECHNICAL.md](docs/TECHNICAL.md)
 
 ## Collaboration
 

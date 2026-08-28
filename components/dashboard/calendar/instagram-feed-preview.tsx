@@ -114,14 +114,11 @@ export function InstagramFeedPreview({
   aspect: aspectProp,
 }: InstagramFeedPreviewProps) {
   const [detected, setDetected] = useState<InstagramFeedAspect>('portrait')
-  const aspect = aspectProp ?? detected
+  const aspect = aspectProp ?? (previewUrl ? detected : 'portrait')
   const username = handle.replace(/^@/, '') || 'yourbrand'
 
   useEffect(() => {
-    if (aspectProp || !previewUrl) {
-      if (!previewUrl && !aspectProp) setDetected('portrait')
-      return
-    }
+    if (aspectProp || !previewUrl) return
     let cancelled = false
     const img = new window.Image()
     img.onload = () => {

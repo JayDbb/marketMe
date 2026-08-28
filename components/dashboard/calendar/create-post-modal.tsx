@@ -317,6 +317,8 @@ export function CreatePostModal({
   useEffect(() => {
     if (!isOpen) return;
     startTransition(() => {
+      setIsSubmitting(false);
+      setIsPublishing(false);
       if (editPost) {
         setContent(editPost.caption);
         setPlatform(editPost.platform);
@@ -350,13 +352,6 @@ export function CreatePostModal({
     getPostModalContextAction().then((data) => {
       if (data) setCtx(data);
     });
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setIsSubmitting(false);
-      setIsPublishing(false);
-    }
   }, [isOpen]);
 
   const resetForm = useCallback(() => {

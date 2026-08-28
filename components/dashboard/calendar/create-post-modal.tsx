@@ -21,7 +21,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Briefcase,
   CalendarIcon,
-  Camera,
   Clock,
   Globe,
   Heart,
@@ -39,6 +38,7 @@ import { toast } from "sonner";
 import { useIsClient } from "@/hooks/use-is-client";
 import { ImageUpload } from "./image-upload";
 import { PannablePreviewImage } from "./pannable-preview-image";
+import { InstagramFeedPreview } from "./instagram-feed-preview";
 import { toDatetimeLocalValue } from "@/lib/calendar-utils";
 import { DEFAULT_PREFERENCES, formatTimezoneLabel } from "@/lib/settings-utils";
 
@@ -146,43 +146,13 @@ function PostPreview({
 
   if (platform === "instagram") {
     return (
-      <div className="w-full max-w-[360px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col ui-transition">
-        <div className="p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-linear-to-tr from-yellow-400 via-red-500 to-pink-500 p-[2px] shrink-0">
-              <div className="w-full h-full bg-white rounded-full border-2 border-white flex items-center justify-center overflow-hidden">
-                <span className="font-bold text-gray-900 text-[10px]">
-                  {ctx.initials}
-                </span>
-              </div>
-            </div>
-            <span className="text-[13px] font-semibold text-gray-900 truncate">
-              {handle}
-            </span>
-          </div>
-          <Camera className="w-5 h-5 text-gray-400 shrink-0" />
-        </div>
-
-        <PreviewMedia previewUrl={previewUrl} variant="square" />
-
-        <div className="px-3 pt-3 pb-1 flex justify-between">
-          <div className="flex gap-4">
-            <Heart className="w-6 h-6 text-gray-900" />
-            <MessageCircle className="w-6 h-6 text-gray-900" />
-            <Send className="w-6 h-6 text-gray-900 -rotate-45 -mt-1" />
-          </div>
-          <div className="w-6 h-6 border-2 border-gray-900 rounded-sm" />
-        </div>
-
-        <div className="px-3 pb-4 pt-1 text-[13px] text-gray-900 leading-snug">
-          <span className="font-semibold mr-1.5">{handle}</span>
-          {content ? (
-            <span className="whitespace-pre-wrap">{content}</span>
-          ) : (
-            <span className="text-gray-400 italic">Write a caption...</span>
-          )}
-        </div>
-      </div>
+      <InstagramFeedPreview
+        handle={handle}
+        initials={ctx.initials}
+        avatarUrl={ctx.avatarUrl}
+        caption={content}
+        previewUrl={previewUrl}
+      />
     );
   }
 
@@ -300,6 +270,7 @@ const FALLBACK_CTX: PostModalContext = {
   displayName: "Your Brand",
   handle: "yourbrand",
   initials: "YB",
+  avatarUrl: null,
 };
 
 export function CreatePostModal({
@@ -712,7 +683,7 @@ export function CreatePostModal({
                       Live Preview
                     </h3>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Drag image to peek at crop · releases back on mouse up
+                      Feed frame follows 1:1 / 4:5 / 1.91:1 · drag image to peek at crop
                     </p>
                   </div>
                   <div className="flex-1 overflow-y-auto p-6 flex items-start justify-center dashboard-grid-bg">

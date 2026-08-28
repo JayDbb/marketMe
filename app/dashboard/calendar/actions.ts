@@ -18,11 +18,16 @@ import {
 } from '@/lib/services/post-lifecycle.service'
 import { runApprovedPostQueueingWorkflows } from '@/lib/services/workflow.service'
 import { rateLimitMessage } from '@/lib/rate-limit'
+import { listMirroredConnections } from '@/lib/services/social-connections.service'
+import { getSocialConnections, type RawSocialConnection } from '@/lib/services/marketing-ai.service'
+import { mapRawConnection, normalizeInstagramHandle } from '@/lib/social/oauth'
+import { hasRealInstagramHandle } from '@/lib/social/instagram-account'
 
 export type PostModalContext = {
   displayName: string
   handle: string
   initials: string
+  avatarUrl: string | null
 }
 
 export async function getPostModalContextAction(): Promise<PostModalContext | null> {
@@ -32,11 +37,64 @@ export async function getPostModalContextAction(): Promise<PostModalContext | nu
   const { data: profile } = await getBusinessProfileAction()
   const displayName = resolveDisplayName(user, profile)
   const email = user.email ?? ''
+  let handle = toSocialHandle(displayName, email)
+  let avatarUrl: string | null = user.image ?? null
+
+  if (profile?.id) {
+    try {
+      const mirrored = await listMirroredConnections(profile.id, user.id)
+      const igMirror = mirrored.find((c) => c.platform === 'instagram')
+      if (igMirror && hasRealInstagramHandle(igMirror.handle)) {
+        handle = normalizeInstagramHandle(igMirror.handle) || handle
+      }
+      if (igMirror?.avatarUrl) {
+        avatarUrl = igMirror.avatarUrl
+      }
+    } catch {
+      // Mirror is optional — fall back to business/user identity.
+    }
+
+    try {
+      const raw = await getSocialConnections(profile.id)
+      const remote = (Array.isArray(raw) ? raw : []).map((acc) => {
+        const extra = acc as RawSocialConnection & {
+          avatar_url?: string | null
+          profile_picture_url?: string | null
+          profile_image_url?: string | null
+        }
+        return mapRawConnection({
+          id: acc.account_id ?? acc.id,
+          platform: acc.platform,
+          handle: acc.handle,
+          account_url: acc.account_url,
+          connected_status: acc.connected_status,
+          instagram_user_id: acc.instagram_user_id,
+          facebook_page_id: acc.facebook_page_id,
+          created_at: acc.created_at,
+          avatar_url: extra.avatar_url,
+          profile_picture_url: extra.profile_picture_url,
+          profile_image_url: extra.profile_image_url,
+        })
+      })
+      const ig = remote.find(
+        (c) => c.platform === 'instagram' && c.status === 'connected'
+      )
+      if (ig && hasRealInstagramHandle(ig.handle)) {
+        handle = normalizeInstagramHandle(ig.handle) || handle
+      }
+      if (ig?.avatarUrl) {
+        avatarUrl = ig.avatarUrl
+      }
+    } catch {
+      // Publish API may be cold — keep mirror/user fallbacks.
+    }
+  }
 
   return {
     displayName,
-    handle: toSocialHandle(displayName, email),
+    handle,
     initials: getInitials(displayName),
+    avatarUrl,
   }
 }
 
